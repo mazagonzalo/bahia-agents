@@ -2,8 +2,8 @@
 
 ## Agente de Ventas
 
+- [ ] Reemplazar [URL_SITIO_BAHIA] con el dominio real cuando el sitio esté desplegado
 - [ ] Actualizar handles de redes sociales en el system prompt (Instagram, Facebook, WhatsApp de contacto)
-- [ ] Conectar al sitio web del club (bahiaclub.mx) para que el agente pueda referenciarlo
 - [ ] Agregar envío de fotos del club en el flujo de ventas (alberca, canchas, gym, restaurante)
 - [ ] Calibrar tono y respuestas con equipo de ventas de Bahía
 
