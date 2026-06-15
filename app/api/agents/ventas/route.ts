@@ -27,6 +27,7 @@ NUNCA:
 - Escribas párrafos largos`
 
 export async function POST(req: NextRequest) {
+  try {
   const { leadId, phone, text } = await req.json()
 
   // Cargar historial de conversación
@@ -67,4 +68,8 @@ export async function POST(req: NextRequest) {
   await supabase.rpc('increment_lead_score', { lead_id: leadId })
 
   return NextResponse.json({ reply })
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
 }
