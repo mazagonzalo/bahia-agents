@@ -12,8 +12,9 @@
 ## Agente de Tendencias
 
 - [ ] Conectar a WhatsApp para que notifique al admin con las tendencias del día
-- [ ] Conectar a Instagram para analizar tendencias en redes (hashtags, engagement, contenido viral de la zona)
-- [ ] Conectar a Facebook Ad Library para ver qué están pautando los competidores
+- [ ] Conectar a Instagram Graph API para analizar métricas reales de @bahiaclub.mx (reach, saves, shares por instalación)
+- [ ] Conectar a Meta Ads Library con tokens reales (META_APP_ID + META_APP_SECRET) — esperar acceso a cuenta de Bahía
+- [ ] Agregar LINKFOXAGENT_API_KEY en Vercel para activar Google Trends real
 
 ## Agente de Contenido
 
