@@ -349,21 +349,23 @@ export default function Dashboard() {
   async function generate() {
     setGenerating(true)
     await fetch('/api/agents/tendencias')
-    setTimeout(() => {
-      setGenerating(false)
-      const poll = setInterval(async () => {
+    const startedAt = new Date().toISOString()
+    const poll = setInterval(async () => {
+      try {
         const res = await fetch('/api/agents/tendencias/report')
         if (res.ok) {
           const data = await res.json()
-          if (!generatedAt || data.generatedAt > generatedAt) {
+          if (data.generatedAt > startedAt) {
             setReport(data.report)
             setGeneratedAt(data.generatedAt)
+            setGenerating(false)
             clearInterval(poll)
           }
         }
-      }, 20000)
-      setTimeout(() => clearInterval(poll), 300000)
-    }, 2000)
+      } catch { /* sigue intentando */ }
+    }, 10000)
+    // timeout de seguridad: 6 minutos
+    setTimeout(() => { clearInterval(poll); setGenerating(false) }, 360000)
   }
 
   const timeAgo = generatedAt
