@@ -11,6 +11,10 @@
 
 ## Agente de Tendencias
 
+- [ ] Conectar a WhatsApp para que notifique al admin con las tendencias del día
+- [ ] Conectar a Instagram para analizar tendencias en redes (hashtags, engagement, contenido viral de la zona)
+- [ ] Conectar a Facebook Ad Library para ver qué están pautando los competidores
+
 ## Agente de Contenido
 
 ## Agente Meta Ads
