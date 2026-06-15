@@ -9,10 +9,8 @@ const isDev = process.env.NODE_ENV === 'development'
 export async function POST(req: NextRequest) {
   const { notifyAdmin = true } = await req.json().catch(() => ({}))
   if (isDev) {
-    // En desarrollo: corre directo (sin after), responde cuando termina
     return runTendencias(notifyAdmin)
   }
-  // En producción: background con after()
   const { after } = await import('next/server')
   after(() => runTendencias(notifyAdmin))
   return NextResponse.json({ status: 'processing', readAt: '/api/agents/tendencias/report' })
@@ -99,7 +97,6 @@ async function metaAdsLibrary(searchTerms: string[]): Promise<string> {
   if (!appId || !appSecret) return ''
 
   try {
-    // App token (no expira, no requiere usuario)
     const tokenRes = await fetch(
       `https://graph.facebook.com/oauth/access_token?client_id=${appId}&client_secret=${appSecret}&grant_type=client_credentials`
     )
@@ -107,7 +104,6 @@ async function metaAdsLibrary(searchTerms: string[]): Promise<string> {
     const token: string = tokenData.access_token
     if (!token) return ''
 
-    // Buscar anuncios activos por cada término en México
     const searches = await Promise.all(
       searchTerms.map(async term => {
         const params = new URLSearchParams({
@@ -146,41 +142,29 @@ async function metaAdsLibrary(searchTerms: string[]): Promise<string> {
 
 const HOOK_PATTERNS_CONTEXT = `
 PATRONES DE HOOK VIRAL (selecciona el más adecuado para cada idea):
-1. Proxy Learning: "Analicé [N] para que no tengas que hacerlo. Estos son los patrones que nadie menciona"
+1. Proxy Learning: "Analicé [N] para que no tengas que hacerlo."
 2. Authority Credibility: "Después de [logro real], lo que nadie te dice sobre [tema]"
-3. Cautionary Tale: "Cometí [error] y [consecuencia]. Aquí lo que aprendí"
+3. Cautionary Tale: "Cometí [error] y [consecuencia]."
 4. Analysis-Based: "Analicé exactamente [N] [items]. Cero usaban [táctica común]"
 5. Achievement with Constraint: "Cómo [logro] en [tiempo] sin [recurso obvio]"
 6. Steal My Process: "Roba mi proceso para [resultado específico]"
-7. Myth-Busting: "El mayor mito sobre [tema] está completamente al revés"
-8. Opposite/Contrarian: "Todos dicen [X]. Hice lo contrario y [resultado concreto]"
-9. You're Losing: "Estás [perdiendo/desperdiciando] [métrica específica] por [acción común]"
-10. Tiny Change, Big Impact: "Un cambio de [cosa pequeña] puede [resultado desproporcionado]"
-11. Behind-the-Scenes Testing: "Pasé [tiempo] probando [X] para que veas el resultado real"
-12. The Unexpected: "Lo único que tienen en común todos los [grupo exitoso]"
+7. Myth-Busting: "El mayor mito sobre [tema] está al revés"
+8. Opposite/Contrarian: "Todos dicen [X]. Hice lo contrario y [resultado]"
+9. You're Losing: "Estás perdiendo [métrica] por [acción común]"
+10. Tiny Change, Big Impact: "Un cambio de [cosa] puede [resultado]"
+11. Behind-the-Scenes: "Pasé [tiempo] probando [X] para que veas"
+12. The Unexpected: "Lo único en común de todos los [grupo exitoso]"
 
-TRIGGER WORDS (integra 1-2 por hook de forma natural):
-- Insider: secretamente, revelado, descubierto, oculto, filtrado, ignorado, lo que nadie dice
-- Helper (pérdida): perdiendo, desperdiciando, destruyendo, drenando, sacrificando
-- Thinker (contrarian): al revés, paradoja, mito, contraintuitivo, error, ilusión
-- Amplifiers: todos, nadie, cero, exactamente, completamente, literalmente, cada
-
-REGLAS DEL HOOK: Números específicos > vaguedad. Sin emojis. Activo y presente. Máx 2 líneas.
+TRIGGER WORDS: secretamente, revelado, oculto, perdiendo, al revés, mito, todos, nadie, exactamente
+REGLAS: Sin emojis. Activo y presente. Máx 2 líneas.
 `
 
 const COPYWRITING_CONTEXT = `
-FRAMEWORKS DE COPY (aplica uno por idea según el objetivo):
-- PAS (Problem → Agitation → Solution): para contenido de conversión o urgencia
-- AIDA (Attention → Interest → Desire → Action): para contenido de descubrimiento y awareness
-- BAB (Before → After → Bridge): para testimonios, transformaciones y resultados
+FRAMEWORKS: PAS (Problem→Agitation→Solution) · AIDA (Attention→Interest→Desire→Action) · BAB (Before→After→Bridge)
 `
 
 const REPURPOSING_CONTEXT = `
-ADAPTACIÓN POR PLATAFORMA (para cada idea, especifica cómo cambia en cada formato):
-- Reel (IG/FB): hook visual en 1-3s, máx 30-60s, subtítulos quemados, música trending
-- TikTok: texto en pantalla en los primeros 2s, tono más relajado y directo, sin producción excesiva
-- Historia (IG Stories): texto mínimo, sticker de pregunta o desliza, duración 5-7s por slide
-- Carrusel: slide 1 = hook puro, slides 2-6 = desarrollo, slide final = CTA con link en bio
+PLATAFORMAS: Reel (hook 1-3s, 30-60s, subtítulos) · TikTok (texto primeros 2s, tono relajado) · Stories (texto mínimo, 5-7s/slide) · Carrusel (slide 1=hook, 2-6=desarrollo, final=CTA)
 `
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -190,183 +174,90 @@ async function runTendencias(notifyAdmin: boolean) {
   const now = new Date()
   const mes = now.toLocaleString('es-MX', { month: 'long', year: 'numeric' })
 
-  // 3 consultas fusionadas en paralelo — de 6 a 3 para reducir tiempo de ~2min a ~20s
   const keywords = ['padel', 'pickleball', 'gym', 'tenis', 'club deportivo']
   const adsTerms = ['pádel Vallarta', 'club deportivo Puerto Vallarta', 'pickleball México', 'gym membresía Nayarit']
 
   const [marketRaw, contentRaw, audienceRaw, metaAdsRaw, ...trendsData] = await Promise.all([
-    // Q1 — Tendencias + Estacionalidad + Competencia (fusionadas)
     perplexityAsk(
       `Responde estas 3 preguntas sobre ${region} en ${mes} 2026, separadas con ---:
 
-1. TENDENCIAS: ¿Qué 5 temas de deportes, vida activa y lifestyle están en tendencia ESTA SEMANA en la zona? Incluye señales reales (búsquedas, menciones, engagement).
+1. TENDENCIAS: 3 temas de deportes/lifestyle en tendencia ESTA SEMANA en la zona. Señales reales.
 
-2. ESTACIONALIDAD: Volumen de turistas en ${mes}, origen predominante, perfil demográfico, duración de estadía, cuándo decae el flujo, qué actividades deportivas buscan.
+2. ESTACIONALIDAD: Volumen de turistas en ${mes}, origen, perfil, cuándo decae.
 
-3. COMPETENCIA: ¿Qué clubes deportivos, gyms o centros de fitness existen en Riviera Nayarit, Bahía de Banderas o Puerto Vallarta que compitan con un club premium de pádel y pickleball? ¿Qué mensajes o contenido están publicando en redes?`,
+3. COMPETENCIA: 2-3 clubes que compitan con un club premium de pádel y pickleball en la zona. Mensajes que usan.`,
       'sonar-pro'
     ),
-    // Q2 — Hashtags + Patrones virales (fusionadas)
     perplexityAsk(
       `Responde estas 2 preguntas, separadas con ---:
 
-1. HASHTAGS: Los hashtags con mejor rendimiento AHORA en Instagram y TikTok para pádel, pickleball, tenis, gym y club deportivo en México. Separa en: masivos (>1M), nicho (10k-500k), locales de Puerto Vallarta/Nayarit. 5 por categoría.
+1. HASHTAGS: Top hashtags en Instagram/TikTok para pádel, pickleball, gym en México ahora. 4 masivos, 4 nicho, 3 locales Vallarta/Nayarit.
 
-2. VIRALES: ¿Qué tipo de videos están viralizando en Reels y TikTok en ${mes} 2026 para cuentas pequeñas (<10k seguidores) en pádel, gym, pickleball y lifestyle deportivo? Para cada patrón: primeros 3 segundos, duración, emoción que activa, por qué funciona. 3-4 patrones.`,
+2. VIRALES: 2 tipos de videos que viralizan en Reels/TikTok en ${mes} 2026 para cuentas <10k seguidores en deportes/lifestyle. Primeros 3 segundos, emoción que activa.`,
       'sonar-pro'
     ),
-    // Q3 — Audiencia: dónde vive online
     perplexityAsk(
-      `¿Qué cuentas de Instagram, YouTube o TikTok siguen los aficionados al pádel, pickleball y gym en México? ¿Qué tipo de contenido consumen más? ¿Qué influencers o creadores tienen mayor afinidad con este segmento? Señales concretas de comportamiento.`,
-      'sonar-pro'
+      `¿Qué 3-4 cuentas siguen aficionados al pádel/pickleball/gym en México? ¿Qué tipo de contenido consumen más? Respuesta breve.`,
+      'sonar'
     ),
-    // Q4 — Meta Ads Library (solo si hay tokens)
     metaAdsLibrary(adsTerms),
-    // Q5 — Google Trends por keyword (solo si hay API key)
     ...keywords.map(k => googleTrend(k)),
   ])
 
   const googleTrendsResults = trendsData.filter(Boolean) as { keyword: string; avgScore: number; trend: string }[]
 
-  // Separar las secciones fusionadas
+  // Truncar inputs de Perplexity para no saturar el contexto de Claude
+  const trunc = (s: string, max = 1500) => s.length > max ? s.slice(0, max) + '…' : s
+
   const [marketQ1, marketQ2, marketQ3] = marketRaw.split(/---+/).map(s => s.trim())
   const [contentQ1, contentQ2] = contentRaw.split(/---+/).map(s => s.trim())
-  const socialTrends = marketQ1 ?? marketRaw
-  const seasonalityRaw = marketQ2 ?? ''
-  const competitiveRaw = marketQ3 ?? ''
-  const hashtagsRaw = contentQ1 ?? contentRaw
-  const viralPatternsRaw = contentQ2 ?? ''
+  const socialTrends = trunc(marketQ1 ?? marketRaw)
+  const seasonalityRaw = trunc(marketQ2 ?? '')
+  const competitiveRaw = trunc(marketQ3 ?? '')
+  const hashtagsRaw = trunc(contentQ1 ?? contentRaw)
+  const viralPatternsRaw = trunc(contentQ2 ?? '')
 
-  // ─── Claude genera el briefing completo con todos los skills incorporados ───
+  // ─── Claude genera el briefing ────────────────────────────────────────────────
 
+  const generatedAt = now.toISOString()
   const prompt = `Eres el estratega de marketing de Bahía Social Sports Club (club deportivo premium en Nuevo Vallarta, Nayarit).
 
-INSTALACIONES: 8 canchas de pádel techadas, 8 de pickleball, 3 de tenis dura, 3 de arcilla, alberca exterior con palmeras, gym funcional, restaurante panorámico 2 pisos, vestidores premium. DIFERENCIADOR ÚNICO: ríos naturales con cocodrilos, tortugas y garzas dentro del predio.
-MEMBRESÍAS: Familiar $6,500/mes, Pareja $4,500/mes, Individual $2,500/mes, Solo Gym $1,800/mes.
+INSTALACIONES: pádel, pickleball, tenis, alberca, gym, restaurante panorámico. DIFERENCIADOR: ríos con cocodrilos, tortugas y garzas dentro del predio.
+MEMBRESÍAS: Familiar $6,500 · Pareja $4,500 · Individual $2,500 · Solo Gym $1,800 (mensual).
 
 ${HOOK_PATTERNS_CONTEXT}
-
 ${COPYWRITING_CONTEXT}
-
 ${REPURPOSING_CONTEXT}
 
-INSTRUCCIÓN CRÍTICA: Todo lo que generes debe derivarse de los datos de investigación que te doy. No apliques reglas fijas de horarios o días. Si la investigación respalda algo, di por qué.
+REGLA: Todo deriva de los datos de investigación. Sin reglas fijas de horarios.
 
-Devuelve SOLO este JSON (sin markdown, sin texto adicional):
-{
-  "generatedAt": "${now.toISOString()}",
-  "period": "${mes}",
-  "trends": [
-    {
-      "topic": "nombre del tema",
-      "score": 85,
-      "angle": "cómo lo conecta Bahía concretamente",
-      "evidence": "dato de la investigación que lo respalda"
-    }
-  ],
-  "googleTrends": [
-    {
-      "keyword": "padel",
-      "avgScore": 72,
-      "trend": "subiendo",
-      "insight": "qué significa este dato para Bahía"
-    }
-  ],
-  "seasonality": {
-    "touristFlow": "volumen y origen este mes",
-    "dominantProfile": "perfil demográfico que más llega",
-    "peakWindow": "cuándo están y cuándo decae",
-    "localMarket": "estado del mercado residente local",
-    "insight": "oportunidad o riesgo clave de esta estacionalidad"
-  },
-  "strategy": {
-    "primarySegment": "segmento con mayor potencial esta semana según datos",
-    "secondarySegment": "segmento secundario",
-    "message": "ángulo de comunicación que más resuena ahora, 1 oración",
-    "avoid": "qué no hacer esta semana y por qué según los datos"
-  },
-  "competitive": {
-    "topCompetitors": ["nombre del competidor y su canal"],
-    "theirAngle": "qué mensaje o ángulo están usando ellos",
-    "gap": "qué no están haciendo ellos que Bahía puede capitalizar",
-    "counterPositioning": "cómo posicionar Bahía para ganarles en contenido"
-  },
-  "audienceWhere": {
-    "accounts": ["cuentas o creadores que sigue nuestra audiencia"],
-    "contentTypes": ["qué tipo de contenido consumen más"],
-    "ownHashtags": ["hashtags que usa la audiencia en sus propios posts"],
-    "insight": "oportunidad de canal o colaboración derivada de este análisis"
-  },
-  "hashtags": {
-    "masivos": ["#tag"],
-    "nicho": ["#tag"],
-    "locales": ["#tag"],
-    "mixRecomendado": "cuántos de cada tipo usar y por qué este mix funciona ahora"
-  },
-  "contentOpportunities": [
-    {
-      "instalacion": "espacio del club",
-      "oportunidad": "señal del mercado que la justifica",
-      "momento": "cuándo publicar según los datos",
-      "formatoIdeal": "formato específico y por qué",
-      "urgencia": 9
-    }
-  ],
-  "viralPatterns": [
-    {
-      "pattern": "nombre del patrón",
-      "description": "qué hace exactamente",
-      "whyItWorks": "mecanismo psicológico o algorítmico",
-      "adaptForBahia": "cómo aplicarlo en Bahía: qué mostrar, qué decir",
-      "differentiator": "qué diferenciador único de Bahía encaja aquí (cocodrilos, río, palmeras, etc.)"
-    }
-  ],
-  "contentIdeas": [
-    {
-      "title": "concepto del video o post",
-      "format": "Reel o Carrusel o Historia",
-      "hook": {
-        "text": "texto exacto del hook — primeros 3 segundos o primera línea",
-        "pattern": "nombre del patrón de hook usado (de la lista de 12)",
-        "triggerWords": ["palabra trigger usada"]
-      },
-      "copyStructure": {
-        "framework": "PAS o AIDA o BAB",
-        "step1": "primer elemento del framework aplicado a esta idea",
-        "step2": "segundo elemento",
-        "step3": "tercer elemento",
-        "cta": "llamada a la acción específica"
-      },
-      "platforms": {
-        "reel": "cómo adaptar para Reel de IG/FB",
-        "tiktok": "cómo adaptar para TikTok",
-        "stories": "cómo adaptar para IG Stories",
-        "carrusel": "estructura de slides si aplica"
-      },
-      "instalacion": "espacio del club",
-      "targetSegment": "a quién va dirigido",
-      "hashtags": ["#tag"],
-      "trendConnection": "qué tendencia o dato justifica publicar esto ahora",
-      "urgency": 9
-    }
-  ]
-}`
+LÍMITES CRÍTICOS — el JSON DEBE caber en 3000 tokens:
+- Máximo 3 trends, 3 googleTrends, 3 contentOpportunities, 2 viralPatterns, 3 contentIdeas
+- Cada campo de texto: máximo 15 palabras (una oración)
+- hook.text: máximo 12 palabras
+- step1/step2/step3: máximo 10 palabras cada uno
+- triggerWords: máximo 2 elementos
+- hashtags por idea: máximo 4 tags
+- platforms.reel/tiktok/stories/carrusel: máximo 8 palabras cada uno
+
+Devuelve ÚNICAMENTE el JSON a continuación, sin markdown, sin texto antes ni después:
+{"generatedAt":"${generatedAt}","period":"${mes}","trends":[{"topic":"string","score":0,"angle":"string","evidence":"string"}],"googleTrends":[{"keyword":"string","avgScore":0,"trend":"string","insight":"string"}],"seasonality":{"touristFlow":"string","dominantProfile":"string","peakWindow":"string","localMarket":"string","insight":"string"},"strategy":{"primarySegment":"string","secondarySegment":"string","message":"string","avoid":"string"},"competitive":{"topCompetitors":["string"],"theirAngle":"string","gap":"string","counterPositioning":"string"},"audienceWhere":{"accounts":["string"],"contentTypes":["string"],"ownHashtags":["#tag"],"insight":"string"},"hashtags":{"masivos":["#tag"],"nicho":["#tag"],"locales":["#tag"],"mixRecomendado":"string"},"contentOpportunities":[{"instalacion":"string","oportunidad":"string","momento":"string","formatoIdeal":"string","urgencia":0}],"viralPatterns":[{"pattern":"string","description":"string","whyItWorks":"string","adaptForBahia":"string","differentiator":"string"}],"contentIdeas":[{"title":"string","format":"Reel","hook":{"text":"string","pattern":"string","triggerWords":["string"]},"copyStructure":{"framework":"PAS","step1":"string","step2":"string","step3":"string","cta":"string"},"platforms":{"reel":"string","tiktok":"string","stories":"string","carrusel":"string"},"instalacion":"string","targetSegment":"string","hashtags":["#tag"],"trendConnection":"string","urgency":0}]}`
 
   const consolidated = await ask(prompt, [{
     role: 'user',
     content: [
-      `TENDENCIAS DEPORTIVAS/LIFESTYLE ESTA SEMANA:\n${socialTrends}`,
-      `CONTEXTO ESTACIONAL ${mes.toUpperCase()}:\n${seasonalityRaw}`,
-      `HASHTAGS EFECTIVOS AHORA:\n${hashtagsRaw}`,
-      `PATRONES VIRALES EN CUENTAS CHICAS:\n${viralPatternsRaw}`,
-      `INTELIGENCIA COMPETITIVA LOCAL (Perplexity):\n${competitiveRaw}`,
-      metaAdsRaw ? `ANUNCIOS ACTIVOS DE COMPETIDORES EN META (datos reales de Ads Library):\n${metaAdsRaw}` : '',
-      `DÓNDE ESTÁ LA AUDIENCIA ONLINE:\n${audienceRaw}`,
+      `TENDENCIAS ESTA SEMANA:\n${socialTrends}`,
+      `ESTACIONALIDAD ${mes.toUpperCase()}:\n${seasonalityRaw}`,
+      `HASHTAGS EFECTIVOS:\n${hashtagsRaw}`,
+      `PATRONES VIRALES:\n${viralPatternsRaw}`,
+      `COMPETENCIA LOCAL:\n${competitiveRaw}`,
+      metaAdsRaw ? `META ADS COMPETIDORES:\n${metaAdsRaw}` : '',
+      `AUDIENCIA ONLINE:\n${trunc(audienceRaw, 800)}`,
       googleTrendsResults.length
-        ? `GOOGLE TRENDS (últimos 30 días, México):\n${googleTrendsResults.map(t => `${t.keyword}: score ${t.avgScore}/100, tendencia ${t.trend}`).join('\n')}`
+        ? `GOOGLE TRENDS MX:\n${googleTrendsResults.map(t => `${t.keyword}: ${t.avgScore}/100 (${t.trend})`).join(', ')}`
         : '',
     ].filter(Boolean).join('\n\n---\n\n'),
-  }], 8000)
+  }], 4000)
 
   type Trend = { topic: string; score: number; angle: string; evidence: string }
   type GTrend = { keyword: string; avgScore: number; trend: string; insight: string }
@@ -394,10 +285,12 @@ Devuelve SOLO este JSON (sin markdown, sin texto adicional):
 
   let analysis: Analysis | null = null
   try {
-    const clean = consolidated.replace(/```json|```/g, '').trim()
-    analysis = JSON.parse(clean)
+    const start = consolidated.indexOf('{')
+    const end = consolidated.lastIndexOf('}')
+    if (start === -1 || end === -1) throw new Error('no JSON found')
+    analysis = JSON.parse(consolidated.slice(start, end + 1))
   } catch {
-    return NextResponse.json({ error: 'Error parsing Claude response', raw: consolidated.slice(0, 500) }, { status: 500 })
+    return NextResponse.json({ error: 'Error parsing Claude response', raw: consolidated.slice(0, 3000) }, { status: 500 })
   }
 
   if (!analysis) return NextResponse.json({ error: 'Análisis vacío' }, { status: 500 })
