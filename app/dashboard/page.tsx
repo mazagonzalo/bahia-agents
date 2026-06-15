@@ -348,24 +348,43 @@ export default function Dashboard() {
 
   async function generate() {
     setGenerating(true)
-    await fetch('/api/agents/tendencias')
-    const startedAt = new Date().toISOString()
-    const poll = setInterval(async () => {
-      try {
-        const res = await fetch('/api/agents/tendencias/report')
-        if (res.ok) {
-          const data = await res.json()
-          if (data.generatedAt > startedAt) {
-            setReport(data.report)
-            setGeneratedAt(data.generatedAt)
-            setGenerating(false)
-            clearInterval(poll)
-          }
+    try {
+      // Espera la respuesta — en local tarda ~3 min pero completa
+      // En producción recibe {status:"processing"} en <1s
+      const res = await fetch('/api/agents/tendencias', {
+        method: 'GET',
+        signal: AbortSignal.timeout(360000), // 6 min máximo
+      })
+      const data = await res.json()
+
+      if (data.status === 'processing') {
+        // Producción: hacer polling cada 15s
+        const startedAt = new Date().toISOString()
+        const poll = setInterval(async () => {
+          try {
+            const r = await fetch('/api/agents/tendencias/report')
+            if (r.ok) {
+              const d = await r.json()
+              if (d.generatedAt > startedAt) {
+                setReport(d.report); setGeneratedAt(d.generatedAt)
+                setGenerating(false); clearInterval(poll)
+              }
+            }
+          } catch { /* sigue */ }
+        }, 15000)
+        setTimeout(() => { clearInterval(poll); setGenerating(false) }, 360000)
+      } else {
+        // Local: el reporte ya viene en la respuesta, lo leemos del endpoint
+        const r = await fetch('/api/agents/tendencias/report')
+        if (r.ok) {
+          const d = await r.json()
+          setReport(d.report); setGeneratedAt(d.generatedAt)
         }
-      } catch { /* sigue intentando */ }
-    }, 10000)
-    // timeout de seguridad: 6 minutos
-    setTimeout(() => { clearInterval(poll); setGenerating(false) }, 360000)
+        setGenerating(false)
+      }
+    } catch {
+      setGenerating(false)
+    }
   }
 
   const timeAgo = generatedAt

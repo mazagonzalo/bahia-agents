@@ -1,20 +1,28 @@
 export const dynamic = 'force-dynamic'
-import { after } from 'next/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { ask } from '@/lib/claude'
 import { sendText } from '@/lib/whatsapp'
 
+const isDev = process.env.NODE_ENV === 'development'
+
 export async function POST(req: NextRequest) {
-  const { notifyAdmin = true, sync = false } = await req.json().catch(() => ({}))
-  // sync=true solo para pruebas locales donde no hay timeout
-  if (sync) return runTendencias(notifyAdmin)
+  const { notifyAdmin = true } = await req.json().catch(() => ({}))
+  if (isDev) {
+    // En desarrollo: corre directo (sin after), responde cuando termina
+    return runTendencias(notifyAdmin)
+  }
+  // En producción: background con after()
+  const { after } = await import('next/server')
   after(() => runTendencias(notifyAdmin))
   return NextResponse.json({ status: 'processing', readAt: '/api/agents/tendencias/report' })
 }
 
 export async function GET() {
-  // Cron: dispara en background y responde 200 inmediatamente
+  if (isDev) {
+    return runTendencias(true)
+  }
+  const { after } = await import('next/server')
   after(() => runTendencias(true))
   return NextResponse.json({ status: 'processing', readAt: '/api/agents/tendencias/report' })
 }
