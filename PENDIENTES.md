@@ -22,6 +22,13 @@
 
 ## Agente de Seguimiento (Instagram)
 
+## Dashboard y dominio
+
+- [ ] Unificar todos los agentes en un solo dashboard — Ventas, Tendencias, Contenido, Secretaria, Meta Ads en una sola página con navegación por secciones
+- [ ] Aplicar branding de Bahía al dashboard: logo, paleta de colores, tipografía Cormorant Garamond/Bodoni
+- [ ] Conectar dominio propio (ej: admin.bahiaclub.mx o agents.bahiaclub.mx)
+- [ ] Proteger con autenticación para que solo el equipo de Bahía pueda acceder
+
 ## General
 
 - [ ] Activar crons automáticos (requiere Vercel Pro)
