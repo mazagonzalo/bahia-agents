@@ -357,7 +357,7 @@ Devuelve SOLO este JSON (sin markdown, sin texto adicional):
         ? `GOOGLE TRENDS (últimos 30 días, México):\n${googleTrendsResults.map(t => `${t.keyword}: score ${t.avgScore}/100, tendencia ${t.trend}`).join('\n')}`
         : '',
     ].filter(Boolean).join('\n\n---\n\n'),
-  }])
+  }], 8000)
 
   type Trend = { topic: string; score: number; angle: string; evidence: string }
   type GTrend = { keyword: string; avgScore: number; trend: string; insight: string }
