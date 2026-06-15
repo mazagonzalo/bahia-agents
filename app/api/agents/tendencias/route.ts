@@ -1,16 +1,22 @@
 export const dynamic = 'force-dynamic'
+import { after } from 'next/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { ask } from '@/lib/claude'
 import { sendText } from '@/lib/whatsapp'
 
 export async function POST(req: NextRequest) {
-  const { notifyAdmin = true } = await req.json().catch(() => ({}))
-  return runTendencias(notifyAdmin)
+  const { notifyAdmin = true, sync = false } = await req.json().catch(() => ({}))
+  // sync=true solo para pruebas locales donde no hay timeout
+  if (sync) return runTendencias(notifyAdmin)
+  after(() => runTendencias(notifyAdmin))
+  return NextResponse.json({ status: 'processing', readAt: '/api/agents/tendencias/report' })
 }
 
 export async function GET() {
-  return runTendencias(true)
+  // Cron: dispara en background y responde 200 inmediatamente
+  after(() => runTendencias(true))
+  return NextResponse.json({ status: 'processing', readAt: '/api/agents/tendencias/report' })
 }
 
 // ─── Perplexity ──────────────────────────────────────────────────────────────
@@ -176,57 +182,52 @@ async function runTendencias(notifyAdmin: boolean) {
   const now = new Date()
   const mes = now.toLocaleString('es-MX', { month: 'long', year: 'numeric' })
 
-  // Todas las consultas externas en paralelo
+  // 3 consultas fusionadas en paralelo — de 6 a 3 para reducir tiempo de ~2min a ~20s
   const keywords = ['padel', 'pickleball', 'gym', 'tenis', 'club deportivo']
   const adsTerms = ['pádel Vallarta', 'club deportivo Puerto Vallarta', 'pickleball México', 'gym membresía Nayarit']
 
-  const [
-    socialTrends,
-    seasonalityRaw,
-    hashtagsRaw,
-    viralPatternsRaw,
-    competitiveRaw,
-    audienceRaw,
-    metaAdsRaw,
-    ...trendsData
-  ] = await Promise.all([
-    // 1. Tendencias deportivas/lifestyle — sonar-pro
+  const [marketRaw, contentRaw, audienceRaw, metaAdsRaw, ...trendsData] = await Promise.all([
+    // Q1 — Tendencias + Estacionalidad + Competencia (fusionadas)
     perplexityAsk(
-      `¿Qué temas de deportes, vida activa y lifestyle están en tendencia ESTA SEMANA en ${region}? Dame 5 temas concretos con señales reales de interés (búsquedas, engagement, menciones). Sé específico, no genérico.`,
+      `Responde estas 3 preguntas sobre ${region} en ${mes} 2026, separadas con ---:
+
+1. TENDENCIAS: ¿Qué 5 temas de deportes, vida activa y lifestyle están en tendencia ESTA SEMANA en la zona? Incluye señales reales (búsquedas, menciones, engagement).
+
+2. ESTACIONALIDAD: Volumen de turistas en ${mes}, origen predominante, perfil demográfico, duración de estadía, cuándo decae el flujo, qué actividades deportivas buscan.
+
+3. COMPETENCIA: ¿Qué clubes deportivos, gyms o centros de fitness existen en Riviera Nayarit, Bahía de Banderas o Puerto Vallarta que compitan con un club premium de pádel y pickleball? ¿Qué mensajes o contenido están publicando en redes?`,
       'sonar-pro'
     ),
-    // 2. Estacionalidad — sonar-pro
+    // Q2 — Hashtags + Patrones virales (fusionadas)
     perplexityAsk(
-      `Para ${mes} en Puerto Vallarta y Riviera Nayarit: volumen aproximado de turistas, origen (EUA, Canadá, México), perfil demográfico dominante, duración promedio de estadía, cuándo decae el flujo, y qué actividades deportivas o de bienestar buscan. Datos concretos.`,
+      `Responde estas 2 preguntas, separadas con ---:
+
+1. HASHTAGS: Los hashtags con mejor rendimiento AHORA en Instagram y TikTok para pádel, pickleball, tenis, gym y club deportivo en México. Separa en: masivos (>1M), nicho (10k-500k), locales de Puerto Vallarta/Nayarit. 5 por categoría.
+
+2. VIRALES: ¿Qué tipo de videos están viralizando en Reels y TikTok en ${mes} 2026 para cuentas pequeñas (<10k seguidores) en pádel, gym, pickleball y lifestyle deportivo? Para cada patrón: primeros 3 segundos, duración, emoción que activa, por qué funciona. 3-4 patrones.`,
       'sonar-pro'
     ),
-    // 3. Hashtags — sonar-pro
+    // Q3 — Audiencia: dónde vive online
     perplexityAsk(
-      `Hashtags con MEJOR rendimiento en Instagram y TikTok AHORA (${mes} 2026) para contenido de pádel, pickleball, tenis, gym, club deportivo y lifestyle activo en México. Separa en: masivos (>1M posts), nicho (10k-500k, alta tasa de descubrimiento), locales de Puerto Vallarta/Nayarit. 6-8 por categoría.`,
+      `¿Qué cuentas de Instagram, YouTube o TikTok siguen los aficionados al pádel, pickleball y gym en México? ¿Qué tipo de contenido consumen más? ¿Qué influencers o creadores tienen mayor afinidad con este segmento? Señales concretas de comportamiento.`,
       'sonar-pro'
     ),
-    // 4. Patrones virales — sonar-pro-search (modelo avanzado, análisis multi-step)
-    perplexityAsk(
-      `Analiza qué videos están viralizando en Instagram Reels y TikTok en ${mes} 2026 para cuentas pequeñas (<10,000 seguidores) en pádel, pickleball, gym, alberca, lifestyle deportivo y clubs deportivos en México y Latinoamérica. Para cada patrón describe: los primeros 3 segundos exactos, duración, tipo de audio, qué muestra, qué emoción activa, y por qué funciona algorítmicamente. 4-5 patrones con ejemplos reales.`,
-      'sonar-pro-search'
-    ),
-    // 5. Inteligencia competitiva — sonar-pro
-    perplexityAsk(
-      `¿Qué clubes deportivos, gyms o centros de fitness compiten con un club de pádel y pickleball premium en Riviera Nayarit, Bahía de Banderas o Puerto Vallarta? ¿Qué tipo de contenido publican en Instagram o TikTok? ¿Qué mensajes, promociones o ángulos están usando actualmente? ¿Qué está funcionando bien para ellos? Dame nombres concretos y ejemplos de su contenido si los tienes.`,
-      'sonar-pro'
-    ),
-    // 6. Investigación de audiencia — sonar-pro
-    perplexityAsk(
-      `¿Qué cuentas de Instagram, YouTube o TikTok siguen los aficionados al pádel, pickleball, gym y deportes de raqueta en México? ¿Qué hashtags usan en sus propios posts? ¿Qué tipo de contenido consumen más — tutoriales, humor, lifestyle, resultados físicos, torneos? ¿Qué influencers o creadores tienen mayor afinidad con este segmento en México? Dame señales concretas de comportamiento, no generalidades.`,
-      'sonar-pro'
-    ),
-    // 7. Meta Ads Library — anuncios activos de competidores en MX
+    // Q4 — Meta Ads Library (solo si hay tokens)
     metaAdsLibrary(adsTerms),
-    // 8. Google Trends real para cada keyword — linkfox
+    // Q5 — Google Trends por keyword (solo si hay API key)
     ...keywords.map(k => googleTrend(k)),
   ])
 
   const googleTrendsResults = trendsData.filter(Boolean) as { keyword: string; avgScore: number; trend: string }[]
+
+  // Separar las secciones fusionadas
+  const [marketQ1, marketQ2, marketQ3] = marketRaw.split(/---+/).map(s => s.trim())
+  const [contentQ1, contentQ2] = contentRaw.split(/---+/).map(s => s.trim())
+  const socialTrends = marketQ1 ?? marketRaw
+  const seasonalityRaw = marketQ2 ?? ''
+  const competitiveRaw = marketQ3 ?? ''
+  const hashtagsRaw = contentQ1 ?? contentRaw
+  const viralPatternsRaw = contentQ2 ?? ''
 
   // ─── Claude genera el briefing completo con todos los skills incorporados ───
 
