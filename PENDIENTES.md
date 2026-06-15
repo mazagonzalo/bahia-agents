@@ -40,6 +40,11 @@
 - [ ] Construir webhook de Instagram para recibir DMs y comentarios en tiempo real
 - [ ] Probar Agente de Ventas vía Instagram DM real
 
+## Infraestructura (cuando se vaya a producción)
+
+- [ ] Evaluar Railway o Render como alternativa a Vercel — servidores siempre encendidos sin timeout, ~$5-7/mes
+- [ ] O integrar Trigger.dev para tareas largas (agente de tendencias, crons) — se queda en Vercel para todo lo demás, Trigger.dev corre el trabajo pesado, tier gratis hasta 50k tareas/mes
+
 ## General
 
 - [ ] Conectar Instagram DMs como canal principal de leads
