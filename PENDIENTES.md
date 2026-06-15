@@ -25,12 +25,22 @@
 ## Dashboard y dominio
 
 - [ ] Unificar todos los agentes en un solo dashboard — Ventas, Tendencias, Contenido, Secretaria, Meta Ads en una sola página con navegación por secciones
-- [ ] Aplicar branding de Bahía al dashboard: logo, paleta de colores, tipografía Cormorant Garamond/Bodoni
-- [ ] Conectar dominio propio (ej: admin.bahiaclub.mx o agents.bahiaclub.mx)
+- [ ] Rediseñar dashboard con branding de Bahía: logo, paleta (verde/negro/dorado), tipografía Cormorant Garamond/Bodoni Moda
+- [ ] Conectar dominio propio (ej: admin.bahiaclub.mx) con todos los agentes conviviendo
 - [ ] Proteger con autenticación para que solo el equipo de Bahía pueda acceder
+- [ ] Subir a Vercel Pro para que el dashboard funcione en producción sin timeout (agente de tendencias tarda ~3 min)
+- [ ] Activar crons automáticos en Vercel Pro — tendencias corre sola todos los días a las 8am sin tocar nada
+
+## Meta (esperar acceso a cuenta de Bahía)
+
+- [ ] Crear app en Meta for Developers con cuenta de Bahía
+- [ ] Conectar WhatsApp Business API (tokens: WHATSAPP_TOKEN, WHATSAPP_PHONE_ID, ADMIN_PHONE)
+- [ ] Conectar Instagram Graph API (@bahiaclub.mx)
+- [ ] Conectar Meta Ads Library y Marketing API (META_APP_ID, META_APP_SECRET, META_AD_ACCOUNT_ID)
+- [ ] Construir webhook de Instagram para recibir DMs y comentarios en tiempo real
+- [ ] Probar Agente de Ventas vía Instagram DM real
 
 ## General
 
-- [ ] Activar crons automáticos (requiere Vercel Pro)
-- [ ] Conectar Instagram DMs como canal principal
+- [ ] Conectar Instagram DMs como canal principal de leads
 - [ ] Conectar WhatsApp como canal secundario
