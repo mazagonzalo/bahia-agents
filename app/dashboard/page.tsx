@@ -348,43 +348,33 @@ export default function Dashboard() {
 
   async function generate() {
     setGenerating(true)
-    try {
-      // Espera la respuesta — en local tarda ~3 min pero completa
-      // En producción recibe {status:"processing"} en <1s
-      const res = await fetch('/api/agents/tendencias', {
-        method: 'GET',
-        signal: AbortSignal.timeout(360000), // 6 min máximo
-      })
-      const data = await res.json()
+    const startedAt = new Date().toISOString()
 
-      if (data.status === 'processing') {
-        // Producción: hacer polling cada 15s
-        const startedAt = new Date().toISOString()
-        const poll = setInterval(async () => {
-          try {
-            const r = await fetch('/api/agents/tendencias/report')
-            if (r.ok) {
-              const d = await r.json()
-              if (d.generatedAt > startedAt) {
-                setReport(d.report); setGeneratedAt(d.generatedAt)
-                setGenerating(false); clearInterval(poll)
-              }
-            }
-          } catch { /* sigue */ }
-        }, 15000)
-        setTimeout(() => { clearInterval(poll); setGenerating(false) }, 360000)
-      } else {
-        // Local: el reporte ya viene en la respuesta, lo leemos del endpoint
+    // Dispara el agente sin esperar — tarda ~75s, no bloqueamos el UI
+    fetch('/api/agents/tendencias').catch(() => {})
+
+    // Polling cada 10s hasta encontrar un reporte más nuevo que startedAt
+    let attempts = 0
+    const poll = setInterval(async () => {
+      attempts++
+      try {
         const r = await fetch('/api/agents/tendencias/report')
         if (r.ok) {
           const d = await r.json()
-          setReport(d.report); setGeneratedAt(d.generatedAt)
+          if (d.generatedAt > startedAt) {
+            setReport(d.report)
+            setGeneratedAt(d.generatedAt)
+            setGenerating(false)
+            clearInterval(poll)
+            return
+          }
         }
+      } catch { /* sigue intentando */ }
+      if (attempts >= 42) { // 42 × 10s = 7 min máximo
         setGenerating(false)
+        clearInterval(poll)
       }
-    } catch {
-      setGenerating(false)
-    }
+    }, 10000)
   }
 
   const timeAgo = generatedAt
@@ -430,7 +420,7 @@ export default function Dashboard() {
           <div style={{ textAlign: 'center', padding: 80 }}>
             <div style={{ fontSize: 40, marginBottom: 16 }}>⚙️</div>
             <div style={{ color: C.text, fontSize: 16, fontWeight: 600 }}>Generando reporte</div>
-            <div style={{ color: C.muted, marginTop: 8 }}>Esto toma ~3 minutos. La página se actualizará sola.</div>
+            <div style={{ color: C.muted, marginTop: 8 }}>Esto toma ~90 segundos. La página se actualizará sola.</div>
           </div>
         )}
 
@@ -444,7 +434,7 @@ export default function Dashboard() {
 
         {generating && (
           <div style={{ background: C.accentSoft, border: `1px solid ${C.accent}44`, borderRadius: 12, padding: '14px 20px', marginBottom: 20, fontSize: 14, color: C.accent }}>
-            ⚙️ Reporte en proceso — tomará ~3 minutos. La página verificará cada 20 segundos.
+            ⚙️ Generando reporte — verifica cada 10 segundos, listo en ~90s.
           </div>
         )}
 
