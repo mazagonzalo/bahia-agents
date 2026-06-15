@@ -3,9 +3,9 @@
 ## Agente de Ventas
 
 - [ ] Reemplazar [URL_SITIO_BAHIA] con el dominio real cuando el sitio esté desplegado
-- [ ] Actualizar handles de redes sociales en el system prompt (Instagram, Facebook, WhatsApp de contacto)
 - [ ] Agregar envío de fotos del club en el flujo de ventas (alberca, canchas, gym, restaurante)
 - [ ] Calibrar tono y respuestas con equipo de ventas de Bahía
+- [ ] Llenar con toda la info posible del club: horarios, torneos, clases, instructores, eventos, reglas, proceso de inscripción, formas de pago, preguntas frecuentes, políticas de invitados
 
 ## Agente Secretaria
 
