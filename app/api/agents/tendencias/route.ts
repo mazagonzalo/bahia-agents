@@ -48,7 +48,8 @@ No incluyas nada más en tu respuesta, solo el JSON.`,
 
   let trends: { topic: string; score: number; angle: string }[] = []
   try {
-    trends = JSON.parse(consolidated)
+    const clean = consolidated.replace(/```json|```/g, '').trim()
+    trends = JSON.parse(clean)
   } catch {
     trends = [{ topic: 'deporte familiar', score: 70, angle: 'actividades para toda la familia en Bahía' }]
   }
