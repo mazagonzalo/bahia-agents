@@ -69,6 +69,65 @@ async function googleTrend(keyword: string): Promise<{ keyword: string; avgScore
   }
 }
 
+// ─── Meta Ads Library ────────────────────────────────────────────────────────
+
+type AdResult = {
+  page_name?: string
+  ad_creative_bodies?: string[]
+  ad_creative_link_titles?: string[]
+  ad_creative_link_descriptions?: string[]
+  ad_delivery_start_time?: string
+}
+
+async function metaAdsLibrary(searchTerms: string[]): Promise<string> {
+  const appId = process.env.META_APP_ID
+  const appSecret = process.env.META_APP_SECRET
+  if (!appId || !appSecret) return ''
+
+  try {
+    // App token (no expira, no requiere usuario)
+    const tokenRes = await fetch(
+      `https://graph.facebook.com/oauth/access_token?client_id=${appId}&client_secret=${appSecret}&grant_type=client_credentials`
+    )
+    const tokenData = await tokenRes.json()
+    const token: string = tokenData.access_token
+    if (!token) return ''
+
+    // Buscar anuncios activos por cada término en México
+    const searches = await Promise.all(
+      searchTerms.map(async term => {
+        const params = new URLSearchParams({
+          search_terms: term,
+          ad_reached_countries: JSON.stringify(['MX']),
+          ad_type: 'ALL',
+          ad_active_status: 'ACTIVE',
+          limit: '8',
+          fields: 'ad_creative_bodies,ad_creative_link_titles,ad_creative_link_descriptions,ad_delivery_start_time,page_name',
+          access_token: token,
+        })
+        const res = await fetch(`https://graph.facebook.com/v21.0/ads_archive?${params}`)
+        const data = await res.json()
+        const ads: AdResult[] = data.data ?? []
+
+        if (!ads.length) return ''
+
+        const lines = ads.map(ad => {
+          const page = ad.page_name ?? 'desconocido'
+          const body = ad.ad_creative_bodies?.[0] ?? ''
+          const title = ad.ad_creative_link_titles?.[0] ?? ''
+          return `Página: ${page} | Título: ${title} | Copy: ${body.slice(0, 150)}`
+        })
+
+        return `Término "${term}":\n${lines.join('\n')}`
+      })
+    )
+
+    return searches.filter(Boolean).join('\n\n')
+  } catch {
+    return ''
+  }
+}
+
 // ─── Contexto embebido de viral-hook-creator y copywriting ────────────────────
 
 const HOOK_PATTERNS_CONTEXT = `
@@ -119,6 +178,8 @@ async function runTendencias(notifyAdmin: boolean) {
 
   // Todas las consultas externas en paralelo
   const keywords = ['padel', 'pickleball', 'gym', 'tenis', 'club deportivo']
+  const adsTerms = ['pádel Vallarta', 'club deportivo Puerto Vallarta', 'pickleball México', 'gym membresía Nayarit']
+
   const [
     socialTrends,
     seasonalityRaw,
@@ -126,6 +187,7 @@ async function runTendencias(notifyAdmin: boolean) {
     viralPatternsRaw,
     competitiveRaw,
     audienceRaw,
+    metaAdsRaw,
     ...trendsData
   ] = await Promise.all([
     // 1. Tendencias deportivas/lifestyle — sonar-pro
@@ -148,17 +210,19 @@ async function runTendencias(notifyAdmin: boolean) {
       `Analiza qué videos están viralizando en Instagram Reels y TikTok en ${mes} 2026 para cuentas pequeñas (<10,000 seguidores) en pádel, pickleball, gym, alberca, lifestyle deportivo y clubs deportivos en México y Latinoamérica. Para cada patrón describe: los primeros 3 segundos exactos, duración, tipo de audio, qué muestra, qué emoción activa, y por qué funciona algorítmicamente. 4-5 patrones con ejemplos reales.`,
       'sonar-pro-search'
     ),
-    // 5. Inteligencia competitiva — sonar-pro (NUEVO: competitive-intel skill)
+    // 5. Inteligencia competitiva — sonar-pro
     perplexityAsk(
       `¿Qué clubes deportivos, gyms o centros de fitness compiten con un club de pádel y pickleball premium en Riviera Nayarit, Bahía de Banderas o Puerto Vallarta? ¿Qué tipo de contenido publican en Instagram o TikTok? ¿Qué mensajes, promociones o ángulos están usando actualmente? ¿Qué está funcionando bien para ellos? Dame nombres concretos y ejemplos de su contenido si los tienes.`,
       'sonar-pro'
     ),
-    // 6. Investigación de audiencia — sonar-pro (NUEVO: audience-research skill)
+    // 6. Investigación de audiencia — sonar-pro
     perplexityAsk(
       `¿Qué cuentas de Instagram, YouTube o TikTok siguen los aficionados al pádel, pickleball, gym y deportes de raqueta en México? ¿Qué hashtags usan en sus propios posts? ¿Qué tipo de contenido consumen más — tutoriales, humor, lifestyle, resultados físicos, torneos? ¿Qué influencers o creadores tienen mayor afinidad con este segmento en México? Dame señales concretas de comportamiento, no generalidades.`,
       'sonar-pro'
     ),
-    // 7. Google Trends real para cada keyword — linkfox-google-trends skill (NUEVO)
+    // 7. Meta Ads Library — anuncios activos de competidores en MX
+    metaAdsLibrary(adsTerms),
+    // 8. Google Trends real para cada keyword — linkfox
     ...keywords.map(k => googleTrend(k)),
   ])
 
@@ -286,7 +350,8 @@ Devuelve SOLO este JSON (sin markdown, sin texto adicional):
       `CONTEXTO ESTACIONAL ${mes.toUpperCase()}:\n${seasonalityRaw}`,
       `HASHTAGS EFECTIVOS AHORA:\n${hashtagsRaw}`,
       `PATRONES VIRALES EN CUENTAS CHICAS:\n${viralPatternsRaw}`,
-      `INTELIGENCIA COMPETITIVA LOCAL:\n${competitiveRaw}`,
+      `INTELIGENCIA COMPETITIVA LOCAL (Perplexity):\n${competitiveRaw}`,
+      metaAdsRaw ? `ANUNCIOS ACTIVOS DE COMPETIDORES EN META (datos reales de Ads Library):\n${metaAdsRaw}` : '',
       `DÓNDE ESTÁ LA AUDIENCIA ONLINE:\n${audienceRaw}`,
       googleTrendsResults.length
         ? `GOOGLE TRENDS (últimos 30 días, México):\n${googleTrendsResults.map(t => `${t.keyword}: score ${t.avgScore}/100, tendencia ${t.trend}`).join('\n')}`
