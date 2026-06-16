@@ -1,6 +1,1 @@
-{
-  "crons": [
-    { "path": "/api/cron/daily-trends", "schedule": "0 14 * * *" },
-    { "path": "/api/cron/lead-followup", "schedule": "0 */4 * * *" }
-  ]
-}
+{}
