@@ -76,15 +76,15 @@ async function analyzeAsset(imageUrl: string): Promise<AssetAnalysis | null> {
 Analiza esta foto/imagen del club y devuelve SOLO el siguiente JSON sin markdown:
 
 {
-  "instalacion": "alberca|cancha_padel|cancha_tenis|cancha_pickleball|gym|vestidores|lago|restaurante|area_social|exterior|otro",
+  "instalacion": "nombre libre de la instalación o área que se ve (describe con tus palabras, ej: 'canchas de pádel techadas', 'alberca principal', 'área de vestidores')",
   "description": "qué se ve exactamente en la imagen (1-2 oraciones)",
-  "mood": "emoción principal que transmite (ej: energía, relajación, familia, competencia, lujo, naturaleza)",
-  "time_of_day": "mañana|tarde|atardecer|noche|interior",
+  "mood": "emoción principal que transmite (describe con tus palabras)",
+  "time_of_day": "momento del día o condición de luz que se aprecia",
   "people": true o false (¿hay personas en la imagen?),
   "score_reel": número del 1 al 10 (potencial para Reel de Instagram),
   "score_foto": número del 1 al 10 (potencial para foto o carrusel),
   "score_stories": número del 1 al 10 (potencial para Stories),
-  "best_format": "Reel|Carrusel|Foto|Stories",
+  "best_format": "el formato que mejor le queda a esta imagen (Reel, Carrusel, Foto o Stories)",
   "content_angles": ["ángulo 1", "ángulo 2", "ángulo 3"] (máx 3 ideas de contenido que funcionen con esta imagen),
   "why": "por qué tiene ese puntaje — qué la hace fuerte o débil para redes (1 oración)"
 }
