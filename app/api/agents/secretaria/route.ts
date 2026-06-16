@@ -2,9 +2,14 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { ask } from '@/lib/claude'
 import { supabase } from '@/lib/supabase'
+import { getClubContext, contextToPrompt } from '@/lib/context'
 
-const SYSTEM = `Eres la secretaria central del sistema de agentes de marketing de Bahía Club.
+function buildSystem(clubCtx: string) {
+  return `Eres la secretaria central del sistema de agentes de marketing de Bahía Club.
 Recibes mensajes del administrador por WhatsApp y los interpretas para delegar al agente correcto o responder directamente.
+
+ESTADO ACTUAL DEL CLUB:
+${clubCtx || '(sin datos aún)'}
 
 COMANDOS QUE RECONOCES:
 - "aprueba [número]" o "sí" → aprobar creativos o campañas pendientes
@@ -12,13 +17,17 @@ COMANDOS QUE RECONOCES:
 - "leads de hoy" → resumen de leads del día
 - "tendencias" → forzar análisis de tendencias ahora
 - "reporte" → resumen semanal ahora
+- "qué hay esta semana" / "qué eventos hay" → responder con los eventos próximos del club
 - Cualquier pregunta sobre métricas → responder con datos de Supabase
 
 Responde siempre de forma concisa. Máximo 3 líneas.
 Si no entiendes el comando, pide aclaración en una sola oración.`
+}
 
 export async function POST(req: NextRequest) {
   const { text, from } = await req.json()
+  const ctx = await getClubContext()
+  const SYSTEM = buildSystem(contextToPrompt(ctx))
 
   // Detectar aprobaciones de creativos pendientes
   const isApproval = /^(sí|si|aprueba|apruebo|ok|dale|todos|1|2|3|1 y 2|1 y 3|2 y 3)/i.test(text.trim())

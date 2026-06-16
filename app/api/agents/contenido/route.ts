@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { ask } from '@/lib/claude'
 import { sendText } from '@/lib/whatsapp'
+import { getClubContext, contextToPrompt, type ClubEvent } from '@/lib/context'
 
 type ContentIdea = {
   title: string
@@ -39,17 +40,6 @@ type ClubAsset = {
   content_angles: string[]
 }
 
-type ClubEvent = {
-  id: string
-  name: string
-  type: string
-  sport: string
-  recurrence: string | null
-  time_of_day: string
-  start_date: string | null
-  description: string
-  content_potential: number
-}
 
 type Slide = { slide: number; headline: string; body: string }
 type Carousel = { caption: string; slides: Slide[] }
@@ -65,17 +55,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Se requiere idea o trend' }, { status: 400 })
   }
 
-  // Consultar eventos próximos y assets disponibles en paralelo
+  // Obtener contexto compartido del club + assets específicos en paralelo
   const instalacion = idea?.instalacion ?? null
-  const [upcomingEvents, availableAssets] = await Promise.all([
-    fetchUpcomingEvents(),
+  const [ctx, availableAssets] = await Promise.all([
+    getClubContext({ agents: ['contenido'], days: 14 }),
     fetchBestAssets(instalacion),
   ])
+  const upcomingEvents = ctx.upcomingEvents
 
   // Decidir formato basado en assets disponibles y tendencia
   const format = decideFormat(idea, availableAssets)
 
-  const contexto = buildContexto(idea, strategy, trend, upcomingEvents, availableAssets, format)
+  const sharedContext = contextToPrompt({ ...ctx, upcomingEvents: [] }) // eventos ya van en buildContexto
+  const contexto = buildContexto(idea, strategy, trend, upcomingEvents, availableAssets, format, sharedContext)
 
   let creative: { id: string } | null = null
   let carousel: Carousel | null = null
@@ -108,23 +100,6 @@ export async function POST(req: NextRequest) {
 }
 
 // ─── Consultas a Supabase ─────────────────────────────────────────────────────
-
-async function fetchUpcomingEvents(): Promise<ClubEvent[]> {
-  const today = new Date()
-  const in7days = new Date(today)
-  in7days.setDate(today.getDate() + 7)
-  const fmt = (d: Date) => d.toISOString().split('T')[0]
-
-  const { data } = await supabase
-    .from('club_events')
-    .select('*')
-    .eq('active', true)
-    .or(`type.eq.recurrente,and(type.eq.especial,start_date.gte.${fmt(today)},start_date.lte.${fmt(in7days)})`)
-    .order('content_potential', { ascending: false })
-    .limit(5)
-
-  return (data ?? []) as ClubEvent[]
-}
 
 async function fetchBestAssets(instalacion: string | null): Promise<ClubAsset[]> {
   let query = supabase
@@ -164,6 +139,7 @@ function buildContexto(
   events: ClubEvent[],
   assets: ClubAsset[],
   format: string,
+  sharedContext = '',
 ): string {
   const lines: string[] = []
 
@@ -203,6 +179,10 @@ function buildContexto(
     assets.forEach(a => {
       lines.push(`  - ${a.instalacion}: ${a.description} | mood: ${a.mood} | mejor para: ${a.best_format} (reel:${a.score_reel} foto:${a.score_foto})`)
     })
+  }
+
+  if (sharedContext) {
+    lines.push('', sharedContext)
   }
 
   return lines.join('\n')
