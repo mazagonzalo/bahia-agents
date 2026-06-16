@@ -36,6 +36,14 @@ jobs:
     name: E2E · Playwright
     runs-on: ubuntu-latest
     needs: build
+    env:
+      # Clerk solo se necesita para que `next dev` (webServer de Playwright) ARRANQUE.
+      # Los tests E2E solo prueban el sitio público (no rutas de Clerk), así que una
+      # publishable key placeholder de formato válido basta. Si agregas los secrets
+      # reales (CLERK_PUBLISHABLE_KEY / CLERK_SECRET_KEY en repo Settings → Secrets),
+      # se usan en su lugar automáticamente.
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_PUBLISHABLE_KEY || 'pk_test_Y2xlcmsuZXhhbXBsZS5jb20k' }}
+      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'sk_test_dummy_ci_secret_for_e2e_only' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -52,6 +60,8 @@ jobs:
 
       - name: Run E2E tests
         run: npm run test:e2e
+        env:
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
 
       - uses: actions/upload-artifact@v4
         if: failure()

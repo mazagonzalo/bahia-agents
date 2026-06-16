@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import { UserButton } from '@clerk/nextjs'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -420,6 +421,7 @@ export default function Dashboard() {
           >
             {generating ? 'Generando...' : 'Nuevo reporte'}
           </button>
+          <UserButton />
         </div>
       </div>
 
