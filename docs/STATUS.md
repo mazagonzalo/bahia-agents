@@ -1,7 +1,15 @@
 # STATUS — Bahía (estado vivo)
 
 > Para ponerte al día: lee esto + los 2 handoffs más recientes en `docs/handoffs/`.
-> **Actualizado: 2026-06-15 (Gonzalo)**
+> **Actualizado: 2026-06-15 (Xavier · sesión 2)**
+
+## 🚀 Re-plataformado en curso (commerce-os → bahia-agents)
+Estamos trayendo la fundación de commerce-os (Clerk + Prisma + harness + dashboard + CRM), **sin
+e-commerce/inventario**, + UI propia por agente. Plan por fases, cada una = PR a `dev` verde:
+- **FASE 1 · Clerk (auth) → ✅ PR #3 abierto, CI verde, listo para merge.** Incluye login "Acceso" en el sitio.
+- **FASE 2 · Prisma** → ⛔ bloqueada: falta `DATABASE_URL`/`DIRECT_URL` de Supabase.
+- FASE 3 harness · 4 dashboard+CRM · 5 UI por agente · 6 datos Trainingym + deploy → pendientes.
+(Un workflow está generando el plan exacto de migración.)
 
 ## En una línea
 `bahia-agents` es el **repo canónico**: aquí vive la **app** (5 agentes de marketing IA del compa) +
@@ -27,15 +35,17 @@ Resumen: ser **capa companion** sobre Trainingym (no reemplazarlo). **Objetivo #
 
 ## En progreso
 ### Xavier
-- **Trabajando en:** saneamiento + consolidación de repos (este PR).
-- **Siguiente:** la **checklist de "Semana 0"** (descubrimiento de datos con el dueño) y conectar la estrategia (Day Pass) con la app de agentes del compa.
+- **Trabajando en:** re-plataformado commerce-os → bahia. FASE 1 (Clerk + login) hecha → **PR #3** verde, lista para merge.
+- **Siguiente:** mergear PR #3 → **FASE 2 (Prisma)**. Necesito el `DATABASE_URL` de Supabase para activarla. Ver `docs/handoffs/2026-06-15-xavier-2.md`.
 
 ### Gonzalo
 - **Trabajando en:** consolidación del repo — merge del PR de Xavier ✅, rama `dev` creada ✅, sitio HTML fusionado en `public/` ✅.
 - **Siguiente:** agregar `CRON_SECRET` en Vercel env vars; dar acceso Write a Xavier en GitHub; revisar docs de estrategia de Xavier.
 
 ## Pendientes / bloqueos
-- **Acceso:** Xavier necesita permiso **Write** en `bahia-agents` → Settings → Collaborators → `xaviersalass-web`. (PR ya mergeado vía fork).
+- ⛔ **Supabase `DATABASE_URL`/`DIRECT_URL`** — bloquea la FASE 2 (Prisma). ¿Existe el proyecto con el schema aplicado? Pasarlo o `vercel env pull`.
+- ⚠️ **Reconciliar `ci.yml`** al mergear PR #3 (Gonzalo agregó el secret de publishable key al job E2E; PR #3 también toca ese job + trae el fix de `proxy.ts`).
+- ✅ **Acceso:** Xavier ya tiene Write en `bahia-agents`.
 - 2 warnings de lint menores (vars sin usar) en `meta-ads` y `secretaria` — limpieza opcional.
 - Follow-up técnico: las rutas se llaman entre sí por `fetch(NEXT_PUBLIC_URL/…)`; evaluar llamadas directas a funciones (ver handoff).
 - Del dueño: auditoría Trainingym, accesos Meta/WhatsApp reales, reglas del Day Pass.
