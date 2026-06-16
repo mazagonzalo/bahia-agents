@@ -80,27 +80,31 @@ export async function POST(req: NextRequest) {
   let creative: { id: string } | null = null
   let carousel: Carousel | null = null
   let reelBrief: string | null = null
+  let aiScore: number | null = null
 
   if (format === 'Reel') {
     reelBrief = await generateReelBrief(contexto, idea, upcomingEvents)
+    aiScore = await checkAiScore(reelBrief)
     const { data } = await supabase
       .from('creatives')
-      .insert({ type: 'reel_brief', content: { idea, trend, reelBrief, availableAssets }, status: 'borrador' })
+      .insert({ type: 'reel_brief', content: { idea, trend, reelBrief, availableAssets, aiScore }, status: 'borrador' })
       .select().single()
     creative = data
   } else {
     carousel = await generateCarousel(contexto, idea)
     if (!carousel) return NextResponse.json({ error: 'Error generando carousel' }, { status: 500 })
+    const allCopy = carousel.slides.map(s => `${s.headline}. ${s.body}`).join(' ')
+    aiScore = await checkAiScore(allCopy)
     const { data } = await supabase
       .from('creatives')
-      .insert({ type: 'carrusel', content: { idea, trend, carousel, availableAssets }, status: 'borrador' })
+      .insert({ type: 'carrusel', content: { idea, trend, carousel, availableAssets, aiScore }, status: 'borrador' })
       .select().single()
     creative = data
   }
 
-  await notifyAdmin({ carousel, reelBrief, idea, trend, availableAssets, upcomingEvents, format, creativeId: creative?.id })
+  await notifyAdmin({ carousel, reelBrief, idea, trend, availableAssets, upcomingEvents, format, creativeId: creative?.id, aiScore })
 
-  return NextResponse.json({ creativeId: creative?.id, format, carousel, reelBrief })
+  return NextResponse.json({ creativeId: creative?.id, format, carousel, reelBrief, aiScore })
 }
 
 // ─── Consultas a Supabase ─────────────────────────────────────────────────────
@@ -208,20 +212,34 @@ function buildContexto(
 
 async function generateCarousel(contexto: string, idea: ContentIdea | null): Promise<Carousel | null> {
   const hookInstruction = idea
-    ? `Usa EXACTAMENTE este hook para el slide 1: "${idea.hook.text}"`
-    : 'Crea un hook impactante para el slide 1.'
+    ? `Usa EXACTAMENTE este hook para el slide 1: "${idea.hook.text}" — agrega "Desliza →" al final del body.`
+    : 'Crea un hook que detenga el scroll: pregunta directa, afirmación con número o promesa concreta. Termina el body con "Desliza →".'
 
   const raw = await ask(
     `Eres el creador de contenido de Bahía Social Sports Club (club deportivo premium en Nuevo Vallarta, Riviera Nayarit).
-Crea un carrusel de Instagram de 6 slides basado en el briefing.
-${hookInstruction}
-Slides 2-5: desarrolla el contenido con valor real. Si hay eventos próximos relevantes, menciónalos.
-Slide 6: CTA claro ("Agenda tu visita" / "Únete este mes" / "Day Pass $500").
-Tono: aspiracional, familiar, deportivo — premium pero cercano. Sin emojis en los slides.
-Devuelve SOLO el JSON sin markdown:
-{"caption":"texto con hashtags (máx 150 chars)","slides":[{"slide":1,"headline":"string","body":"string (máx 12 palabras)"}]}`,
+Crea un carrusel de Instagram de 7 slides basado en el briefing.
+
+ESTRUCTURA (7 slides — no negociable):
+• Slide 1 — HOOK: Para el scroll. ${hookInstruction}
+• Slide 2 — CONTEXTO: Por qué esto importa. Plantea el problema o el deseo del lector.
+• Slides 3-6 — VALOR: Un solo punto por slide, numerado (01 02 03 04). Una idea, no dos.
+• Slide 7 — CTA: Acción clara y directa. Ej: "Agenda tu visita", "Prueba un Day Pass este finde", "8 canchas te esperan".
+
+REGLAS DE COPY (sin excepción):
+- Tutéa al lector: "tú", "tu cancha", "tu nivel", "te lo mereces"
+- Máximo 30 palabras por body de slide
+- Sé específico: no "excelentes instalaciones" → "8 canchas de pádel + 8 de pickleball + alberca olímpica"
+- Sin palabras de relleno: "fundamental", "crucial", "sin duda", "de hecho", "en definitiva", "aprovecha al máximo"
+- Varía el ritmo: mezcla frases cortas con frases un poco más largas. Que no todos suenen igual.
+- Menciona eventos próximos con nombre y fecha si son relevantes para el tema
+- Sin emojis en los slides
+
+FORMATO: Instagram 1080×1350 px (4:5) — más visibilidad en el feed que cuadrado.
+
+Devuelve SOLO el JSON sin markdown, con exactamente 7 slides:
+{"caption":"texto con hashtags (máx 150 chars, español natural)","slides":[{"slide":1,"headline":"string (máx 7 palabras, impacto)","body":"string (máx 30 palabras)"},{"slide":2,"headline":"string","body":"string"},{"slide":3,"headline":"string","body":"string"},{"slide":4,"headline":"string","body":"string"},{"slide":5,"headline":"string","body":"string"},{"slide":6,"headline":"string","body":"string"},{"slide":7,"headline":"string","body":"string"}]}`,
     [{ role: 'user', content: contexto }],
-    1200,
+    1500,
   )
 
   try {
@@ -236,31 +254,52 @@ Devuelve SOLO el JSON sin markdown:
 
 async function generateReelBrief(contexto: string, idea: ContentIdea | null, events: ClubEvent[]): Promise<string> {
   const eventNote = events.length
-    ? `Eventos próximos que puedes integrar: ${events.map(e => e.name).join(', ')}.`
+    ? `Eventos próximos que puedes usar: ${events.map(e => e.name).join(', ')}.`
     : ''
 
   return ask(
     `Eres director de contenido de Bahía Social Sports Club (club premium en Nuevo Vallarta).
-Tu trabajo: dar instrucciones exactas al admin para que grabe un Reel que pege en Instagram.
-El club NO hace trends de baile ni challenges. Su contenido son recorridos de instalaciones,
-ambiente del club, momentos reales de partidos y lifestyle premium.
+La persona que recibe este brief maneja el club — no es camarógrafo, pero tiene buen ojo y ganas.
+Los Reels del club son recorridos de instalaciones, ambiente real, momentos de partidos, lifestyle de fin de semana. Sin trends de baile ni challenges.
 ${eventNote}
-Escribe un brief de director claro y accionable. Incluye:
-1. CONCEPTO (1 línea — qué historia cuenta este Reel)
-2. TOMAS NECESARIAS (3-5 tomas específicas: ángulo, qué se ve, duración estimada)
-3. AUDIO SUGERIDO (tipo de música o sonido ambiente)
-4. HOOK de los primeros 3 segundos (qué debe verse para que no hagan scroll)
+
+Escribe el brief como si se lo dijeras en persona. Directo, sin relleno, que lo pueda ejecutar hoy.
+
+1. LA IDEA (1 línea — qué historia cuenta, por qué alguien lo vería completo)
+2. LAS TOMAS (3-5 tomas específicas: desde dónde, qué aparece en cuadro, cuántos segundos)
+3. EL AUDIO (ambiente del club, música energética, música suave — sé específico)
+4. LOS PRIMEROS 3 SEGUNDOS (qué tiene que aparecer para que no deslicen)
 5. CAPTION + hashtags
-Tono: director profesional pero accesible. El admin no es camarógrafo profesional.`,
-    [{ role: 'user', content: contexto + (idea ? `\nIdea base: ${idea.title}` : '') }],
+
+"Graba la alberca desde la esquina norte al atardecer" es útil. "Captura la esencia del club" no lo es.`,
+    [{ role: 'user', content: contexto + (idea ? `\nIdea: ${idea.title}` : '') }],
     1000,
   )
+}
+
+// ─── Quality check: detect AI patterns ───────────────────────────────────────
+
+async function checkAiScore(text: string): Promise<number | null> {
+  const key = process.env.HUMANIZERAI_API_KEY
+  if (!key) return null
+  try {
+    const res = await fetch('https://humanizerai.com/api/v1/detect', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    })
+    if (!res.ok) return null
+    const json = await res.json() as { score?: number }
+    return json.score ?? null
+  } catch {
+    return null
+  }
 }
 
 // ─── Notificación al admin ────────────────────────────────────────────────────
 
 async function notifyAdmin({
-  carousel, reelBrief, idea, trend, availableAssets, upcomingEvents, format, creativeId,
+  carousel, reelBrief, idea, trend, availableAssets, upcomingEvents, format, creativeId, aiScore,
 }: {
   carousel: Carousel | null
   reelBrief: string | null
@@ -270,6 +309,7 @@ async function notifyAdmin({
   upcomingEvents: ClubEvent[]
   format: string
   creativeId: string | undefined
+  aiScore: number | null
 }) {
   const titulo = idea?.title ?? trend?.topic ?? 'Nuevo contenido'
   const segmento = idea?.targetSegment ?? '—'
@@ -320,6 +360,11 @@ async function notifyAdmin({
       })
       lines.push(`¿Usamos estas o tienes algo más reciente?`)
     }
+  }
+
+  if (aiScore !== null) {
+    const label = aiScore >= 70 ? '✅ natural' : aiScore >= 50 ? '⚠️ revisar tono' : '🔴 suena a IA'
+    lines.push(``, `🤖 *Naturalidad del copy:* ${aiScore}/100 — ${label}`)
   }
 
   lines.push(``, `ID: \`${creativeId ?? 'sin id'}\``)
