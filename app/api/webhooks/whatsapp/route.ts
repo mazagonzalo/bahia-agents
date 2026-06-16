@@ -3,6 +3,7 @@ import { NextRequest, NextResponse, after } from 'next/server'
 import crypto from 'crypto'
 import { supabase } from '@/lib/supabase'
 import { sendText } from '@/lib/whatsapp'
+import { clipVideo } from '@/lib/muapi'
 
 // Verifica que el POST venga realmente de Meta usando el App Secret (HMAC SHA-256
 // del cuerpo crudo contra el header X-Hub-Signature-256). Sin esto, cualquiera
@@ -57,6 +58,8 @@ async function processMessage(body: Record<string, unknown>) {
 
   const from = message.from
   const text = message.text?.body ?? ''
+  const messageType: string = (message as Record<string, unknown>).type as string ?? 'text'
+  const videoMedia = (message as Record<string, unknown>).video as { id?: string; url?: string } | undefined
   const contact = change?.value?.contacts?.[0]
   const name = contact?.profile?.name ?? ''
 
@@ -69,8 +72,27 @@ async function processMessage(body: Record<string, unknown>) {
 
   if (!lead) return
 
-  // ¿Es el admin? → Agente Secretaria
+  // ¿Es el admin? → Agente Secretaria (o clipping si mandó un video)
   if (from === process.env.ADMIN_PHONE) {
+    // Admin mandó un video → convertir en clips virales automáticamente
+    if (messageType === 'video' && videoMedia?.url) {
+      await sendText(from, `🎬 Recibí el video. Extrayendo los mejores momentos para Reels... un momento.`)
+      const clips = await clipVideo(videoMedia.url, 5, '9:16')
+      if (clips.length === 0) {
+        await sendText(from, `⚠️ No pude procesar el video. Intenta con un video más largo (mín. 1 minuto).`)
+        return
+      }
+      const lines = [
+        `✅ *${clips.length} clips extraídos* (listos para Reels/TikTok)`,
+        ``,
+        ...clips.map((c, i) =>
+          `${i + 1}. *${c.title}* — score ${c.score}/100\n   Hook: "${c.hook_sentence}"\n   ${c.clip_url}`
+        ),
+      ]
+      await sendText(from, lines.join('\n'))
+      return
+    }
+
     const res = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/agents/secretaria`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

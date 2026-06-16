@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { ask } from '@/lib/claude'
 import { sendText } from '@/lib/whatsapp'
+import { generateImage } from '@/lib/muapi'
 
 const META_BASE = 'https://graph.facebook.com/v19.0'
 const AD_ACCOUNT = process.env.META_AD_ACCOUNT_ID
@@ -67,6 +68,18 @@ Budget en MXN. Genders: 1=hombres, 2=mujeres, [1,2]=ambos.`,
     let audience: { age_min: number; age_max: number; genders: number[]; interests: string[]; cities: string[]; budget_daily: number }
     try { audience = JSON.parse(audienceJson) } catch { continue }
 
+    // Generar creativos visuales del anuncio en paralelo (feed 1:1 + story 9:16)
+    const adImgPrompt = `High-converting Meta ad creative for Bahía Social Sports Club, premium sports club in Nuevo Vallarta, Riviera Nayarit. Theme: ${trend?.topic ?? 'active lifestyle'}. Target audience enjoying world-class sports facilities: padel courts, pickleball, Olympic pool, tropical lagoon background. Golden hour lifestyle photography. Clean, minimal text space at top and bottom. Photorealistic, commercial advertising quality, aspirational premium aesthetic.`
+    const [adFeedImage, adStoryImage] = await Promise.all([
+      generateImage(adImgPrompt, '1:1'),
+      generateImage(adImgPrompt, '9:16'),
+    ])
+
+    await supabase
+      .from('creatives')
+      .update({ content: { ...creative.content, adFeedImage, adStoryImage } })
+      .eq('id', creative.id)
+
     // Crear campaña en Meta (modo simulado si no hay credenciales reales configuradas)
     // En producción esto crea la campaña real via API
     const campaignRes = await metaPost(`${AD_ACCOUNT}/campaigns`, {
@@ -84,10 +97,16 @@ Budget en MXN. Genders: 1=hombres, 2=mujeres, [1,2]=ambos.`,
 
     results.push({ creativeId: creative.id, campaignId: campaignRes.id, audience })
 
-    await sendText(
-      process.env.ADMIN_PHONE!,
-      `✅ *Campaña creada*\nTema: ${trend?.topic ?? 'General'}\nAudiencia: ${audience.age_min}-${audience.age_max} años, ${audience.cities.join(' + ')}\nPresupuesto: $${audience.budget_daily.toLocaleString()} MXN/día\nEstado: lista para activar → responde *activa* para encenderla`
-    )
+    const adLines = [
+      `✅ *Campaña creada*`,
+      `Tema: ${trend?.topic ?? 'General'}`,
+      `Audiencia: ${audience.age_min}-${audience.age_max} años, ${audience.cities.join(' + ')}`,
+      `Presupuesto: $${audience.budget_daily.toLocaleString()} MXN/día`,
+      adFeedImage ? `🖼️ Creativo feed (1:1): ${adFeedImage}` : null,
+      adStoryImage ? `📱 Creativo story (9:16): ${adStoryImage}` : null,
+      `Estado: lista para activar → responde *activa* para encenderla`,
+    ]
+    await sendText(process.env.ADMIN_PHONE!, adLines.filter(Boolean).join('\n'))
   }
 
   return NextResponse.json({ results })
