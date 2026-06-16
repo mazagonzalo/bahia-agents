@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { ask } from '@/lib/claude'
 import { sendText } from '@/lib/whatsapp'
+import { getClubContext } from '@/lib/context'
 
 // POST /api/agents/eventos
 // Recibe texto libre del admin (vía WhatsApp) describiendo un evento,
@@ -15,7 +16,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Se requiere message' }, { status: 400 })
   }
 
-  const event = await parseEvent(message)
+  // Obtener eventos existentes para detectar duplicados
+  const ctx = await getClubContext({ days: 30 })
+  const event = await parseEvent(message, ctx.upcomingEvents)
   if (!event) {
     return NextResponse.json({ error: 'No pude entender el evento — intenta con más detalle' }, { status: 422 })
   }
@@ -53,12 +56,15 @@ type ParsedEvent = {
   active: boolean
 }
 
-async function parseEvent(message: string): Promise<ParsedEvent | null> {
+async function parseEvent(message: string, existingEvents: { name: string; start_date: string | null }[] = []): Promise<ParsedEvent | null> {
   const today = new Date().toISOString().split('T')[0]
+  const existingNote = existingEvents.length
+    ? `\nEventos ya registrados (evita duplicados): ${existingEvents.map(e => `"${e.name}"${e.start_date ? ` (${e.start_date})` : ''}`).join(', ')}`
+    : ''
 
   const raw = await ask(
     `Eres el asistente de Bahía Social Sports Club. El admin acaba de describir un evento del club.
-Extrae la información y devuelve SOLO el siguiente JSON sin markdown (hoy es ${today}):
+Extrae la información y devuelve SOLO el siguiente JSON sin markdown (hoy es ${today}).${existingNote}
 
 {
   "name": "nombre corto del evento",
