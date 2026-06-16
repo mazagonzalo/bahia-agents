@@ -13,5 +13,8 @@ export async function ask(
     system,
     messages,
   })
-  return (res.content[0] as { type: string; text: string }).text
+  // Toma el primer bloque de texto de forma segura (la respuesta puede traer
+  // bloques que no son de texto, p. ej. tool_use); evita romper con un cast ciego.
+  const textBlock = res.content.find((b) => b.type === 'text')
+  return textBlock && 'text' in textBlock ? textBlock.text : ''
 }

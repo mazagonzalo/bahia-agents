@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bahía — Motor de Conversión Day Pass → Inscripción (Objetivo #1)</title>
+<style>
+  :root{--cream:#f6f6f6;--sage:#7a8a79;--blue:#37519f;--gold:#8e8055;--ink:#1d2433;--muted:#5b6472;--line:#dcdfe5;
+    --green-bg:#eef4ee;--green-bd:#7a8a79;--yellow-bg:#f7f3e8;--yellow-bd:#8e8055;--red-bg:#eef1f8;--red-bd:#37519f}
+  *{box-sizing:border-box} html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:#fff;line-height:1.55;max-width:980px;margin:0 auto;padding:48px 40px 80px;font-size:14.5px}
+  header.doc{border-bottom:3px solid var(--blue);padding-bottom:20px;margin-bottom:8px}
+  .kicker{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--gold);font-weight:700;margin:0 0 6px}
+  h1{font-size:28px;line-height:1.1;margin:0 0 6px;color:var(--blue)}
+  .sub{color:var(--muted);font-size:14px;margin:0}
+  .meta{font-size:12px;color:var(--muted);margin-top:14px;display:flex;gap:22px;flex-wrap:wrap}.meta b{color:var(--ink)}
+  h2{font-size:20px;color:var(--blue);margin:36px 0 10px;padding-bottom:7px;border-bottom:1px solid var(--line)}
+  h3{font-size:15px;margin:20px 0 8px;color:var(--ink)}
+  p{margin:8px 0}.lead{font-size:15.5px} strong{color:var(--ink)}
+  code{background:var(--cream);padding:1px 5px;border-radius:4px;font-size:.86em;font-family:"SF Mono",Menlo,Consolas,monospace;color:var(--gold)}
+  ul,ol{margin:8px 0 8px 4px;padding-left:22px}li{margin:4px 0}
+  .callout{background:var(--cream);border-left:4px solid var(--gold);padding:14px 18px;border-radius:0 8px 8px 0;margin:18px 0}
+  .callout .t{font-weight:700;color:var(--gold);font-size:12px;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
+  .callout.blue{border-left-color:var(--blue)}.callout.blue .t{color:var(--blue)}
+  .thesis{background:var(--blue);color:#fff;border-radius:12px;padding:22px 26px;margin:18px 0;font-size:16.5px;line-height:1.5;font-weight:500}
+  .thesis small{display:block;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#aebbe0;font-weight:700;margin-bottom:8px}
+  .twocol{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:14px 0}
+  .card{border:1px solid var(--line);border-radius:10px;padding:16px 18px}.card h3{margin-top:0}
+  .card.blue{border-top:4px solid var(--blue)}.card.sage{border-top:4px solid var(--sage)}.card.gold{border-top:4px solid var(--gold)}
+  table{width:100%;border-collapse:collapse;margin:12px 0 6px;font-size:12.5px}
+  th,td{text-align:left;padding:8px 10px;vertical-align:top;border-bottom:1px solid var(--line)}
+  th{background:var(--blue);color:#fff;font-weight:600;font-size:11.5px}
+  tr:nth-child(even) td{background:#fafbfc}
+  td.c{text-align:center;font-weight:700;white-space:nowrap}
+  .r-alto{color:#9a2020;font-weight:700}.r-medio{color:#7a5a10;font-weight:700}.r-bajo{color:#2a7a48;font-weight:700}
+  .fix{border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:0 8px 8px 0;padding:11px 15px;margin:9px 0}
+  .fix b{color:var(--blue)}
+  .stepnum{display:inline-block;width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;text-align:center;font-size:12px;font-weight:700;line-height:22px;margin-right:6px}
+  .verdict{background:var(--blue);color:#fff;border-radius:12px;padding:20px 24px;margin:28px 0 0}
+  .verdict h2{color:#fff;border:none;margin:0 0 8px;font-size:18px}.verdict p{color:#e7ebf6;margin:6px 0}.verdict .big{font-size:15px;color:#fff}
+  .src{font-size:11px;color:var(--muted)}
+  footer.doc{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);display:flex;justify-content:space-between}
+  @media print{body{padding:0 6px;font-size:11px;max-width:none}h2{margin-top:20px}.twocol{gap:10px}table{font-size:10px}th,td{padding:5px 6px}.pb{page-break-before:always}tr,.card,.callout,.fix{page-break-inside:avoid}a{color:inherit;text-decoration:none}}
+</style>
+</head>
+<body>
+
+<header class="doc">
+  <p class="kicker">Bahía Social Sports Club · Objetivo #1 del BI y del producto</p>
+  <h1>Motor de Conversión Day Pass → Inscripción</h1>
+  <p class="sub">El primer flujo que construimos y medimos: ingreso nuevo desde el día 1, 100% atribuible, y el caso de uso perfecto para probar nuestro BI.</p>
+  <div class="meta">
+    <span><b>Fecha:</b> 13 jun 2026</span>
+    <span><b>Método:</b> 7 agentes IA, búsqueda web, doble revisión adversarial</span>
+  </div>
+</header>
+
+<div class="thesis">
+  <small>Por qué es el objetivo #1</small>
+  El embudo Day Pass ($500) → Inscripción es el único flujo que produce <strong>ingreso NUEVO desde el día 1</strong>, es <strong>100% atribuible</strong> (cada socio nuevo se rastrea hasta el day pass, el canal y la campaña) y es un <strong>embudo real de 8 etapas</strong> — el laboratorio ideal para demostrar que nuestro BI mide, segmenta y optimiza. Cae 100% en lo que Trainingym no hace.
+</div>
+
+<h2>Resumen honesto — qué corrigió la revisión adversarial</h2>
+<p>El diseño inicial era sólido pero sobrevendía la conversión y subestimaba las dependencias de datos. Estas 4 correcciones lo hacen defendible (y de hecho hacen el BI más creíble ante el consejo):</p>
+
+<div class="fix"><b>1 · Metas realistas + medir incrementalidad, no tasa bruta.</b> 30-45% es para pruebas de gym baratas; para inscripciones de $5k-13k lo real es <b>5-15%</b>. Solución que es nuestra mejor venta de BI: un <b>grupo de control</b> (parte de los day-passers recibe el seguimiento estándar del club) — la diferencia vs el motor companion = nuestra <b>contribución probada</b>, no solo atribución.</div>
+<div class="fix"><b>2 · El crucerista no convierte a socio</b> (4-8h en puerto, no reside → ~0%). Se saca del embudo de inscripción y se trata como <b>experimento separado</b> de ingreso por experiencia + reseñas/UGC. Mezclarlo contamina las métricas.</div>
+<div class="fix"><b>3 · El 8% se redefine para no chocar con la acreditación.</b> 8% sobre ingreso nuevo <b>NETO</b>: neto del day pass acreditado, neto de churn &lt;90 días (claw-back), y solo sobre el <b>delta incremental</b> vs el grupo de control.</div>
+<div class="fix"><b>4 · Resolver los datos ANTES de construir.</b> La atribución depende de Trainingym, que solo exporta a Excel. <b>Semana 0 de descubrimiento</b> (export real + confirmar columnas + acceso Playtomic) + una <b>llave de identidad canónica</b> (teléfono E.164 + email) capturada en el checkout y obligatoria en el alta de Trainingym → el match se hace como <b>conciliación semanal asistida</b>, no pipeline mágico.</div>
+
+<h2 class="pb">El embudo de 8 etapas</h2>
+<table>
+  <thead><tr><th style="width:4%">#</th><th style="width:20%">Etapa</th><th style="width:38%">Mecánica</th><th>Dato capturado · dueño</th></tr></thead>
+  <tbody>
+    <tr><td class="c">1</td><td><b>Captación / Lead</b></td><td>Campañas Meta IG/FB por pista (expat-pickleball, local-comunidad) + Playtomic + landing/QR propio. Creativo de fauna+deporte, UTM</td><td>lead_id, canal, UTM, deporte, CPL · <b>nosotros</b></td></tr>
+    <tr><td class="c">2</td><td><b>Reserva + segmento</b></td><td>Formulario/QR de 1 pantalla: residencia/país, "¿cuánto te quedas?", deporte → enruta a la pista y agenda</td><td>segmento, residencia, estancia, slot · <b>nosotros</b></td></tr>
+    <tr><td class="c">3</td><td><b>Pago Day Pass + pre-encuadre</b></td><td>Checkout propio con pasarela. El pago cualifica intención. Mensaje: "se acredita 100% si te inscribes en 7-14 días". Concierge WhatsApp &lt;5 min</td><td>pago_id, monto, t-1ª-respuesta · <b>nosotros</b> + pasarela</td></tr>
+    <tr><td class="c">4</td><td><b>Check-in + experiencia</b></td><td>Activación real: clínica/clase con instructor (no tour pasivo) + tour de fauna. Maximiza el pico emocional</td><td>check-in, actividad, host, no-show · <b>club/staff</b></td></tr>
+    <tr><td class="c">5</td><td><b>NPS post-visita (gatillo)</b></td><td>NPS por WhatsApp 2-4h post check-out. Promotor (9-10) → dispara oferta &lt;24h. Pasivo → paquete/2º pase</td><td>nps, categoría, comentario, acción · <b>nosotros</b></td></tr>
+    <tr><td class="c">6</td><td><b>Oferta con breakeven (cierre)</b></td><td>Cierre presencial el MISMO día (membership host) con breakeven por tier + anclaje. Plan B: secuencia de 5-8 toques en 2-4 sem</td><td>tier, breakeven, nº toque, cierre · <b>club</b> + nosotros</td></tr>
+    <tr><td class="c">7</td><td><b>Inscripción</b></td><td>Alta en Trainingym + registro en nuestro CRM amarrando socio↔day pass↔canal. Snowbird → "Membresía Temporada" 6 meses</td><td>socio_id, tier, day_pass origen, campaña · <b>club</b> (alta)</td></tr>
+    <tr><td class="c">8</td><td><b>Onboarding de comunidad (90d)</b></td><td>Presentar a grupo/liga, agendar primer partido, emparejar compañero. Amigo en el club = 40% menos churn</td><td>1er partido, liga, asistencia 30/60/90 · <b>club</b> + nosotros</td></tr>
+  </tbody>
+</table>
+<p class="src"><strong>Las 3 palancas que deciden todo (verificadas):</strong> responder en &lt;5 min (8-21× conversión vs 30 min) · cerrar el mismo día (el pico emocional que casi todos los clubes pierden) · acreditar el day pass (vuelve el pago un anticipo, no doble cobro). El 80% de los cierres ocurren entre el toque 5 y 12 — no rendirse al 3º.</p>
+
+<h2 class="pb">La capa BI — el héroe (por esto es el objetivo #1 perfecto)</h2>
+<div class="twocol">
+  <div class="card blue">
+    <h3>North-star + métricas</h3>
+    <p><b>North-star:</b> ingreso nuevo recurrente (cuotas + inscripción) atribuible al Day Pass.</p>
+    <ul>
+      <li>Conversión etapa-a-etapa <b>por pista</b></li>
+      <li>Day Pass→socio (hipótesis 5-15%, medido vs control)</li>
+      <li>% leads respondidos &lt;5 min (SLA)</li>
+      <li>% cierres el mismo día vs en secuencia</li>
+      <li>CAC por canal · LTV:CAC · ingreso neto atribuible</li>
+      <li>Retención 30/60/90 días del socio nuevo</li>
+    </ul>
+  </div>
+  <div class="card gold">
+    <h3>5 dashboards</h3>
+    <ul>
+      <li><b>Embudo por pista</b> (núcleo BI)</li>
+      <li><b>Atribución / ingreso nuevo</b> (cálculo del 8%)</li>
+      <li><b>CFO IA / consejo</b> (ingreso vs costo del programa, margen)</li>
+      <li><b>Velocidad y seguimiento</b> (cola de leads, SLA, toques)</li>
+      <li><b>Retención / onboarding</b> (cohortes, churn 90d)</li>
+    </ul>
+  </div>
+</div>
+<div class="callout blue">
+  <div class="t">Por qué esto vende el BI mejor que un dashboard genérico</div>
+  <p style="margin:0">El <strong>grupo de control + la cadena de atribución (Campaña→Lead→DayPass→Visita→Socio) + la incrementalidad</strong> son justo la prueba de valor que cobramos. Convierten el 8% de "atribución disputable" a "contribución demostrada con grupo de control" — un argumento que el consejo no puede rebatir.</p>
+</div>
+
+<h2 class="pb">Economía unitaria</h2>
+<table>
+  <thead><tr><th style="width:26%">Variable</th><th>Valor / lógica</th></tr></thead>
+  <tbody>
+    <tr><td><b>Precio Day Pass</b></td><td>~$500 MXN (premium; el pago cualifica intención). Acreditable 100% a inscripción si se inscribe en 7-14 días</td></tr>
+    <tr><td><b>Conversión objetivo</b></td><td>Hipótesis 5-15% (premium), medida vs control. Por pista: local 15-25%, snowbird estacional 10-20%, crucerista ~0% (KPI separado)</td></tr>
+    <tr><td><b>CAC estimado</b></td><td>~$3,000-8,000 MXN/socio (a validar). El day pass cobrado recupera parte del costo de adquisición</td></tr>
+    <tr><td><b>Breakeven pitch</b></td><td>Individual: $2,500/mes ÷ $500 = <b>5 visitas/mes ya igualan la membresía</b> (y es ilimitada). Solo Gym: $1,800 ÷ $500 = <b>&lt;4 visitas</b></td></tr>
+    <tr><td><b>Anclaje</b></td><td>Mostrar Familiar ($13k insc) primero → Individual/Solo Gym "se sienten ganga". Framing "$/día de acceso ilimitado" vs "$500/día de visitante"</td></tr>
+    <tr><td><b>Acreditación</b></td><td>"Pagaste $500, te inscribes en 7 días → esos $500 se descuentan de tu inscripción." El pase de prueba se vuelve anticipo, no pago doble</td></tr>
+    <tr><td><b>Nuestro cobro (8%)</b></td><td>8% sobre ingreso nuevo <b>NETO</b> (− day pass acreditado, − churn &lt;90d con claw-back, sobre delta incremental vs control)</td></tr>
+  </tbody>
+</table>
+
+<h2 class="pb">Dependencias — todo lo que se necesita y de quién depende</h2>
+<table>
+  <thead><tr><th style="width:30%">Dependencia</th><th style="width:48%">Por qué</th><th style="width:12%">Dueño</th><th style="width:8%">Riesgo</th></tr></thead>
+  <tbody>
+    <tr><td><b>Reglas de negocio del club</b> (ventana de acreditación, límite de frecuencia, tiers, guest fees)</td><td>Base lógica del motor de acreditación y la anti-canibalización. Definir AHORA, no diferir</td><td>Dueño</td><td class="c"><span class="r-alto">ALTO</span></td></tr>
+    <tr><td><b>Producto "Membresía Temporada"</b> (6 meses nov-may, snowbird)</td><td>Monetiza el segmento de mayor potencial (35-40k expats). Sin él, la pista de más volumen no tiene producto</td><td>Dueño + diseño nuestro</td><td class="c"><span class="r-alto">ALTO</span></td></tr>
+    <tr><td><b>Acceso a datos de Trainingym</b> (export Excel; API caso-por-caso)</td><td>El alta del socio nace ahí → es la pieza para cerrar la atribución y medir retención. <b>Verificar en semana 0</b></td><td>Trainingym / dueño</td><td class="c"><span class="r-alto">ALTO</span></td></tr>
+    <tr><td><b>Acceso a Playtomic</b> (reservas/slots de cancha)</td><td>La reserva vive en Playtomic (etapa 2); su acceso a datos no está verificado</td><td>Tercero / dueño</td><td class="c"><span class="r-alto">ALTO</span></td></tr>
+    <tr><td><b>"Membership host"</b> (staff de cierre en sitio)</td><td>El cierre del mismo día (la mayor palanca) es presencial. Sin staff asignado, el embudo pierde su mejor momento</td><td>Dueño / club</td><td class="c"><span class="r-alto">ALTO</span></td></tr>
+    <tr><td><b>Pasarela de pago</b> (Stripe/Mercado Pago/Conekta)</td><td>Cobrar el day pass (cualifica el lead, habilita la acreditación)</td><td>Dueño + tercero</td><td class="c"><span class="r-medio">MEDIO</span></td></tr>
+    <tr><td><b>Accesos Meta + WhatsApp Business API</b></td><td>Pilar C: pautar, píxel, concierge &lt;5 min. Sin accesos no arranca la captación</td><td>Dueño (accesos)</td><td class="c"><span class="r-medio">MEDIO</span></td></tr>
+    <tr><td><b>Presupuesto de pauta Meta</b></td><td>Sin medios no hay volumen de leads para medir conversión</td><td>Dueño</td><td class="c"><span class="r-medio">MEDIO</span></td></tr>
+    <tr><td><b>Assets de fauna + consentimiento de datos</b></td><td>Gancho de la parte alta + cierre emocional; base legal para WhatsApp/datos</td><td>Dueño + nosotros</td><td class="c"><span class="r-bajo">BAJO</span></td></tr>
+  </tbody>
+</table>
+
+<h2>Componentes técnicos (construir vs comprar)</h2>
+<div class="twocol">
+  <div class="card sage">
+    <h3>Comprar / integrar</h3>
+    <ul>
+      <li>Pasarela + checkout de Day Pass</li>
+      <li>WhatsApp Business API (concierge &lt;5 min)</li>
+      <li>Stack BI barato (Metabase / Looker Studio / Supabase)</li>
+    </ul>
+  </div>
+  <div class="card blue">
+    <h3>Construir (es nuestro diferenciador)</h3>
+    <ul>
+      <li>CRM / motor de funnel (8 etapas, enrutamiento por pista, secuencia)</li>
+      <li>Encuesta NPS gatillo + ruteo</li>
+      <li>ETL de ingesta Excel Trainingym/Playtomic + matching de atribución</li>
+      <li>Dashboards de embudo + atribución + CFO IA</li>
+      <li>Calculadora de breakeven por tier</li>
+    </ul>
+  </div>
+</div>
+
+<h2 class="pb">Plan del piloto (revisado)</h2>
+<table>
+  <thead><tr><th style="width:16%">Cuándo</th><th>Qué</th></tr></thead>
+  <tbody>
+    <tr><td><b>Semana 0</b></td><td><b>Descubrimiento de datos (antes de construir):</b> export real de Trainingym + confirmar columnas + verificar acceso Playtomic + acordar reglas de negocio + definir llave de identidad canónica</td></tr>
+    <tr><td><b>Sem 1-3</b></td><td>Construir checkout + formulario de segmento + CRM/funnel + motor de acreditación; conectar pasarela; crear "Membresía Temporada"</td></tr>
+    <tr><td><b>Sem 3-4</b></td><td>Concierge WhatsApp &lt;5 min + secuencia de seguimiento + NPS gatillo; capacitar al membership host (guion + breakeven); ETL + dashboards; <b>configurar grupo de control</b></td></tr>
+    <tr><td><b>Sem 4-5</b></td><td>Lanzar campañas Meta de fauna (1 pista: snowbird/expat local) con UTM/píxel; abrir el embudo a tráfico real</td></tr>
+    <tr><td><b>Sem 5-12</b></td><td>Operar y medir semanal (brújula: incrementalidad vs control + SLA + ingreso atribuible); iterar creativos/ofertas</td></tr>
+    <tr><td><b>Cierre</b></td><td>Reporte con conversión por pista, CAC, LTV:CAC, ingreso nuevo neto atribuible vs control, y recomendación de escalado + validación del 8%</td></tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  <div class="t">Alcance acotado del piloto</div>
+  <p style="margin:0"><strong>UNA sola pista instrumentable: snowbird/expat local</strong> (teléfono local, estancia larga, alto LTV, WhatsApp viable). El crucerista va como experimento separado de bajo costo. Éxito = <strong>incrementalidad demostrada vs control</strong>, no una tasa de conversión bruta. Idealmente arrancar en temporada alta (nov-may) para tener volumen — pero con tope de capacidad para no degradar la experiencia de socios pagadores.</p>
+</div>
+
+<h2>Riesgos principales</h2>
+<ul>
+  <li><b>Sobre-estimar conversión:</b> los benchmarks vienen de gyms/SaaS de EUA-UK; tratarlos como dirección, no promesa. Por eso medimos vs control.</li>
+  <li><b>Dependencia de datos frágil:</b> Trainingym solo Excel + Playtomic cerrado → atribución por conciliación asistida, no automática (al inicio).</li>
+  <li><b>Cuello de botella humano:</b> el cierre del mismo día y el SLA &lt;5 min dependen de staff del club + disciplina operativa.</li>
+  <li><b>Capacidad/estacionalidad:</b> nov-may hay volumen pero las canchas se saturan → tope de adquisición y medir churn del núcleo.</li>
+  <li><b>Canibalización:</b> sin límite de frecuencia + precio premium, algunos "vivirían" del day pass → reglas duras de acreditación con caducidad y claw-back.</li>
+</ul>
+
+<div class="verdict">
+  <h2>Conclusión</h2>
+  <p class="big">El Motor de Conversión Day Pass → Inscripción es el objetivo #1 correcto: ingreso nuevo, atribuible y el caso de uso que prueba nuestro BI mejor que cualquier dashboard genérico.</p>
+  <p>La clave es ejecutarlo con honestidad metodológica — metas como hipótesis, grupo de control, atribución por conciliación asistida y el 8% sobre ingreso neto incremental. Eso no solo lo hace creíble ante el consejo: convierte nuestra capa de inteligencia en algo que ningún software de gestión (ni Trainingym ni Playtomic) puede ofrecer. Primer paso concreto: la <b>semana 0 de descubrimiento de datos</b>.</p>
+</div>
+
+<footer class="doc">
+  <span>Bahía Social Sports Club — Motor Day Pass → Inscripción · Objetivo #1</span>
+  <span>13 jun 2026 · 7 agentes IA + doble revisión adversarial</span>
+</footer>
+
+</body>
+</html>

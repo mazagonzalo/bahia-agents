@@ -1,8 +1,12 @@
 export const dynamic = 'force-dynamic'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { requireCron } from '@/lib/cron-auth'
 
 // Vercel Cron lo llama cada día a las 8am
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const unauthorized = requireCron(req)
+  if (unauthorized) return unauthorized
+
   await fetch(`${process.env.NEXT_PUBLIC_URL}/api/agents/tendencias`, {
     method: 'GET',
   })

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bahía Club — Análisis técnico y plan de acción</title>
+<style>
+  :root{
+    --cream:#f6f6f6; --sage:#7a8a79; --blue:#37519f; --gold:#8e8055;
+    --ink:#1d2433; --muted:#5b6472; --line:#dcdfe5;
+    --green-bg:#eef4ee; --green-bd:#7a8a79;
+    --yellow-bg:#f7f3e8; --yellow-bd:#8e8055;
+    --red-bg:#eef1f8;  --red-bd:#37519f;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-print-color-adjust:exact; print-color-adjust:exact}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink); background:#fff; line-height:1.55;
+    max-width:980px; margin:0 auto; padding:48px 40px 80px;
+    font-size:14.5px;
+  }
+  header.doc{
+    border-bottom:3px solid var(--blue); padding-bottom:20px; margin-bottom:8px;
+  }
+  .kicker{font-size:11px; letter-spacing:.32em; text-transform:uppercase; color:var(--gold); font-weight:700; margin:0 0 6px}
+  h1{font-size:30px; line-height:1.1; margin:0 0 6px; color:var(--blue); letter-spacing:.01em}
+  .sub{color:var(--muted); font-size:14px; margin:0}
+  .meta{font-size:12px; color:var(--muted); margin-top:14px; display:flex; gap:22px; flex-wrap:wrap}
+  .meta b{color:var(--ink)}
+
+  h2{font-size:20px; color:var(--blue); margin:38px 0 10px; padding-bottom:7px; border-bottom:1px solid var(--line)}
+  h3{font-size:15px; margin:22px 0 8px; color:var(--ink)}
+  p{margin:8px 0}
+  .lead{font-size:15.5px}
+  strong{color:var(--ink)}
+  code{background:var(--cream); padding:1px 5px; border-radius:4px; font-size:.86em; font-family:"SF Mono",Menlo,Consolas,monospace; color:var(--gold)}
+  ul,ol{margin:8px 0 8px 4px; padding-left:22px}
+  li{margin:4px 0}
+
+  .callout{
+    background:var(--cream); border-left:4px solid var(--gold);
+    padding:14px 18px; border-radius:0 8px 8px 0; margin:18px 0;
+  }
+  .callout .t{font-weight:700; color:var(--gold); font-size:12px; letter-spacing:.06em; text-transform:uppercase; margin-bottom:4px}
+
+  .twocol{display:grid; grid-template-columns:1fr 1fr; gap:18px; margin:14px 0}
+  .card{border:1px solid var(--line); border-radius:10px; padding:16px 18px}
+  .card h3{margin-top:0}
+  .card.blue{border-top:4px solid var(--blue)}
+  .card.sage{border-top:4px solid var(--sage)}
+
+  table{width:100%; border-collapse:collapse; margin:12px 0 6px; font-size:13px}
+  th,td{text-align:left; padding:9px 11px; vertical-align:top; border-bottom:1px solid var(--line)}
+  th{background:var(--blue); color:#fff; font-weight:600; font-size:12px; letter-spacing:.02em}
+  tr:nth-child(even) td{background:#fafbfc}
+  td.eff{text-align:center; font-weight:700; white-space:nowrap; color:var(--blue)}
+
+  .bucket{margin:16px 0 6px; padding:10px 16px; border-radius:8px; font-weight:700; font-size:15px; display:flex; align-items:center; gap:10px}
+  .bucket.g{background:var(--green-bg); border:1px solid var(--green-bd); color:#3c4a3c}
+  .bucket.y{background:var(--yellow-bg); border:1px solid var(--yellow-bd); color:#5f5630}
+  .bucket.r{background:var(--red-bg); border:1px solid var(--red-bd); color:#2b3c73}
+  .dot{width:12px;height:12px;border-radius:50%;display:inline-block}
+  .dot.g{background:var(--sage)} .dot.y{background:var(--gold)} .dot.r{background:var(--blue)}
+
+  .legend{font-size:11.5px; color:var(--muted); margin:4px 0 0}
+  .legend b{color:var(--ink)}
+
+  .decisions{counter-reset:dec}
+  .decision{border:1px solid var(--line); border-left:4px solid var(--blue); border-radius:0 8px 8px 0; padding:12px 16px; margin:10px 0; position:relative}
+  .decision .q{font-weight:700; color:var(--ink)}
+  .decision .rec{font-size:13px; color:var(--sage); margin-top:4px}
+  .decision .rec b{color:#3c4a3c}
+
+  .steps{margin-top:6px}
+  .phase{font-weight:700; color:var(--gold); text-transform:uppercase; font-size:12px; letter-spacing:.08em; margin:18px 0 4px}
+
+  .verdict{background:var(--blue); color:#fff; border-radius:12px; padding:20px 24px; margin:28px 0 0}
+  .verdict h2{color:#fff; border:none; margin:0 0 8px; font-size:18px}
+  .verdict p{color:#e7ebf6; margin:6px 0}
+  .verdict .big{font-size:15px; color:#fff}
+
+  footer.doc{margin-top:40px; padding-top:14px; border-top:1px solid var(--line); font-size:11px; color:var(--muted); display:flex; justify-content:space-between}
+
+  @media print{
+    body{padding:0 6px; font-size:11.5px; max-width:none}
+    h2{margin-top:22px}
+    .twocol{gap:12px}
+    table{font-size:10.5px}
+    th,td{padding:5px 7px}
+    .verdict{-webkit-print-color-adjust:exact}
+    .pb{page-break-before:always}
+    tr,.decision,.card,.callout{page-break-inside:avoid}
+    a{color:inherit; text-decoration:none}
+  }
+</style>
+</head>
+<body>
+
+<header class="doc">
+  <p class="kicker">Bahía Social Sports Club · Documento interno</p>
+  <h1>Análisis técnico y plan de acción</h1>
+  <p class="sub">Qué del template Commerce-OS podemos reutilizar para el sitio + el sistema de 15 agentes y reservas, y cómo arrancar.</p>
+  <div class="meta">
+    <span><b>Fecha:</b> 9 jun 2026</span>
+    <span><b>Repo analizado:</b> mazagonzalo/bahia-agentes-deck</span>
+    <span><b>Base técnica:</b> Commerce-OS template</span>
+  </div>
+</header>
+
+<h2>TL;DR — qué quieren realmente</h2>
+<p class="lead">El proyecto de Bahía son <strong>dos cosas distintas</strong> que conviene separar:</p>
+<div class="twocol">
+  <div class="card blue">
+    <h3>1. Sitio de marketing — <code>bahiaclub.mx</code></h3>
+    <p>Lo que ves en el mock HTML: un <em>one-pager</em> premium ya diseñado (hero, carrusel, "¿Qué es Bahía?", actividades, naturaleza con los ríos/cocodrilos, amenidades, <strong>planes con toggle mensualidad/inscripción</strong>, CTA y footer). Los botones van directo a <strong>Google Calendar y WhatsApp</strong>; el mock <strong>no tiene formulario</strong>. Es casi 100% estático.</p>
+  </div>
+  <div class="card sage">
+    <h3>2. El sistema real — <code>app.bahiaclub.mx</code></h3>
+    <p>Lo grande, donde está el ~95% del trabajo: <strong>15 agentes de IA + plataforma de reservas + 12 funciones</strong>, en 4 oleadas / 14 semanas. Sustituye Playtomic (<strong>$50k MXN/mes</strong>) y digitaliza un club que hoy opera todo en <strong>Excel y WhatsApp</strong>.</p>
+  </div>
+</div>
+
+<div class="callout">
+  <div class="t">⚠ Punto clave de reencuadre</div>
+  <p style="margin:0">La idea de "tengo el mock y le pego el backend" no aplica como suena: el <strong>mock de marketing casi no necesita backend</strong> (solo un formulario de contacto + reCAPTCHA, y ni eso si dejamos los CTAs en WhatsApp/Calendar). El backend pesado (agentes + reservas) vive en un <strong>subdominio aparte</strong> y <strong>no se "pega" al mock</strong>. Son dos entregables independientes — eso cambia cómo cotizamos y por dónde arrancamos.</p>
+</div>
+
+<h2>Veredicto en una línea</h2>
+<p class="lead">El template nos ahorra <strong>la infraestructura</strong> (lo más difícil y riesgoso de hacer bien). Los <strong>dominios del club son nuevos</strong>. Estimación: el template cubre <strong>~30–40% del backend total</strong>, concentrado en infraestructura y patrones. El sitio de marketing es un entregable chico y aparte.</p>
+
+<h2 class="pb">Comparación con el template Commerce-OS</h2>
+<p>Resultado de auditar el código real del template contra el spec de Bahía, clasificado en tres cubetas.</p>
+<p class="legend"><b>Esfuerzo:</b> S = &lt;1 día · M = 1–3 días · L = 1–2 semanas · XL = 3+ semanas (por pieza).</p>
+
+<div class="bucket g"><span class="dot g"></span>REPLICAR — ya lo tienes, funciona casi tal cual</div>
+<table>
+  <thead><tr><th style="width:34%">Pieza del template</th><th>Para qué sirve en Bahía</th><th style="width:9%">Esfuerzo</th></tr></thead>
+  <tbody>
+    <tr><td><b>Harness de agentes IA + flujo aprobar/rechazar 1-clic</b></td><td>El patrón "agente propone → admin aprueba/rechaza" que pide el spec para los 15 agentes. <b>Mapea 1:1.</b> Es lo más valioso que ya tenemos: production-grade.</td><td class="eff">S</td></tr>
+    <tr><td><b>Infraestructura de cron</b> (Vercel crons + auth fail-closed)</td><td>Plantilla copy-paste para cobranza, NPS, clima, mantenimiento y staff</td><td class="eff">S</td></tr>
+    <tr><td><b>Webhooks</b> (verificación de firma + idempotencia)</td><td>Base segura para webhooks de Twilio / Meta / Stripe</td><td class="eff">S</td></tr>
+    <tr><td><b>Twilio WhatsApp SALIENTE</b></td><td>Recordatorios de cobranza, NPS, clima, badges (normalización MX + fallback ya hechos)</td><td class="eff">S</td></tr>
+    <tr><td><b>Postgres en Supabase</b> (Prisma 7 + adapter)</td><td>"Usar Supabase" como base de datos = <b>gratis</b>, ya corre ahí</td><td class="eff">S</td></tr>
+    <tr><td><b>Wallet de puntos</b> (ledger + dashboards)</td><td>Función A (programa de lealtad): el ledger y las pantallas se reusan enteros</td><td class="eff">S→M</td></tr>
+    <tr><td><b>Identidad de miembro</b> (User + perfil CRM + API)</td><td>Tabla <code>members</code> — mapea 1:1</td><td class="eff">S</td></tr>
+    <tr><td><b>Header glass + Footer + WhatsApp flotante + CTA + animaciones</b></td><td>El sitio de marketing</td><td class="eff">S</td></tr>
+  </tbody>
+</table>
+
+<div class="bucket y"><span class="dot y"></span>MEDIO-HECHO — hay base real, pero hay que adaptarla</div>
+<table>
+  <thead><tr><th style="width:34%">Pieza</th><th>Qué falta</th><th style="width:9%">Esfuerzo</th></tr></thead>
+  <tbody>
+    <tr><td><b>Motor de disponibilidad</b> (383 líneas, testeado)</td><td>El cálculo de slots/solapamiento es bueno y reusable, pero modela "tiempo de un mecánico", no "22 canchas paralelas". Se renombra mecánico → cancha/instructor</td><td class="eff">M</td></tr>
+    <tr><td><b>Blackout slots</b> (excepciones de horario)</td><td>Es <b>casi exactamente</b> un blackout (lluvia/mantenimiento). Re-llavear a la cancha + conectar al agente de mantenimiento</td><td class="eff">S</td></tr>
+    <tr><td><b>Clases con instructor</b> (horario + editor UI)</td><td>El <b>mejor fit de reuso</b> para reservas. Falta intersección instructor ∧ cancha + catálogo de clases</td><td class="eff">M</td></tr>
+    <tr><td><b>Cobranza saliente WhatsApp (Agente 3)</b></td><td>Plumbing listo (Twilio + cron + cola). Falta: detección de vencidos + escalación 1-5 / 6-15 / +15 / +30 días + copy con Claude</td><td class="eff">M</td></tr>
+    <tr><td><b>Cola de notificaciones</b></td><td>Tiene los huesos (retry/status) pero es <b>solo email</b>. Falta canal WhatsApp + dispatcher para comunicaciones segmentadas (Función C)</td><td class="eff">M</td></tr>
+    <tr><td><b>Agente financiero (7/8)</b></td><td>Solo narra ingresos; no ejecuta queries reales. Sirve como capa narrativa <b>encima</b> de un ledger real (que no existe)</td><td class="eff">—</td></tr>
+  </tbody>
+</table>
+
+<div class="bucket r"><span class="dot r"></span>DESDE CERO — no hay base en el template</div>
+<table>
+  <thead><tr><th style="width:30%">Pieza</th><th>Por qué es nuevo</th><th style="width:9%">Esfuerzo</th></tr></thead>
+  <tbody>
+    <tr><td><b>Modelo de Canchas (22) + reservas</b></td><td>No existe entidad "cancha/recurso". Necesita modelo de cancha (deporte, superficie, interior/exterior) + reserva con <b>índice único</b> para evitar doble-reserva</td><td class="eff">M</td></tr>
+    <tr><td><b>Grid semanal de reservas + tiempo real</b></td><td>El wizard actual usa slots hardcodeados y ni consume la API. El grid de 22 canchas color-coded + Supabase Realtime es nuevo</td><td class="eff">L</td></tr>
+    <tr><td><b>WhatsApp ENTRANTE conversacional (Agentes 5, 6)</b></td><td>Twilio es solo saliente. No hay webhook entrante, ni estado de conversación, <b>ni loop de tool-use de Claude</b>. "reserva pádel mañana 7am" = el build más grande</td><td class="eff">XL</td></tr>
+    <tr><td><b>Membresías recurrentes</b> (Familiar/Pareja/Individual/Solo Gym)</td><td>El modelo del template es <b>código muerto</b> (sin cobro recurrente). Inscripción + mensualidad = greenfield</td><td class="eff">L</td></tr>
+    <tr><td><b>Registro manual de pagos (Agente 3)</b></td><td>Las ventas existentes son de producto, no cuotas. Tabla de pagos + flujo admin + esperado-vs-real</td><td class="eff">M</td></tr>
+    <tr><td><b>Contabilidad real / P&amp;L (Agente 7)</b></td><td>No hay libro de ingresos/egresos. Hay que construir los libros antes de que el agente "narre"</td><td class="eff">L</td></tr>
+    <tr><td><b>Check-in QR/NFC (Agente 1)</b></td><td>Cero implementación. Kiosko <code>/scanner</code> + tabla + análisis de inactividad 30/60/90 días</td><td class="eff">M</td></tr>
+    <tr><td><b>Auth: magic-link + OTP WhatsApp</b></td><td>Hoy es 100% Clerk, hilado en cada ruta. El modelo de usuario/RBAC sobrevive, pero el proveedor se reemplaza entero</td><td class="eff">L+M</td></tr>
+    <tr><td><b>Ligas, ELO, Badges, Day Pass, Lockers</b> (Func. K/E/L/B/M)</td><td>Dominio deportivo puro, sin precedente en el template</td><td class="eff">M–L c/u</td></tr>
+    <tr><td><b>APIs externas nuevas</b>: Google Calendar, Meta (Messenger/Ads/Reviews), Tomorrow.io (clima), Apify+Trends, reCAPTCHA</td><td>Cero código. Meta además depende de confirmar la cuenta Meta Business</td><td class="eff">S–L c/u</td></tr>
+    <tr><td><b>Portar el mock HTML</b></td><td>El mock es un <b>bundle compilado de 20 MB</b>, no HTML portable. Se usa como <b>referencia visual</b> y se reconstruye en el stack del template</td><td class="eff">(rebuild)</td></tr>
+  </tbody>
+</table>
+
+<h2 class="pb">Decisiones a tomar antes de arrancar</h2>
+<p>Estas definen el plan. Va la recomendación en cada una.</p>
+<div class="decisions">
+  <div class="decision">
+    <div class="q">1. Auth — ¿Clerk o Supabase Auth?</div>
+    <p style="margin:4px 0">El spec pide Supabase Auth (magic-link admins) + OTP WhatsApp (miembros), pero el template es Clerk.</p>
+    <div class="rec"><b>Recomendación:</b> evaluar quedarnos con Clerk (también hace magic-link y OTP) para ahorrar un epic completo, salvo que el cliente exija Supabase Auth por costo. <b>Es la decisión de mayor impacto.</b></div>
+  </div>
+  <div class="decision">
+    <div class="q">2. Canal WhatsApp — ¿Twilio o Meta directo?</div>
+    <p style="margin:4px 0">Twilio (MVP, ya lo tenemos) vs Meta WhatsApp Business API (lo que el spec quiere para producción).</p>
+    <div class="rec"><b>Recomendación:</b> arrancar con Twilio pero abstraer el envío desde el día 1 para no migrar dos veces.</div>
+  </div>
+  <div class="decision">
+    <div class="q">3. Sitio de marketing — ¿dentro del template o estático aparte?</div>
+    <p style="margin:4px 0">Reconstruir dentro del template vs mantenerlo como sitio estático separado.</p>
+    <div class="rec"><b>Recomendación:</b> sitio estático/lean separado (no meterle base de datos a 4 páginas brochure). Más rápido y respeta la separación <code>bahiaclub.mx</code> vs <code>app.bahiaclub.mx</code>.</div>
+  </div>
+  <div class="decision">
+    <div class="q">4. Alcance de arranque</div>
+    <p style="margin:4px 0">Son 14 semanas / 4 oleadas.</p>
+    <div class="rec"><b>Recomendación:</b> arrancar por la Oleada 1 (check-in + cobranza + reservas) — es lo que paga el desarrollo al eliminar Playtomic desde el mes 1.</div>
+  </div>
+</div>
+
+<h2 class="pb">Paso a paso para accionar</h2>
+<div class="steps">
+  <div class="phase">Oleada 0 — Fundaciones (~1 semana, antes de cualquier agente)</div>
+  <ol>
+    <li><b>Forkear el template</b> (runbook de duplicación) → cliente "bahia".</li>
+    <li><b>Re-skin de marca primero</b>: paleta exacta (<code>#f6f6f6 #7a8a79 #37519f #8e8055</code>), fuentes Moche/Causten, logos. Si no, todo componente reusado se ve fuera de marca.</li>
+    <li><b>Cambiar el modelo default</b> a <code>claude-sonnet-4-6</code> (hoy default es Opus ≈ 10× más caro).</li>
+    <li><b>Construir 2 helpers genéricos que faltan</b> y que todos los agentes necesitan: (a) trigger <code>cron → agente → propuesta pendiente</code>, y (b) ejecutor post-aprobación que corre el efecto. Hoy el flujo muere en "aprobado".</li>
+    <li>Decidir auth (decisión 1) y, si aplica, hacer el swap a Supabase Auth + OTP WhatsApp.</li>
+  </ol>
+
+  <div class="phase">Marketing site (en paralelo, ~1–2 semanas) — entregable rápido para enseñar al cliente</div>
+  <ol start="6">
+    <li>Reconstruir las 4 secciones con las primitivas del template (header glass, animaciones, footer, WhatsApp flotante, CTA), usando el mock como referencia visual.</li>
+    <li>Único backend: un endpoint de contacto (validación + reCAPTCHA + email a <code>membresias@bahiaclub.mx</code>). CTAs a Calendar/WhatsApp = links.</li>
+    <li>Idioma ES/EN ligero.</li>
+  </ol>
+
+  <div class="phase">Oleada 1 — Lo que paga el proyecto (semanas 1–3)</div>
+  <ol start="9">
+    <li><b>Agente 1 (check-in)</b> — genera el dato fundamental.</li>
+    <li><b>Agente 3 (cobranza)</b> — reusa Twilio + cron + cola; construye membresías + pagos.</li>
+    <li><b>Agente 6 (reservas) + <code>app.bahiaclub.mx</code></b> — modelo de cancha con índice único, motor de disponibilidad adaptado, grid semanal, tiempo real. <b>Elimina los $50k/mes de Playtomic desde el mes 1.</b></li>
+  </ol>
+
+  <div class="phase">Oleadas 2–4 — seguir el orden estricto del backend-spec</div>
+  <ul>
+    <li><b>Oleada 2</b> (sem 4–6): inteligencia operativa — Agentes 5, 9, 10, 15 + Day Pass.</li>
+    <li><b>Oleada 3</b> (sem 7–10): estrategia — Agentes 4 (+ligas), 7, 11 + puntos, ELO, badges, lockers.</li>
+    <li><b>Oleada 4</b> (sem 11–14): avanzada — Agentes 8 (CFO), 2 (marketing), 12 (reputación) + comms, control de acceso, clima. <b>Los Agentes 2 y 12 están bloqueados hasta confirmar Meta Business.</b></li>
+  </ul>
+</div>
+
+<div class="verdict">
+  <h2>Conclusión para decidir</h2>
+  <p class="big">El template nos da gratis lo más difícil de construir bien — el harness de agentes con aprobar/rechazar, cron, webhooks, Twilio, Postgres-Supabase, wallet de puntos, identidad de miembro y el motor de disponibilidad. Esa es nuestra ventaja real frente a empezar de cero.</p>
+  <p>Pero los dominios del club (canchas, membresías recurrentes, contabilidad, check-in, conversacional entrante, ELO/ligas/badges, integraciones Meta/Google/clima) son trabajo nuevo. <b>El template cubre ~30–40% del backend total, concentrado en infraestructura.</b> El sitio de marketing es un entregable chico y aparte que podemos enseñar pronto.</p>
+</div>
+
+<footer class="doc">
+  <span>Bahía Social Sports Club — Documento interno</span>
+  <span>Generado 9 jun 2026</span>
+</footer>
+
+</body>
+</html>
