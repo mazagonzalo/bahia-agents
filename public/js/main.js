@@ -10,7 +10,7 @@
   var i18n = {
     es:{
       nav_inicio:'Inicio', nav_inst:'Instalaciones', nav_act:'Actividades', nav_amen:'Amenidades', nav_planes:'Planes', nav_contacto:'Contacto',
-      nav_cta:'Agendar Visita',
+      nav_cta:'Agendar Visita', nav_acceso:'Acceso',
       act_eyebrow:'Actividades', act_title:'Todo para moverte',
       act_sub:'Deporte de raqueta, fuerza y comunidad — en un mismo lugar.',
       act_tenis_t:'Tenis', act_padel_t:'Pádel', act_card_cta:'Conócelas',
@@ -66,7 +66,7 @@
     },
     en:{
       nav_inicio:'Home', nav_inst:'Facilities', nav_act:'Activities', nav_amen:'Amenities', nav_planes:'Plans', nav_contacto:'Contact',
-      nav_cta:'Book a Visit',
+      nav_cta:'Book a Visit', nav_acceso:'Access',
       act_eyebrow:'Activities', act_title:'Everything to get you moving',
       act_sub:'Racquet sport, strength and community — all in one place.',
       act_tenis_t:'Tennis', act_padel_t:'Padel', act_card_cta:'Explore',
