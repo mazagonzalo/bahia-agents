@@ -1,7 +1,7 @@
 # STATUS — Bahía (estado vivo)
 
 > Para ponerte al día: lee esto + los 2 handoffs más recientes en `docs/handoffs/`.
-> **Actualizado: 2026-06-15 (Xavier)**
+> **Actualizado: 2026-06-15 (Gonzalo)**
 
 ## En una línea
 `bahia-agents` es el **repo canónico**: aquí vive la **app** (5 agentes de marketing IA del compa) +
@@ -30,12 +30,12 @@ Resumen: ser **capa companion** sobre Trainingym (no reemplazarlo). **Objetivo #
 - **Trabajando en:** saneamiento + consolidación de repos (este PR).
 - **Siguiente:** la **checklist de "Semana 0"** (descubrimiento de datos con el dueño) y conectar la estrategia (Day Pass) con la app de agentes del compa.
 
-### Gonzalo (cuate — confirma/edita tu bloque)
-- **Trabajando en:** la app de agentes (tendencias, ventas, etc.).
-- **Siguiente:** revisar/mergear el PR de saneamiento; correr `/catchup`; leer el handoff de Xavier.
+### Gonzalo
+- **Trabajando en:** consolidación del repo — merge del PR de Xavier ✅, rama `dev` creada ✅, sitio HTML fusionado en `public/` ✅.
+- **Siguiente:** agregar `CRON_SECRET` en Vercel env vars; dar acceso Write a Xavier en GitHub; revisar docs de estrategia de Xavier.
 
 ## Pendientes / bloqueos
-- **Acceso:** Xavier necesita permiso **Write** en `bahia-agents` (hoy es READ → el PR va vía fork).
+- **Acceso:** Xavier necesita permiso **Write** en `bahia-agents` → Settings → Collaborators → `xaviersalass-web`. (PR ya mergeado vía fork).
 - 2 warnings de lint menores (vars sin usar) en `meta-ads` y `secretaria` — limpieza opcional.
 - Follow-up técnico: las rutas se llaman entre sí por `fetch(NEXT_PUBLIC_URL/…)`; evaluar llamadas directas a funciones (ver handoff).
 - Del dueño: auditoría Trainingym, accesos Meta/WhatsApp reales, reglas del Day Pass.

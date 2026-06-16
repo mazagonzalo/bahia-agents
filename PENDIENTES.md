@@ -5,7 +5,15 @@
 - [ ] Reemplazar [URL_SITIO_BAHIA] con el dominio real cuando el sitio esté desplegado
 - [ ] Agregar envío de fotos del club en el flujo de ventas (alberca, canchas, gym, restaurante)
 - [ ] Calibrar tono y respuestas con equipo de ventas de Bahía
-- [ ] Llenar con toda la info posible del club: horarios, torneos, clases, instructores, eventos, reglas, proceso de inscripción, formas de pago, preguntas frecuentes, políticas de invitados
+- [ ] **Esperar info completa del club** para actualizar ambos agentes (ventas y tendencias) con:
+  - Horarios de operación (días y horas por instalación)
+  - Clases disponibles e instructores
+  - Torneos y eventos recurrentes
+  - Proceso de inscripción y formas de pago
+  - Preguntas frecuentes y políticas de invitados
+  - Precios de inscripción actualizados
+  - Restricciones o reglas del club
+  - Qué incluye cada membresía con detalle
 
 ## Agente Secretaria
 
