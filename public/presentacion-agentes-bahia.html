@@ -1,0 +1,2325 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Agentes IA — Bahía Club</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Nunito:wght@200;300;400;500;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+
+/* ── Brand tokens ────────────────────── */
+:root {
+  --c-navy:    #0C1A2E;
+  --c-blue:    #37519f;
+  --c-sage:    #7a8a79;
+  --c-khaki:   #8e8055;
+  --c-white:   #f6f6f6;
+}
+
+html, body { width:100%; height:100%; overflow:hidden; font-family:'Nunito','DM Sans',sans-serif; cursor:none; }
+
+/* ── Cursor: tennis ball ─────────────── */
+#cursor { position:fixed; z-index:9999; width:34px; height:34px; border-radius:50%;
+  pointer-events:none; transform:translate(-50%,-50%);
+  background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48ZGVmcz48cmFkaWFsR3JhZGllbnQgaWQ9ImciIGN4PSIzNiUiIGN5PSIzMiUiIHI9IjUyJSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iI2VlZjk2YSIgc3RvcC1vcGFjaXR5PSIuNTUiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiM4YWFiMDAiIHN0b3Atb3BhY2l0eT0iMCIvPjwvcmFkaWFsR3JhZGllbnQ+PHJhZGlhbEdyYWRpZW50IGlkPSJzaCIgY3g9IjY0JSIgY3k9IjY4JSIgcj0iNDIlIj48c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMDAwIiBzdG9wLW9wYWNpdHk9Ii4yMiIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzAwMCIgc3RvcC1vcGFjaXR5PSIwIi8+PC9yYWRpYWxHcmFkaWVudD48L2RlZnM+PGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNDkiIGZpbGw9IiNjNWUwMjAiLz48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0OSIgZmlsbD0idXJsKCNnKSIvPjxjaXJjbGUgY3g9IjUwIiBjeT0iNTAiIHI9IjQ5IiBmaWxsPSJ1cmwoI3NoKSIvPjxwYXRoIGQ9Ik0zLDQzIEMyMCwyMiAzNiwxOCA1MCwzMCBDNjQsNDIgODAsMzggOTcsNDMiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMy44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIG9wYWNpdHk9Ii43MiIvPjxwYXRoIGQ9Ik0zLDU3IEMyMCw3OCAzNiw4MiA1MCw3MCBDNjQsNTggODAsNjIgOTcsNTciIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMy44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIG9wYWNpdHk9Ii43MiIvPjwvc3ZnPg==");
+  background-size:cover;
+  box-shadow:0 2px 12px rgba(0,0,0,.45);
+  transition:width .15s,height .15s; }
+#cursor.big { width:48px;height:48px; }
+
+/* ── Deck ────────────────────────────── */
+#deck { position:relative; width:100vw; height:100vh; }
+
+/* ══ SLIDE LAYOUT ════════════════════════════════════════ */
+.slide {
+  position:absolute; inset:0; overflow:hidden;
+  display:flex; flex-direction:column; justify-content:center; align-items:flex-start;
+  padding:6vh 8.5vw;
+  pointer-events:none;
+  will-change: transform, opacity;
+  opacity:0; filter:blur(0px);
+  transform:scale(1.03) translateY(6px);
+  transition:
+    opacity   1.05s cubic-bezier(.22,1,.36,1),
+    transform 1.12s cubic-bezier(.16,1,.3,1),
+    filter    0.90s cubic-bezier(.22,1,.36,1);
+}
+.slide.active { opacity:1; transform:none; filter:blur(0); pointer-events:all; }
+
+/* ── Exit — deliberate, weighted ─ */
+.slide.exit {
+  opacity:0; transform:translateX(-42px) scale(.988);
+  transition:
+    opacity   .62s cubic-bezier(.55,0,1,1),
+    transform .68s cubic-bezier(.55,0,1,1);
+}
+.slide.exit[data-exit-tx="slide-l"] { transform:translateX(42px) scale(.988); }
+.slide.exit[data-exit-tx="slide-u"] { transform:translateY(-38px) scale(.990); }
+.slide.exit[data-exit-tx="slide-d"] { transform:translateY(34px) scale(.990); }
+.slide.exit[data-exit-tx="blur"]    { transform:scale(0.95); }
+.slide.exit[data-exit-tx="zoom"]    { transform:scale(1.06); }
+
+/* ── Entry by tx type — pure scale + translate, no blur ── */
+.slide[data-tx="slide-r"] { transform:translateX(58px) scale(.992); transition-duration:.88s,.96s,.64s; }
+.slide[data-tx="slide-l"] { transform:translateX(-58px) scale(.992); transition-duration:.88s,.96s,.64s; }
+.slide[data-tx="slide-u"] { transform:translateY(54px) scale(.992); transition-duration:.92s,1.00s,.64s; }
+.slide[data-tx="slide-d"] { transform:translateY(-44px) scale(.992); transition-duration:.92s,1.00s,.64s; }
+.slide[data-tx="blur"]    { transform:scale(0.90); transition-duration:1.10s,1.18s,.64s; }
+.slide[data-tx="zoom"]    { transform:scale(1.12); transition-duration:1.05s,1.12s,.68s; }
+
+/* ══ KEYFRAMES — cinematic system ═══════════════════════ */
+
+/* Clip-path curtain: heading reveal (lifts from bottom, theatrical) */
+@keyframes clipRevealH {
+  from { clip-path:inset(105% 0 -20% 0); transform:translateY(8px); opacity:0; }
+  to   { clip-path:inset(0% 0 -20% 0);   transform:translateY(0);   opacity:1; }
+}
+/* Clip-path lift: body copy — clean stage wipe from bottom */
+@keyframes clipRevealBody {
+  from { clip-path:inset(100% 0 -5% 0); opacity:0; transform:translateY(10px); }
+  to   { clip-path:inset(0% 0 -5% 0);   opacity:1; transform:translateY(0); }
+}
+/* Float in from right — for mock-wrap and side panels */
+@keyframes contentInRight { from{opacity:0;transform:translateX(40px) scale(.97)} to{opacity:1;transform:translateX(0) scale(1)} }
+/* Float in from left */
+@keyframes contentInLeft  { from{opacity:0;transform:translateX(-34px) scale(.97)} to{opacity:1;transform:translateX(0) scale(1)} }
+/* Card: soft float up, no bounce */
+@keyframes cardFloat      { from{opacity:0;transform:scale(.93) translateY(12px)} to{opacity:1;transform:scale(1) translateY(0)} }
+/* Stat: spring with snap, no overshoot — cinematic reveal */
+@keyframes statSpring     { 0%{opacity:0;transform:scale(.82) translateY(16px)} 60%{opacity:1;transform:scale(1.03) translateY(-2px)} 100%{opacity:1;transform:scale(1) translateY(0)} }
+/* Hero heading: deep blur + lift */
+@keyframes titleReveal    { from{opacity:0;transform:translateY(28px);filter:blur(10px)} to{opacity:1;transform:translateY(0);filter:blur(0)} }
+/* Mock panel: drift in from right with blur */
+@keyframes mockReveal     { from{opacity:0;transform:translateX(60px) scale(.92);filter:blur(10px)} to{opacity:1;transform:translateX(0) scale(1);filter:blur(0)} }
+/* Gentle opacity fade — for quotes and ambient elements */
+@keyframes slowFade       { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+/* Divider: sweep in, one-shot shimmer after — NO infinite pulse */
+@keyframes dividerSweep   { 0%{width:0;opacity:0} 55%{width:34px;opacity:.9} 75%{opacity:1} 100%{width:34px;opacity:.65} }
+/* Tag pill snap from top */
+@keyframes tagSnap        { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+/* shimmerSweep removed — em text uses plain color */
+/* Whale ambient float */
+@keyframes whaleFloat     { 0%,100%{margin-bottom:-4vh} 50%{margin-bottom:2.5vh} }
+/* WA typing dots */
+@keyframes typingDot      { 0%,60%,100%{transform:translateY(0);opacity:.35} 30%{transform:translateY(-3px);opacity:1} }
+/* Agent cell: soft scale pop, no bounce */
+@keyframes cellPop        { from{opacity:0;transform:scale(.88) translateY(8px)} to{opacity:1;transform:scale(1) translateY(0)} }
+/* Film grain shift — creates flickering noise effect */
+@keyframes grainShift {
+  0%   {transform:translate(0,0)}        10%{transform:translate(-1%,-2%)}
+  20%  {transform:translate(2%,1%)}      30%{transform:translate(-2%,2%)}
+  40%  {transform:translate(1%,-1%)}     50%{transform:translate(-1%,2%)}
+  60%  {transform:translate(2%,-2%)}     70%{transform:translate(-2%,1%)}
+  80%  {transform:translate(1%,2%)}      90%{transform:translate(-1%,-1%)}
+  100% {transform:translate(0,0)}
+}
+/* Bahía dissolve — iris darkens from edges, holds, opens as new slide arrives */
+@keyframes cutFlash {
+  0%   { opacity:0; }
+  32%  { opacity:1; }   /* iris closed — edges dark, center tinted */
+  68%  { opacity:.6; }  /* cross-dissolve zone — both slides visible through it */
+  100% { opacity:0; }   /* iris open — new slide fully visible */
+}
+/* Live dot: one fade-in then stays solid, no infinite pulse */
+@keyframes dotFadeIn { from{opacity:0;transform:scale(.4)} to{opacity:1;transform:scale(1)} }
+
+/* ══ DEFAULT CONTENT — cascade ══════════════════════════ */
+/* Tags: crisp snap, waits for slide to settle */
+.slide.active .tag                     { animation:tagSnap       .44s cubic-bezier(.22,1,.36,1)  .22s both; }
+.slide.active .connect-note            { animation:tagSnap       .44s cubic-bezier(.22,1,.36,1)  .28s both; }
+/* Headings: slow curtain reveal — deliberate, weighted */
+.slide.active h1                       { animation:titleReveal  1.20s cubic-bezier(.16,1,.3,1)   .28s both; }
+.slide.active h2                       { animation:clipRevealH  1.10s cubic-bezier(.16,1,.3,1)   .32s both; }
+/* Divider: measured sweep */
+.slide.active .divider                 { animation:dividerSweep  .95s cubic-bezier(.22,1,.36,1)  .54s both; }
+/* Body copy: patient lift after heading settles */
+.slide.active .lead                    { animation:clipRevealBody .88s cubic-bezier(.22,1,.36,1) .68s both; }
+/* Subheading */
+.slide.active h3                       { animation:clipRevealBody .72s cubic-bezier(.22,1,.36,1) .50s both; }
+/* Two-col: left follows heading, right drifts in from side */
+.slide.active .two-col > *:first-child { animation:clipRevealBody .82s cubic-bezier(.22,1,.36,1) .54s both; }
+.slide.active .two-col > *:last-child  { animation:contentInRight 1.00s cubic-bezier(.16,1,.3,1) .70s both; }
+/* Mock panel: grand entrance, gives slide time to arrive first */
+.slide.active .mock-wrap               { animation:mockReveal   1.40s cubic-bezier(.16,1,.3,1)   .58s both; }
+/* Cards: staggered float, unhurried */
+.slide.active .card                    { animation:cardFloat     .72s cubic-bezier(.22,1,.36,1)  .58s both; }
+.slide.active .card:nth-child(2)       { animation-delay:.78s; }
+.slide.active .card:nth-child(3)       { animation-delay:.98s; }
+.slide.active .card:nth-child(4)       { animation-delay:1.18s; }
+/* Grids and flows */
+.slide.active .agent-grid,
+.slide.active .three-col,
+.slide.active .flow,
+.slide.active .stack-grid              { animation:clipRevealBody .80s cubic-bezier(.22,1,.36,1) .52s both; }
+/* Stats: weighted spring */
+.slide.active .stat-row                { animation:statSpring   1.05s cubic-bezier(.22,1,.36,1)  .60s both; }
+/* Big quote: atmospheric, slow */
+.slide.active .big-quote               { animation:slowFade     1.80s cubic-bezier(.22,1,.36,1)  .72s both; }
+/* Pill lists */
+.slide.active .pill-list               { animation:clipRevealBody .72s cubic-bezier(.22,1,.36,1) .84s both; }
+/* Channels */
+.slide.active .channels                { animation:clipRevealBody .66s cubic-bezier(.22,1,.36,1) 1.00s both; }
+
+/* ══ WATERFALL — methodical, each element has room to breathe ═ */
+.slide[data-anim="waterfall"].active .tag            { animation-delay:.22s; }
+.slide[data-anim="waterfall"].active .connect-note   { animation-delay:.28s; }
+.slide[data-anim="waterfall"].active h2              { animation-delay:.52s; }
+.slide[data-anim="waterfall"].active .divider        { animation-delay:.86s; }
+.slide[data-anim="waterfall"].active .lead           { animation-delay:1.18s; }
+.slide[data-anim="waterfall"].active h3              { animation-delay:.78s; }
+.slide[data-anim="waterfall"].active .two-col > *:first-child { animation-delay:.84s; }
+.slide[data-anim="waterfall"].active .two-col > *:last-child  { animation-delay:1.28s; }
+.slide[data-anim="waterfall"].active .mock-wrap      { animation-delay:1.20s; }
+.slide[data-anim="waterfall"].active .card           { animation-delay:.88s; }
+.slide[data-anim="waterfall"].active .card:nth-child(2) { animation-delay:1.08s; }
+.slide[data-anim="waterfall"].active .card:nth-child(3) { animation-delay:1.28s; }
+.slide[data-anim="waterfall"].active .card:nth-child(4) { animation-delay:1.48s; }
+.slide[data-anim="waterfall"].active .stat-row       { animation-delay:1.00s; }
+.slide[data-anim="waterfall"].active .pill-list      { animation-delay:1.30s; }
+.slide[data-anim="waterfall"].active .channels       { animation-delay:1.50s; }
+/* Agent cells — staggered pop, unhurried */
+.slide[data-anim="waterfall"].active .agent-cell     { animation:cellPop .52s cubic-bezier(.22,1,.36,1) both; }
+.slide[data-anim="waterfall"].active .agent-cell:nth-child(1)  { animation-delay:.26s; }
+.slide[data-anim="waterfall"].active .agent-cell:nth-child(2)  { animation-delay:.35s; }
+.slide[data-anim="waterfall"].active .agent-cell:nth-child(3)  { animation-delay:.44s; }
+.slide[data-anim="waterfall"].active .agent-cell:nth-child(4)  { animation-delay:.53s; }
+.slide[data-anim="waterfall"].active .agent-cell:nth-child(5)  { animation-delay:.62s; }
+.slide[data-anim="waterfall"].active .agent-cell:nth-child(6)  { animation-delay:.71s; }
+.slide[data-anim="waterfall"].active .agent-cell:nth-child(7)  { animation-delay:.80s; }
+.slide[data-anim="waterfall"].active .agent-cell:nth-child(8)  { animation-delay:.89s; }
+.slide[data-anim="waterfall"].active .agent-cell:nth-child(9)  { animation-delay:.98s; }
+.slide[data-anim="waterfall"].active .agent-cell:nth-child(10) { animation-delay:1.07s; }
+.slide[data-anim="waterfall"].active .agent-cell:nth-child(11) { animation-delay:1.16s; }
+.slide[data-anim="waterfall"].active .agent-cell:nth-child(12) { animation-delay:1.25s; }
+.slide[data-anim="waterfall"].active .agent-cell:nth-child(13) { animation-delay:1.34s; }
+.slide[data-anim="waterfall"].active .agent-cell:nth-child(14) { animation-delay:1.43s; }
+.slide[data-anim="waterfall"].active .agent-cell:nth-child(15) { animation-delay:1.52s; }
+.slide[data-anim="waterfall"].active .agent-cell:nth-child(16) { animation-delay:1.61s; }
+
+/* ══ BURST — all arrives together, but not frantic ══════ */
+.slide[data-anim="burst"].active .tag            { animation-delay:.18s; }
+.slide[data-anim="burst"].active .connect-note   { animation-delay:.22s; }
+.slide[data-anim="burst"].active h2              { animation-delay:.24s; }
+.slide[data-anim="burst"].active .divider        { animation-delay:.30s; }
+.slide[data-anim="burst"].active .lead           { animation-delay:.36s; }
+.slide[data-anim="burst"].active h3              { animation-delay:.28s; }
+.slide[data-anim="burst"].active .two-col > *    { animation-delay:.32s; }
+.slide[data-anim="burst"].active .mock-wrap      { animation-delay:.30s; }
+.slide[data-anim="burst"].active .stat-row       { animation-delay:.28s; }
+.slide[data-anim="burst"].active .card           { animation-delay:.32s; }
+.slide[data-anim="burst"].active .card:nth-child(2) { animation-delay:.46s; }
+.slide[data-anim="burst"].active .card:nth-child(3) { animation-delay:.60s; }
+.slide[data-anim="burst"].active .card:nth-child(4) { animation-delay:.74s; }
+.slide[data-anim="burst"].active .big-quote      { animation-delay:.24s; }
+.slide[data-anim="burst"].active .pill-list      { animation-delay:.44s; }
+.slide[data-anim="burst"].active .channels       { animation-delay:.58s; }
+
+/* ══ FLIP — visual first, text follows ══════════════════ */
+.slide[data-anim="flip"].active .tag             { animation-delay:.22s; }
+.slide[data-anim="flip"].active .connect-note    { animation-delay:.28s; }
+.slide[data-anim="flip"].active h2               { animation-delay:.32s; }
+.slide[data-anim="flip"].active .divider         { animation-delay:.52s; }
+.slide[data-anim="flip"].active .two-col > *:last-child { animation-delay:.44s; }
+.slide[data-anim="flip"].active .mock-wrap       { animation-delay:.42s; }
+.slide[data-anim="flip"].active h3               { animation-delay:.80s; }
+.slide[data-anim="flip"].active .lead            { animation-delay:.84s; }
+.slide[data-anim="flip"].active .two-col > *:first-child { animation-delay:.86s; }
+.slide[data-anim="flip"].active .card            { animation-delay:.90s; }
+.slide[data-anim="flip"].active .card:nth-child(2) { animation-delay:1.10s; }
+.slide[data-anim="flip"].active .card:nth-child(3) { animation-delay:1.30s; }
+.slide[data-anim="flip"].active .card:nth-child(4) { animation-delay:1.50s; }
+.slide[data-anim="flip"].active .pill-list       { animation-delay:1.10s; }
+.slide[data-anim="flip"].active .channels        { animation-delay:1.26s; }
+
+/* ══ WHALE FLOAT ════════════════════════════════════════ */
+.slide.active .whale      { animation:whaleFloat 9s cubic-bezier(.37,0,.63,1) infinite; }
+.slide.active .whale-left { animation:whaleFloat 9s 1.4s cubic-bezier(.37,0,.63,1) infinite; }
+
+/* ══ H2 EM — color dorado, sin shimmer ═════════════════ */
+h2 em { color:var(--acc); }
+
+/* ══ WA TYPING ══════════════════════════════════════════ */
+.wa-typing { display:flex;gap:3px;align-items:center;padding:5px 8px;background:#1f2c34;border-radius:0 6px 6px 0;align-self:flex-start;width:42px; }
+.wa-typing span { width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.5);display:block;animation:typingDot .9s ease-in-out infinite; }
+.wa-typing span:nth-child(2) { animation-delay:.18s; }
+.wa-typing span:nth-child(3) { animation-delay:.36s; }
+
+/* ══ GLOBAL OVERLAYS ════════════════════════════════════ */
+#ptc     { position:fixed;inset:0;z-index:0;pointer-events:none;transition:opacity .7s; }
+#ambient { position:fixed;inset:0;z-index:0;pointer-events:none;transition:opacity .6s; }
+/* ── Aurora canvas ────────────────────── */
+#aurora { position:fixed;inset:0;z-index:0;pointer-events:none;transition:opacity .9s; }
+body.light-slide #aurora { opacity:0; }
+
+/* ── Ghost slide number ───────────────── */
+#ghost-num { position:fixed;z-index:1;pointer-events:none;user-select:none;
+  font-family:'Cormorant Garamond',serif;font-weight:300;font-size:44vw;line-height:.82;
+  color:rgba(246,246,246,.026);right:-3vw;bottom:-10vh;letter-spacing:-.04em;
+  transition:opacity .55s; }
+body.light-slide #ghost-num { color:rgba(12,26,46,.022); }
+
+/* ── Live badge (portada) ─────────────── */
+.live-badge { display:inline-flex;align-items:center;gap:.52rem;font-size:.52rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(246,246,246,.38);margin-bottom:1.2rem; }
+.live-dot { width:5px;height:5px;border-radius:50%;background:#4cba8a;flex-shrink:0;box-shadow:0 0 6px rgba(76,186,138,.65);animation:dotFadeIn .6s cubic-bezier(.22,1,.36,1) .4s both; }
+
+/* ── Geo shapes (portada) ─────────────── */
+.geo-shape { position:absolute;border-radius:50%;pointer-events:none;border:1px solid rgba(255,255,255,.08); }
+.gs-1 { width:560px;height:128px;top:16%;right:-4%;background:linear-gradient(135deg,rgba(139,172,214,.09),transparent);animation:geoA 18s cubic-bezier(.37,0,.63,1) infinite; }
+.gs-2 { width:370px;height:86px;bottom:26%;right:16%;background:linear-gradient(135deg,rgba(201,169,110,.07),transparent);animation:geoB 24s -9s cubic-bezier(.37,0,.63,1) infinite; }
+.gs-3 { width:200px;height:52px;top:52%;left:54%;background:linear-gradient(135deg,rgba(122,138,121,.07),transparent);animation:geoC 30s -15s cubic-bezier(.37,0,.63,1) infinite;border-color:rgba(255,255,255,.05); }
+@keyframes geoA { 0%,100%{transform:rotate(12deg)  translateY(0) scale(1)} 50%{transform:rotate(13.5deg) translateY(16px) scale(1.02)} }
+@keyframes geoB { 0%,100%{transform:rotate(-9deg)  translateY(0) scale(1)} 50%{transform:rotate(-7.5deg) translateY(-13px) scale(1.015)} }
+@keyframes geoC { 0%,100%{transform:rotate(5deg)   translateY(0) scale(1)} 50%{transform:rotate(6deg)   translateY(10px) scale(1.01)} }
+
+/* ── Magnetic cursor ring ─────────────── */
+.c-ring.near { width:52px;height:52px;border-color:rgba(201,169,110,.52);transition:width .18s,height .18s,border-color .18s; }
+
+/* ── Progress bar ─────────────────────── */
+#progress-bar { position:fixed;bottom:0;left:0;height:2px;width:0;z-index:200;pointer-events:none;
+  background:linear-gradient(to right,rgba(139,172,214,.6),rgba(201,169,110,.9));
+  transition:width .45s cubic-bezier(.22,1,.36,1); }
+body.light-slide #progress-bar { background:linear-gradient(to right,rgba(55,81,159,.5),rgba(142,128,85,.8)); }
+#scanlines { position:fixed;inset:0;z-index:4;pointer-events:none;
+  background:repeating-linear-gradient(to bottom,transparent,transparent 3px,rgba(0,0,0,.016) 3px,rgba(0,0,0,.016) 4px);
+  opacity:0;transition:opacity .6s; }
+#techgrid  { position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(rgba(55,81,159,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(55,81,159,.04) 1px,transparent 1px);
+  background-size:72px 72px;opacity:0;transition:opacity .7s; }
+body:not(.light-slide) #scanlines { opacity:1; }
+body:not(.light-slide) #techgrid  { opacity:1; }
+body.light-slide #ptc    { opacity:0; }
+body.light-slide #ambient{ opacity:0; }
+
+/* ══ CURSOR RING ════════════════════════════════════════ */
+.c-ring { position:fixed;z-index:9998;width:34px;height:34px;border-radius:50%;
+  border:1px solid rgba(139,172,214,.4);pointer-events:none;
+  transform:translate(-50%,-50%);transition:width .25s,height .25s,border-color .35s;mix-blend-mode:screen; }
+body.light-slide .c-ring { border-color:rgba(10,22,40,.28);mix-blend-mode:normal; }
+.c-ring.big { width:52px;height:52px;opacity:.45; }
+
+.slide > * { position:relative;z-index:2; }
+
+/* ══ PARALLAX DEPTH ════════════════════════════════════ */
+/* Standalone `translate` — doesn't conflict with animation transforms.
+   Only on text elements; images/mocks/whales stay fixed to avoid overflow. */
+.slide { --px:0px; --py:0px; }
+.slide.active .tag,
+.slide.active .connect-note { translate:calc(var(--px) * 1.1) calc(var(--py) * 1.0); }
+.slide.active h1,
+.slide.active h2            { translate:calc(var(--px) * .8) calc(var(--py) * .7); }
+.slide.active .divider,
+.slide.active .lead,
+.slide.active h3            { translate:calc(var(--px) * .6) calc(var(--py) * .5); }
+.slide.active .stat-row     { translate:calc(var(--px) * .4) calc(var(--py) * .3); }
+
+/* ══ SUB-STEP FLOW ══════════════════════════════════════ */
+.slide[data-sub] .sub-item {
+  opacity:0; transform:translateX(-22px);
+  transition:opacity .42s cubic-bezier(.22,1,.36,1), transform .46s cubic-bezier(.22,1,.36,1);
+}
+.slide[data-sub] .sub-item.sub-visible { opacity:1; transform:none; }
+.slide[data-sub] .flow-arrow.sub-item  { transform:scaleX(0); transform-origin:left center; transition-duration:.24s,.28s; }
+.slide[data-sub] .flow-arrow.sub-item.sub-visible { transform:scaleX(1); }
+.slide[data-sub] .flow-node.sub-item { transition-delay:0s,.04s; }
+/* flow container must be visible — children handle their own reveal */
+.slide[data-sub].active .flow { animation:none; opacity:1; }
+/* two-col as sub-item: suppress child animations until parent reveals */
+.slide[data-sub] .two-col.sub-item { animation:none; }
+.slide[data-sub] .sub-step-hint {
+  position:absolute; bottom:2.4rem; left:50%; transform:translateX(-50%);
+  font-size:.5rem; letter-spacing:.14em; text-transform:uppercase; color:var(--fg3);
+  display:flex; align-items:center; gap:.4rem; opacity:.55;
+  transition:opacity .3s;
+}
+.slide[data-sub] .sub-step-hint.done { opacity:0; pointer-events:none; }
+.sub-step-hint::after { content:'→'; font-size:.7rem; opacity:.7; }
+
+/* ── Backgrounds ─────────────────────── */
+.bg-navy  { background:var(--c-navy); }
+.bg-blue  { background:var(--c-blue); }
+.bg-white { background:var(--c-white); }
+.bg-sage  { background:var(--c-sage); }
+.bg-khaki { background:var(--c-khaki); }
+
+/* ── Foreground tokens per bg ─────────── */
+.slide        { --fg:#f6f6f6; --fg2:rgba(246,246,246,.65); --fg3:rgba(246,246,246,.4);
+                --acc:#8bacd6; --acc2:#a8b8a7; --acc3:#b8a87a;
+                --bdr:rgba(246,246,246,.18); --cbg:rgba(246,246,246,.06); }
+.bg-white     { --fg:#0C1A2E; --fg2:rgba(12,26,46,.68); --fg3:rgba(12,26,46,.4);
+                --acc:#37519f; --acc2:#7a8a79; --acc3:#8e8055;
+                --bdr:rgba(55,81,159,.22); --cbg:rgba(55,81,159,.05); }
+
+/* grain on dark slides */
+.bg-navy::before,.bg-blue::before,.bg-sage::before,.bg-khaki::before {
+  content:''; position:absolute; inset:0; z-index:0; pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.028'/%3E%3C/svg%3E");
+  opacity:.35;
+}
+
+/* whale */
+.whale { position:absolute; z-index:1; pointer-events:none; right:-3vw; bottom:-4vh; height:70vh; width:auto; filter:invert(1); mix-blend-mode:screen; opacity:.15; transform:scaleX(-1); }
+.bg-white .whale { filter:none; mix-blend-mode:multiply; opacity:.04; }
+.whale-left { right:auto; left:-3vw; transform:scaleX(1); }
+.bg-white .whale-left { transform:scaleX(1); }
+.whale-sm   { height:50vh; opacity:.11; }
+.whale-lg   { height:82vh; opacity:.2; }
+.bg-white .whale-sm { opacity:.03; }
+.bg-white .whale-lg { opacity:.05; }
+
+/* accent line */
+.slide-accent { position:absolute; top:0; bottom:0; right:0; width:2px; z-index:1; background:linear-gradient(to bottom,transparent,var(--bdr),transparent); opacity:.7; }
+.accent-left .slide-accent { right:auto; left:0; }
+
+/* ── Typography ──────────────────────── */
+.tag { font-size:.56rem; font-weight:600; letter-spacing:.22em; text-transform:uppercase; color:var(--acc); margin-bottom:.9rem; display:inline-flex; align-items:center; gap:.58rem;
+  background:rgba(139,172,214,.08); border:1px solid rgba(139,172,214,.18); border-radius:2px; padding:.16rem .62rem .16rem 0; }
+.tag::before { content:''; display:inline-block; width:22px; height:1px; background:linear-gradient(to right,transparent,var(--acc)); }
+.bg-white .tag { background:rgba(55,81,159,.06); border-color:rgba(55,81,159,.16); }
+
+.connect-note { display:inline-flex; align-items:center; gap:.42rem; font-size:.59rem; font-weight:500; letter-spacing:.05em; color:var(--acc2); background:var(--cbg); border:1px solid var(--bdr); border-radius:2px; padding:.2rem .68rem; margin-bottom:.75rem; }
+.connect-note::before { content:'↳'; font-size:.68rem; opacity:.7; }
+
+h1 { font-family:'Cormorant Garamond',serif; font-weight:300; font-size:clamp(2.6rem,5.2vw,5rem); line-height:1.02; color:var(--fg); margin-bottom:1.1rem; letter-spacing:-.02em; }
+h1 em { font-style:italic; font-weight:400; color:var(--acc); }
+h2 { font-family:'Cormorant Garamond',serif; font-weight:300; font-size:clamp(1.65rem,3.2vw,2.9rem); line-height:1.12; color:var(--fg); margin-bottom:.88rem; letter-spacing:-.015em; }
+h2 em { font-style:italic; font-weight:400; color:var(--acc); }
+h3 { font-weight:500; font-size:clamp(.88rem,1.38vw,1.12rem); line-height:1.28; color:var(--acc2); margin-bottom:.52rem; letter-spacing:.01em; }
+
+.lead { font-size:clamp(.83rem,1.22vw,.98rem); font-weight:300; line-height:1.82; color:var(--fg2); max-width:56ch; margin-bottom:1.35rem; }
+.body-sm { font-size:.8rem; font-weight:300; line-height:1.72; color:var(--fg2); }
+.divider { width:40px; height:1px; background:linear-gradient(to right,var(--acc),rgba(201,169,110,.5)); margin:.85rem 0; opacity:.8; }
+
+/* ── Components ──────────────────────── */
+.card { background:rgba(246,246,246,.07); border:1px solid var(--bdr);
+  border-radius:3px; padding:1rem 1.35rem;
+  backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.1), 0 4px 24px rgba(0,0,0,.16);
+  transition:border-color .22s, box-shadow .22s, transform .22s; }
+.card:hover { border-color:rgba(201,169,110,.38); transform:translateY(-2px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.15), 0 8px 32px rgba(0,0,0,.22), 0 0 0 1px rgba(201,169,110,.18); }
+.bg-white .card { background:rgba(55,81,159,.05); box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 4px 20px rgba(0,0,0,.07); }
+.pill-list { display:flex; flex-wrap:wrap; gap:.32rem; margin-top:.58rem; }
+.pill { background:rgba(139,172,214,.09); border:1px solid rgba(139,172,214,.2); border-radius:2px; padding:.22rem .68rem; font-size:.64rem; letter-spacing:.05em; color:var(--acc);
+  backdrop-filter:blur(8px); transition:border-color .18s,background .18s; }
+.pill:hover { background:rgba(139,172,214,.16); border-color:rgba(201,169,110,.3); }
+.two-col   { display:grid; grid-template-columns:1fr 1fr; gap:3rem; width:100%; }
+.three-col { display:grid; grid-template-columns:repeat(3,1fr); gap:.95rem; width:100%; }
+
+.point-list { list-style:none; display:flex; flex-direction:column; gap:.68rem; }
+.point-list li { display:flex; gap:.78rem; align-items:flex-start; font-size:.86rem; font-weight:300; color:var(--fg2); line-height:1.58; }
+.point-list li::before { content:''; width:4px; height:4px; border-radius:50%; background:var(--acc); margin-top:.6rem; flex-shrink:0; box-shadow:0 0 6px var(--acc); }
+.point-list li strong { color:var(--fg); font-weight:600; }
+
+/* agent grid */
+.agent-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:.48rem; width:100%; max-width:860px; }
+.agent-cell { background:rgba(246,246,246,.06); border:1px solid var(--bdr); border-radius:3px; padding:.68rem .86rem; display:flex; flex-direction:column; gap:.18rem; cursor:pointer;
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+  transition:background .18s,border-color .2s,transform .18s,box-shadow .2s; }
+.agent-cell:hover { background:rgba(246,246,246,.1); border-color:rgba(201,169,110,.32); transform:translateY(-2px) scale(1.01);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14), 0 6px 24px rgba(0,0,0,.2), 0 0 0 1px rgba(201,169,110,.15); }
+.agent-cell:hover { background:rgba(246,246,246,.13); border-color:rgba(246,246,246,.36); transform:translateY(-1px); }
+.bg-white .agent-cell:hover { background:rgba(55,81,159,.1); border-color:rgba(55,81,159,.38); }
+.ac-label { font-size:.52rem; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--acc2); margin-bottom:.02rem; }
+.ac-name  { font-size:.65rem; font-weight:500; color:var(--acc); line-height:1.3; }
+.ac-desc  { font-size:.58rem; color:var(--fg3); line-height:1.42; }
+.agent-cell.no-nav { cursor:default; }
+.agent-cell.no-nav:hover { transform:none; background:var(--cbg); border-color:var(--bdr); }
+
+/* flow */
+.flow { display:flex; align-items:center; margin:.82rem 0; max-width:780px; }
+.flow-node { background:rgba(246,246,246,.07); border:1px solid var(--bdr); border-radius:3px; padding:.68rem .82rem; text-align:center; min-width:86px; flex-shrink:0;
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.1);
+  transition:border-color .2s, box-shadow .2s; }
+.flow-node:hover { border-color:rgba(201,169,110,.35); box-shadow:inset 0 1px 0 rgba(255,255,255,.15), 0 4px 16px rgba(0,0,0,.18); }
+.fn-code { font-size:.88rem; font-weight:600; color:var(--acc); margin-bottom:.16rem; letter-spacing:.06em; }
+.fn-label { font-size:.56rem; font-weight:400; color:var(--acc2); line-height:1.35; }
+.flow-node.ctr { background:rgba(246,246,246,.12); }
+.bg-white .flow-node.ctr { background:rgba(55,81,159,.1); }
+.flow-arrow { width:20px; height:1px; background:linear-gradient(to right,var(--acc),transparent); flex-shrink:0; position:relative; }
+.flow-arrow::after { content:'›'; position:absolute; right:-4px; top:-7px; font-size:.6rem; color:var(--acc); opacity:.7; }
+
+.big-quote { font-size:clamp(1rem,1.75vw,1.55rem); font-weight:300; color:var(--fg2); line-height:1.5; max-width:36ch; border-left:2px solid var(--acc2); padding-left:1.2rem; margin:.82rem 0 1.05rem; }
+.channels { display:flex; gap:.38rem; flex-wrap:wrap; margin-top:.65rem; }
+.ch { background:var(--cbg); border:1px solid var(--bdr); border-radius:2px; padding:.18rem .58rem; font-size:.63rem; color:var(--fg2); }
+
+/* badges */
+.badge { display:inline-flex; align-items:center; padding:.12rem .52rem; border-radius:2px; font-size:.58rem; font-weight:600; letter-spacing:.05em; }
+.badge-red    { background:rgba(180,60,60,.15);  border:1px solid rgba(180,60,60,.3);  color:#f09090; }
+.badge-yellow { background:rgba(180,140,50,.14); border:1px solid rgba(180,140,50,.3); color:#e0c078; }
+.badge-green  { background:rgba(80,160,100,.12); border:1px solid rgba(80,160,100,.25);color:#90d8a8; }
+.bg-white .badge-red    { color:#9a2020; }
+.bg-white .badge-yellow { color:#7a5a10; }
+.bg-white .badge-green  { color:#2a7a48; }
+
+.stat-row { display:flex; gap:2.2rem; flex-wrap:wrap; }
+.stat-num { font-family:'Cormorant Garamond',serif; font-size:clamp(2.8rem,5.2vw,4.6rem); font-weight:300; color:var(--acc3); line-height:1; letter-spacing:-.02em; }
+.stat-label { font-size:.58rem; letter-spacing:.13em; text-transform:uppercase; color:var(--fg3); margin-top:.14rem; }
+.bg-white .stat-num { color:var(--c-blue); }
+
+.stack-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:.72rem; max-width:660px; }
+.stack-item { display:flex; align-items:flex-start; gap:.62rem; padding:.72rem; background:var(--cbg); border:1px solid var(--bdr); border-radius:2px; }
+.stack-code { font-size:.86rem; font-weight:700; color:var(--acc3); flex-shrink:0; margin-top:.05rem; letter-spacing:.04em; }
+.stack-name { font-size:.68rem; font-weight:500; color:var(--acc); margin-bottom:.05rem; }
+.stack-role { font-size:.58rem; color:var(--fg3); line-height:1.4; }
+
+/* cover */
+.cover-bg { position:absolute; inset:0; z-index:0; background:radial-gradient(ellipse at 65% 35%,rgba(55,81,159,.15) 0%,transparent 55%),radial-gradient(ellipse at 15% 80%,rgba(122,138,121,.07) 0%,transparent 50%); }
+.cover-line { position:absolute; left:8vw; top:0; bottom:0; width:1px; z-index:1; background:linear-gradient(to bottom,transparent 8%,rgba(139,172,214,.3) 40%,rgba(168,184,167,.2) 65%,transparent 92%); }
+
+/* ── Fixed chrome ────────────────────── */
+#corner-logo { position:fixed; top:1.3rem; right:2rem; z-index:300; display:flex; align-items:center; gap:.5rem; }
+#corner-logo .logo-whale { height:25px; filter:invert(1); mix-blend-mode:screen; opacity:.7; }
+#corner-logo .logo-text  { height:26px; opacity:.75; }
+body.light-slide #corner-logo .logo-whale { filter:none; mix-blend-mode:normal; opacity:.55; }
+body.light-slide #corner-logo .logo-text  { filter:brightness(0); opacity:.5; }
+
+body.light-slide #menu-btn span           { background:rgba(12,26,46,.45); }
+body.light-slide #slide-counter,
+body.light-slide #section-label           { color:rgba(12,26,46,.38); }
+body.light-slide .dot                     { background:rgba(12,26,46,.16); }
+body.light-slide .dot.active              { background:rgba(12,26,46,.65); width:14px; }
+body.light-slide #back-btn                { color:rgba(12,26,46,.42); }
+
+#menu-btn { position:fixed; top:1.3rem; left:2rem; z-index:300; width:32px; height:32px; cursor:pointer; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:5px; background:transparent; border:none; padding:0; }
+#menu-btn span { display:block; width:17px; height:1px; background:rgba(246,246,246,.44); transition:all .22s; }
+#menu-btn:hover span { background:rgba(246,246,246,.85); }
+#menu-btn.open span:nth-child(1) { transform:translateY(6px) rotate(45deg); }
+#menu-btn.open span:nth-child(2) { opacity:0; }
+#menu-btn.open span:nth-child(3) { transform:translateY(-6px) rotate(-45deg); }
+
+#back-btn { position:fixed; top:1.35rem; left:4.75rem; z-index:300; display:none; align-items:center; gap:.38rem; background:transparent; border:none; cursor:pointer; color:rgba(246,246,246,.44); font-family:'Nunito',sans-serif; font-size:.58rem; letter-spacing:.1em; text-transform:uppercase; transition:color .18s; padding:0; }
+#back-btn:hover { color:rgba(246,246,246,.9); }
+#back-btn.visible { display:flex; }
+#back-btn svg { width:12px; height:12px; }
+
+#slide-counter { position:fixed; bottom:1.5rem; right:2rem; z-index:100;
+  font-family:'Cormorant Garamond',serif; font-size:1.05rem; font-weight:300;
+  letter-spacing:.06em; color:rgba(246,246,246,.28); line-height:1; }
+body.light-slide #slide-counter { color:rgba(12,26,46,.3); }
+#section-label { position:fixed; bottom:1.5rem; left:2rem; z-index:100;
+  font-size:.5rem; letter-spacing:.18em; text-transform:uppercase;
+  color:rgba(246,246,246,.32); display:flex; align-items:center; gap:.5rem; }
+#section-label::before { content:''; width:14px; height:1px; background:rgba(201,169,110,.5); }
+body.light-slide #section-label { color:rgba(12,26,46,.3); }
+body.light-slide #section-label::before { background:rgba(142,128,85,.5); }
+#nav { position:fixed; bottom:1.45rem; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:.36rem; z-index:100; }
+.dot { width:4px; height:4px; border-radius:50%; background:rgba(246,246,246,.17); cursor:pointer; transition:all .24s; }
+.dot.active { background:rgba(246,246,246,.68); width:14px; border-radius:3px; }
+
+/* ── Mocks ───────────────────────────── */
+.mock-wrap { display:flex; flex-direction:column; align-items:center; justify-content:center; zoom:1.72; }
+.phone-frame { width:230px; background:#0e0e12; border-radius:28px; border:2.5px solid rgba(255,255,255,.13); padding:13px 10px 18px; display:flex; flex-direction:column; gap:5px; box-shadow:0 18px 56px rgba(0,0,0,.55); }
+.phone-status { display:flex; justify-content:space-between; align-items:center; padding:0 5px; margin-bottom:2px; }
+.ph-time { font-size:10px; font-weight:600; color:rgba(255,255,255,.7); font-family:'Nunito',sans-serif; }
+.ph-icons { display:flex; gap:4px; align-items:center; }
+.ph-dot { width:5px; height:5px; border-radius:50%; background:rgba(255,255,255,.5); }
+.wa-header { background:#1f2c34; border-radius:8px 8px 0 0; padding:7px 9px; display:flex; align-items:center; gap:8px; }
+.wa-av { width:28px; height:28px; border-radius:50%; background:#37519f; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:#fff; font-family:'Nunito',sans-serif; flex-shrink:0; }
+.wa-name { font-size:9.5px; font-weight:600; color:#fff; font-family:'Nunito',sans-serif; line-height:1.2; }
+.wa-sub { font-size:7.5px; color:rgba(255,255,255,.45); font-family:'Nunito',sans-serif; }
+.wa-body { background:#0b1418; border-radius:0 0 8px 8px; padding:8px 7px; display:flex; flex-direction:column; gap:5px; min-height:110px; }
+.wa-msg { max-width:88%; padding:6px 8px 4px; border-radius:6px; font-size:8.5px; line-height:1.48; font-family:'Nunito',sans-serif; position:relative; }
+.wa-recv { background:#1f2c34; color:rgba(255,255,255,.88); align-self:flex-start; border-radius:0 6px 6px 6px; }
+.wa-sent { background:#005c4b; color:rgba(255,255,255,.88); align-self:flex-end; border-radius:6px 0 6px 6px; }
+.wa-time { font-size:7px; color:rgba(255,255,255,.38); text-align:right; margin-top:2px; }
+.wa-check { color:#53bdeb; }
+.mock-label { font-size:.52rem; letter-spacing:.1em; text-transform:uppercase; color:var(--fg3); margin-top:.6rem; font-family:'Nunito',sans-serif; }
+
+/* ── Slide menu ──────────────────────── */
+#slide-menu { position:fixed; inset:0; z-index:200; background:rgba(8,17,32,.97); backdrop-filter:blur(14px); display:flex; flex-direction:column; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .24s; padding:4vh 5vw; overflow-y:auto; }
+#slide-menu.open { opacity:1; pointer-events:all; }
+.menu-header { text-align:center; margin-bottom:1.05rem; font-size:1.05rem; font-weight:300; color:rgba(168,184,167,.68); letter-spacing:.16em; }
+.menu-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:.42rem; width:100%; max-width:960px; }
+.menu-item { background:rgba(246,246,246,.04); border:1px solid rgba(246,246,246,.09); border-radius:2px; padding:.75rem .86rem; cursor:pointer; transition:background .14s,border-color .14s; }
+.menu-item:hover { background:rgba(246,246,246,.1); border-color:rgba(246,246,246,.26); }
+.menu-item.current { border-color:rgba(139,172,214,.58); background:rgba(55,81,159,.17); }
+.mi-num { font-size:.76rem; font-weight:200; color:rgba(184,168,122,.58); margin-bottom:.18rem; }
+.mi-title { font-size:.62rem; font-weight:500; color:#f6f6f6; line-height:1.35; }
+.mi-section { font-size:.53rem; color:rgba(246,246,246,.36); margin-top:.13rem; }
+
+/* ══ CINEMATIC OVERLAYS ════════════════════════════════ */
+
+/* Film grain — 200% size + grainShift at 10fps for genuine film texture */
+#film-grain {
+  position:fixed; inset:-50%; z-index:6; pointer-events:none;
+  width:200%; height:200%;
+  opacity:.038;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  animation:grainShift .08s steps(1) infinite;
+  will-change:transform;
+}
+body.light-slide #film-grain { opacity:.022; }
+
+/* Vignette — radial darkening at edges for cinematic depth */
+#vignette {
+  position:fixed; inset:0; z-index:3; pointer-events:none;
+  background:radial-gradient(ellipse 85% 85% at 50% 50%,
+    transparent 40%,
+    rgba(4,8,18,.28) 72%,
+    rgba(4,8,18,.62) 100%);
+  transition:opacity .9s;
+}
+body.light-slide #vignette {
+  background:radial-gradient(ellipse 85% 85% at 50% 50%,
+    transparent 40%,
+    rgba(8,16,32,.14) 72%,
+    rgba(8,16,32,.30) 100%);
+}
+
+/* Bahía dissolve — dark iris from edges + subtle navy tint at center.
+   NOT a flash: the center stays semi-transparent, edges darken like a camera blink. */
+#cut-flash {
+  position:fixed; inset:0; z-index:7; pointer-events:none;
+  background:radial-gradient(ellipse 110% 110% at 50% 50%,
+    rgba(12,24,48,.08)  0%,
+    rgba(8,16,36,.32)  48%,
+    rgba(4,8,20,.72)  100%);
+  opacity:0;
+}
+#cut-flash.flash { animation:cutFlash .82s cubic-bezier(.25,.1,.25,1) forwards; }
+
+/* ══ PREFERS-REDUCED-MOTION ════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *,*::before,*::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .slide { transform:none !important; }
+  #film-grain { animation:none; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="ptc"></canvas>
+<canvas id="aurora"></canvas>
+<div id="ambient"></div>
+<div id="scanlines"></div>
+<div id="techgrid"></div>
+<div id="progress-bar"></div>
+<div id="ghost-num">01</div>
+<!-- Cinematic overlays -->
+<div id="film-grain"></div>
+<div id="vignette"></div>
+<div id="cut-flash"></div>
+
+<div class="cursor" id="cursor"></div>
+<div class="c-ring" id="c-ring"></div>
+
+<div id="corner-logo">
+  <img class="logo-whale" src="bahiaclub-briefing/brandbook-pages/15-isotipo.jpg" alt="">
+  <img class="logo-text"  src="bahiaclub-briefing/logos/bahia-logo2.png" alt="Bahía Club">
+</div>
+
+<button id="menu-btn"><span></span><span></span><span></span></button>
+<button id="back-btn">
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 3L5 8l5 5"/></svg>
+  Índice
+</button>
+
+<div id="slide-menu">
+  <p class="menu-header">Navegación</p>
+  <div class="menu-grid" id="menu-grid"></div>
+</div>
+
+<div id="section-label"></div>
+<div id="slide-counter"></div>
+<div id="nav"></div>
+
+<div id="deck">
+
+<!-- PORTADA -->
+<div class="slide bg-navy" data-section="" data-title="Sistema de Agentes IA" data-tx="zoom" data-anim="burst">
+  <div class="cover-bg"></div>
+  <div class="cover-line"></div>
+  <div class="slide-accent"></div>
+  <div class="geo-shape gs-1"></div>
+  <div class="geo-shape gs-2"></div>
+  <div class="geo-shape gs-3"></div>
+  <img class="whale whale-lg" src="bahiaclub-briefing/brandbook-pages/15-isotipo.jpg" alt=""
+       style="right:-5vw; bottom:-6vh;">
+  <div style="display:flex; align-items:center; gap:1.1rem; margin-bottom:2rem;">
+    <img src="bahiaclub-briefing/brandbook-pages/15-isotipo.jpg" alt=""
+         style="height:66px; filter:invert(1); mix-blend-mode:screen; opacity:.85;">
+    <img src="bahiaclub-briefing/logos/bahia-logo2.png" alt="Bahía Club"
+         style="height:40px; opacity:.88; display:block;">
+  </div>
+  <div class="live-badge"><span class="live-dot"></span>Riviera Nayarit · 2026</div>
+  <div class="tag">Social Sports Club</div>
+  <h1>Sistema de<br><em>Agentes IA</em></h1>
+  <div class="divider"></div>
+  <p class="lead">15 agentes autónomos que operan Bahía Club de principio a fin — desde el primer check-in hasta las proyecciones financieras del consejo.</p>
+  <div class="stat-row">
+    <div><div class="stat-num" data-count="15">0</div><div class="stat-label">Agentes IA</div></div>
+    <div><div class="stat-num" data-count="22">0</div><div class="stat-label">Canchas</div></div>
+    <div><div class="stat-num">24/7</div><div class="stat-label">Operación autónoma</div></div>
+  </div>
+</div>
+
+<!-- ÍNDICE -->
+<div class="slide bg-navy" data-section="Navegación" data-title="Índice del sistema" data-tx="slide-r" data-anim="waterfall">
+  <div class="slide-accent"></div>
+  <img class="whale whale-sm" src="bahiaclub-briefing/brandbook-pages/15-isotipo.jpg" alt="">
+  <div class="tag">El sistema completo</div>
+  <h2><em>Índice</em> del sistema</h2>
+  <p class="body-sm" style="margin-bottom:.68rem; color:rgba(246,246,246,.5);">Selecciona cualquier agente para ver su detalle.</p>
+  <div class="agent-grid">
+    <div class="agent-cell" data-goto="4"><span class="ac-label">Fundación</span><span class="ac-name">Check-in Tracker</span><span class="ac-desc">El primer dato real del club</span></div>
+    <div class="agent-cell" data-goto="5"><span class="ac-label">Fundación</span><span class="ac-name">Control de Acceso</span><span class="ac-desc">Torniquete conectado al check-in</span></div>
+    <div class="agent-cell" data-goto="6"><span class="ac-label">Fundación</span><span class="ac-name">Cobranza</span><span class="ac-desc">Pagos · recordatorios · presupuesto</span></div>
+    <div class="agent-cell" data-goto="7"><span class="ac-label">Reservas</span><span class="ac-name">Concierge de Reservas</span><span class="ac-desc">22 canchas en lenguaje natural</span></div>
+    <div class="agent-cell" data-goto="8"><span class="ac-label">Reservas</span><span class="ac-name">app.bahiaclub.mx</span><span class="ac-desc">Portal propio · reservas · comunidad</span></div>
+    <div class="agent-cell" data-goto="9"><span class="ac-label">Reservas</span><span class="ac-name">Pronóstico del Clima</span><span class="ac-desc">Alerta lluvia · canchas exteriores</span></div>
+    <div class="agent-cell" data-goto="10"><span class="ac-label">Retención</span><span class="ac-name">Satisfacción</span><span class="ac-desc">NPS mensual · alertas de churn</span></div>
+    <div class="agent-cell" data-goto="11"><span class="ac-label">Crecimiento</span><span class="ac-name">Ventas</span><span class="ac-desc">Prospectos 24/7 · WA + redes</span></div>
+    <div class="agent-cell" data-goto="12"><span class="ac-label">Crecimiento</span><span class="ac-name">Marketing</span><span class="ac-desc">Tendencias · campañas automáticas</span></div>
+    <div class="agent-cell" data-goto="13"><span class="ac-label">Crecimiento</span><span class="ac-name">Day Pass</span><span class="ac-desc">Acceso de un día → membresía</span></div>
+    <div class="agent-cell" data-goto="14"><span class="ac-label">Operación</span><span class="ac-name">Mantenimiento</span><span class="ac-desc">Tickets · preventivo · bloqueo</span></div>
+    <div class="agent-cell" data-goto="15"><span class="ac-label">Operación</span><span class="ac-name">Staff & Horarios</span><span class="ac-desc">Plantilla semanal con IA</span></div>
+    <div class="agent-cell" data-goto="16"><span class="ac-label">Operación</span><span class="ac-name">Eventos</span><span class="ac-desc">Eventos basados en datos reales</span></div>
+    <div class="agent-cell" data-goto="17"><span class="ac-label">Operación</span><span class="ac-name">Clases</span><span class="ac-desc">Reserva · instructores · progresión</span></div>
+    <div class="agent-cell" data-goto="18"><span class="ac-label">Financiero</span><span class="ac-name">Contabilidad</span><span class="ac-desc">P&L en vivo · 3 roles</span></div>
+    <div class="agent-cell" data-goto="19"><span class="ac-label">Financiero</span><span class="ac-name">CFO IA</span><span class="ac-desc">Proyecciones · escenarios · chat</span></div>
+    <div class="agent-cell" data-goto="20"><span class="ac-label">Reputación</span><span class="ac-name">Reputación Digital</span><span class="ac-desc">Google Reviews · IG · TripAdvisor</span></div>
+    <div class="agent-cell" data-goto="21"><span class="ac-label">Comunidad</span><span class="ac-name">Puntos · ELO · Ligas · Badges</span><span class="ac-desc">Retención por comunidad</span></div>
+  </div>
+</div>
+
+<!-- CÓMO FUNCIONA -->
+<div class="slide bg-navy accent-left" data-section="Arquitectura" data-title="Cómo funciona" data-tx="slide-u" data-anim="cascade" data-sub>
+  <div class="slide-accent"></div>
+  <img class="whale whale-sm" src="bahiaclub-briefing/brandbook-pages/15-isotipo.jpg" alt="">
+  <div class="tag">Arquitectura del sistema</div>
+  <h2>¿Cómo <em>funciona</em> un agente?</h2>
+  <div class="divider"></div>
+  <p class="lead">Todos los agentes comparten el mismo patrón: reciben una señal, razonan con IA y actúan. El admin interviene solo cuando importa.</p>
+  <div class="flow">
+    <div class="flow-node sub-item"><div class="fn-code">Usr</div><div class="fn-label">Miembro<br>o Admin</div></div>
+    <div class="flow-arrow sub-item"></div>
+    <div class="flow-node sub-item"><div class="fn-code">WA</div><div class="fn-label">WhatsApp<br>o Portal</div></div>
+    <div class="flow-arrow sub-item"></div>
+    <div class="flow-node ctr sub-item"><div class="fn-code">IA</div><div class="fn-label">Agente IA<br>razona</div></div>
+    <div class="flow-arrow sub-item"></div>
+    <div class="flow-node sub-item"><div class="fn-code">DB</div><div class="fn-label">Base de datos<br>Supabase</div></div>
+    <div class="flow-arrow sub-item"></div>
+    <div class="flow-node sub-item"><div class="fn-code">Act</div><div class="fn-label">Acción<br>automática</div></div>
+    <div class="flow-arrow sub-item"></div>
+    <div class="flow-node sub-item"><div class="fn-code">OK</div><div class="fn-label">Confirmación<br>WA / Email</div></div>
+  </div>
+  <div class="two-col sub-item" style="margin-top:.82rem;">
+    <div>
+      <h3>El admin aprueba, no gestiona</h3>
+      <p class="body-sm">En flujos de alto impacto — cobranza, campañas, horarios — el agente prepara y el admin aprueba con un click.</p>
+    </div>
+    <div>
+      <h3>El sistema actúa solo</h3>
+      <p class="body-sm">Para rutinas predecibles — recordatorios, confirmaciones, encuestas — el agente actúa directamente.</p>
+    </div>
+  </div>
+  <div class="sub-step-hint" id="flow-hint">Click para continuar</div>
+</div>
+
+<!-- QUÉ GANA EL CLUB -->
+<div class="slide bg-navy accent-left" data-section="Visión" data-title="Qué gana el club" data-tx="blur" data-anim="burst">
+  <div class="slide-accent"></div>
+  <img class="whale whale-lg" src="bahiaclub-briefing/brandbook-pages/15-isotipo.jpg" alt="">
+  <div class="tag">Beneficios del sistema</div>
+  <h2>Lo que el sistema <em>entrega</em></h2>
+  <div class="divider"></div>
+  <ul class="point-list">
+    <li><strong>Datos propios, en tiempo real.</strong> Asistencia, reservas, satisfacción y pagos consolidados — la base para cualquier decisión del consejo.</li>
+    <li><strong>El equipo enfocado en los miembros.</strong> Recordatorios, confirmaciones, encuestas y horarios los maneja el sistema.</li>
+    <li><strong>Miembros más comprometidos.</strong> Ligas, ELO, badges y puntos crean vínculos que hacen que un miembro no cancele aunque quiera.</li>
+    <li><strong>Cancelaciones detectadas antes de que ocurran.</strong> Alertas de churn e inactividad actúan antes de que el problema exista.</li>
+    <li><strong>Escala sin que el equipo crezca.</strong> El mismo sistema opera 200 o 500 miembros.</li>
+  </ul>
+</div>
+
+<!-- CHECK-IN TRACKER -->
+<div class="slide bg-blue" data-section="Fundación" data-title="Check-in Tracker" data-tx="slide-r" data-anim="cascade">
+  <div class="slide-accent"></div>
+  <img class="whale" src="bahiaclub-briefing/brandbook-pages/15-isotipo.jpg" alt="">
+  <div class="tag">Primer agente · La fundación</div>
+  <h2>Check-in <em>Tracker</em></h2>
+  <div class="divider"></div>
+  <div class="two-col">
+    <div>
+      <h3>Por qué empieza aquí</h3>
+      <ul class="point-list" style="margin-top:.38rem;">
+        <li>Es el primer dato real que el club tiene: quién entra, cuándo y con qué frecuencia.</li>
+        <li>Esta base de asistencia alimenta a 6 agentes más: Satisfacción, Cobranza, Staff, Eventos, Control de Acceso y el CFO.</li>
+        <li>Sin este agente, los demás no tienen los datos que necesitan para funcionar bien.</li>
+      </ul>
+      <div class="channels" style="margin-top:.78rem;">
+        <div class="ch">QR en entrada</div>
+        <div class="ch">Tarjeta o pulsera</div>
+        <div class="ch">Dashboard web</div>
+        <div class="ch">Alertas WA</div>
+      </div>
+    </div>
+    <div class="mock-wrap" style="align-items:flex-start; gap:1.2rem; flex-direction:row;">
+      <!-- QR Card -->
+      <div style="background:rgba(0,0,0,.22); border:1px solid var(--bdr); border-radius:10px; padding:1rem; display:flex; flex-direction:column; align-items:center; gap:.5rem; min-width:145px;">
+        <svg width="112" height="112" viewBox="0 0 82 82" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="82" height="82" fill="rgba(246,246,246,0.06)" rx="4"/>
+          <!-- finder TL -->
+          <rect x="8" y="8" width="22" height="22" rx="2" fill="none" stroke="rgba(139,172,214,.9)" stroke-width="2"/>
+          <rect x="13" y="13" width="12" height="12" rx="1" fill="rgba(139,172,214,.9)"/>
+          <!-- finder TR -->
+          <rect x="52" y="8" width="22" height="22" rx="2" fill="none" stroke="rgba(139,172,214,.9)" stroke-width="2"/>
+          <rect x="57" y="13" width="12" height="12" rx="1" fill="rgba(139,172,214,.9)"/>
+          <!-- finder BL -->
+          <rect x="8" y="52" width="22" height="22" rx="2" fill="none" stroke="rgba(139,172,214,.9)" stroke-width="2"/>
+          <rect x="13" y="57" width="12" height="12" rx="1" fill="rgba(139,172,214,.9)"/>
+          <!-- data modules -->
+          <rect x="36" y="8" width="4" height="4" fill="rgba(139,172,214,.7)"/>
+          <rect x="42" y="8" width="4" height="4" fill="rgba(139,172,214,.7)"/>
+          <rect x="36" y="14" width="4" height="4" fill="rgba(139,172,214,.5)"/>
+          <rect x="8" y="36" width="4" height="4" fill="rgba(139,172,214,.7)"/>
+          <rect x="8" y="42" width="4" height="4" fill="rgba(139,172,214,.5)"/>
+          <rect x="14" y="36" width="4" height="4" fill="rgba(139,172,214,.4)"/>
+          <rect x="36" y="36" width="4" height="4" fill="rgba(139,172,214,.85)"/>
+          <rect x="42" y="36" width="4" height="4" fill="rgba(139,172,214,.6)"/>
+          <rect x="48" y="36" width="4" height="4" fill="rgba(139,172,214,.7)"/>
+          <rect x="54" y="36" width="4" height="4" fill="rgba(139,172,214,.5)"/>
+          <rect x="60" y="36" width="4" height="4" fill="rgba(139,172,214,.8)"/>
+          <rect x="66" y="36" width="4" height="4" fill="rgba(139,172,214,.6)"/>
+          <rect x="36" y="42" width="4" height="4" fill="rgba(139,172,214,.5)"/>
+          <rect x="42" y="42" width="4" height="4" fill="rgba(139,172,214,.8)"/>
+          <rect x="54" y="42" width="4" height="4" fill="rgba(139,172,214,.6)"/>
+          <rect x="66" y="42" width="4" height="4" fill="rgba(139,172,214,.7)"/>
+          <rect x="36" y="48" width="4" height="4" fill="rgba(139,172,214,.7)"/>
+          <rect x="48" y="48" width="4" height="4" fill="rgba(139,172,214,.5)"/>
+          <rect x="60" y="48" width="4" height="4" fill="rgba(139,172,214,.8)"/>
+          <rect x="36" y="54" width="4" height="4" fill="rgba(139,172,214,.6)"/>
+          <rect x="42" y="54" width="4" height="4" fill="rgba(139,172,214,.7)"/>
+          <rect x="54" y="54" width="4" height="4" fill="rgba(139,172,214,.5)"/>
+          <rect x="60" y="54" width="4" height="4" fill="rgba(139,172,214,.8)"/>
+          <rect x="36" y="60" width="4" height="4" fill="rgba(139,172,214,.5)"/>
+          <rect x="48" y="60" width="4" height="4" fill="rgba(139,172,214,.7)"/>
+          <rect x="66" y="60" width="4" height="4" fill="rgba(139,172,214,.6)"/>
+          <rect x="42" y="66" width="4" height="4" fill="rgba(139,172,214,.8)"/>
+          <rect x="54" y="66" width="4" height="4" fill="rgba(139,172,214,.5)"/>
+          <rect x="60" y="66" width="4" height="4" fill="rgba(139,172,214,.7)"/>
+        </svg>
+        <span style="font-size:.6rem; color:var(--fg3); font-family:'Nunito',sans-serif; letter-spacing:.06em;">ID · 0042</span>
+      </div>
+      <!-- Confirmation screen -->
+      <div class="phone-frame">
+        <div class="phone-status"><span class="ph-time">9:14</span><div class="ph-icons"><div class="ph-dot"></div><div class="ph-dot"></div><div class="ph-dot"></div></div></div>
+        <div style="background:#111; border-radius:10px; padding:14px 10px; display:flex; flex-direction:column; align-items:center; gap:7px;">
+          <svg width="42" height="42" viewBox="0 0 32 32"><circle cx="16" cy="16" r="15" fill="rgba(80,190,110,.18)" stroke="rgba(80,190,110,.7)" stroke-width="1.5"/><path d="M10 16l4.5 4.5 8-8" stroke="rgba(80,190,110,.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          <span style="font-size:9.5px; font-weight:700; color:rgba(80,190,110,.9); font-family:'Nunito',sans-serif; letter-spacing:.04em;">ACCESO CONFIRMADO</span>
+          <span style="font-size:8px; color:rgba(255,255,255,.55); font-family:'Nunito',sans-serif;">Carlos M. · Socio Plus</span>
+          <div style="width:100%; height:1px; background:rgba(255,255,255,.08); margin:2px 0;"></div>
+          <span style="font-size:7.5px; color:rgba(255,255,255,.32); font-family:'Nunito',sans-serif;">Hoy · 09:14 · Entrada principal</span>
+        </div>
+        <div style="background:#111; border-radius:10px; padding:10px; margin-top:5px;">
+          <div style="font-size:7.5px; font-weight:600; color:rgba(168,184,167,.7); letter-spacing:.08em; text-transform:uppercase; margin-bottom:6px; font-family:'Nunito',sans-serif;">Asistencia este mes</div>
+          <div style="display:flex; gap:3px; align-items:flex-end; height:30px;">
+            <div style="flex:1; background:rgba(139,172,214,.3); border-radius:2px; height:10px;"></div>
+            <div style="flex:1; background:rgba(139,172,214,.4); border-radius:2px; height:18px;"></div>
+            <div style="flex:1; background:rgba(139,172,214,.5); border-radius:2px; height:13px;"></div>
+            <div style="flex:1; background:rgba(139,172,214,.6); border-radius:2px; height:24px;"></div>
+            <div style="flex:1; background:rgba(139,172,214,.5); border-radius:2px; height:16px;"></div>
+            <div style="flex:1; background:rgba(139,172,214,.45); border-radius:2px; height:12px;"></div>
+            <div style="flex:1; background:rgba(139,172,214,.85); border-radius:2px; height:30px;"></div>
+          </div>
+          <div style="font-size:7px; color:rgba(255,255,255,.28); font-family:'Nunito',sans-serif; margin-top:4px;">12 visitas · activo</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTROL DE ACCESO -->
+<div class="slide bg-blue accent-left" data-section="Fundación" data-title="Control de Acceso" data-tx="slide-r" data-anim="flip">
+  <div class="slide-accent"></div>
+  <img class="whale whale-left whale-sm" src="bahiaclub-briefing/brandbook-pages/15-isotipo.jpg" alt="">
+  <div class="tag">Segundo · Conectado con Check-in Tracker</div>
+  <div class="connect-note">Se activa con los datos del Check-in Tracker en tiempo real</div>
+  <h2>Control de <em>Acceso</em></h2>
+  <div class="divider"></div>
+  <div class="two-col">
+    <div>
+      <h3>Qué hace</h3>
+      <ul class="point-list" style="margin-top:.38rem;">
+        <li>El torniquete verifica membresía activa y pagos al corriente antes de abrir.</li>
+        <li>Si hay un problema, el miembro recibe un WhatsApp antes de llegar al club.</li>
+        <li>Los días de gracia y el umbral de bloqueo son configurables por gerencia.</li>
+        <li>Protege la relación con el miembro incluso cuando hay un problema de pago.</li>
+      </ul>
+    </div>
+    <div>
+      <div class="big-quote" style="margin-top:1.6rem;">"La incomodidad de bloquear a alguien en la puerta es evitable si el sistema lo avisa antes."</div>
+    </div>
+  </div>
+</div>
+
+<!-- COBRANZA -->
+<div class="slide bg-blue" data-section="Fundación" data-title="Cobranza & Pagos" data-tx="slide-u" data-anim="cascade">
+  <div class="slide-accent"></div>
+  <img class="whale whale-sm" src="bahiaclub-briefing/brandbook-pages/15-isotipo.jpg" alt="">
+  <div class="tag">Tercero · La caja del club</div>
+  <h2>Cobranza <em>& Pagos</em></h2>
+  <div class="divider"></div>
+  <div class="two-col">
+    <div>
+      <h3>Qué hace</h3>
+      <ul class="point-list" style="margin-top:.38rem;">
+        <li>Base de datos central de todos los pagos: inscripciones, mensualidades, Day Pass.</li>
+        <li>El presupuesto real vs. esperado disponible en cualquier momento.</li>
+        <li>Los recordatorios de pago llegan por WhatsApp en el momento correcto.</li>
+        <li>La urgencia escala automáticamente según los días de atraso.</li>
+      </ul>
+    </div>
+    <div class="mock-wrap">
+      <div class="phone-frame" style="width:240px;">
+        <div class="phone-status"><span class="ph-time">10:32</span><div class="ph-icons"><div class="ph-dot"></div><div class="ph-dot"></div><div class="ph-dot"></div></div></div>
+        <div class="wa-header">
+          <div class="wa-av">B</div>
+          <div><div class="wa-name">Bahía Club</div><div class="wa-sub">en línea</div></div>
+        </div>
+        <div class="wa-body">
+          <div class="wa-msg wa-recv">
+            Hola Alejandro, tu membresía venció hace 3 días. Puedes renovar fácilmente aquí: bahiaclub.mx/pago — cualquier duda estamos aquí.
+            <div class="wa-time">10:08 · día 3</div>
+          </div>
+          <div class="wa-msg wa-recv" style="background:#2a1f0a; margin-top:4px;">
+            Alejandro, ya van 10 días. Tu acceso al club sigue activo por ahora. Te compartimos las opciones de pago disponibles.
+            <div class="wa-time">09:15 · día 10</div>
+          </div>
+          <div class="wa-msg wa-recv" style="background:#2a0a0a; margin-top:4px;">
+            ⚠️ Alejandro — 16 días sin pago. Tu acceso quedará suspendido mañana. Escríbenos para encontrar una solución.
+            <div class="wa-time">08:45 · día 16</div>
+          </div>
+        </div>
+      </div>
+      <span class="mock-label">secuencia automática</span>
+    </div>
+  </div>
+</div>
+
+<!-- RESERVAS -->
+<div class="slide bg-blue" data-section="Reservas" data-title="Concierge de Reservas" data-tx="blur" data-anim="cascade">
+  <div class="slide-accent"></div>
+  <img class="whale whale-lg" src="bahiaclub-briefing/brandbook-pages/15-isotipo.jpg" alt="">
+  <div class="tag">Reservas · La operación diaria</div>
+  <h2>Concierge de <em>Reservas</em></h2>
+  <div class="divider"></div>
+  <div class="two-col">
+    <div>
+      <h3>Qué hace</h3>
+      <ul class="point-list" style="margin-top:.38rem;">
+        <li>Las 22 canchas se gestionan solas — sin llamadas ni mensajes manuales.</li>
+        <li>El miembro reserva en lenguaje natural por WhatsApp o portal.</li>
+        <li>Valida membresía, pagos y disponibilidad antes de confirmar.</li>
+        <li>Recordatorio automático una hora antes. Menos ausencias.</li>
+      </ul>
+      <div class="card" style="margin-top:.72rem;">
+        <div style="display:flex; flex-direction:column; gap:.34rem;">
+          <p class="body-sm" style="color:rgba(246,246,246,.82);">"Reserva pádel mañana a las 7am para 4"</p>
+          <p class="body-sm" style="color:rgba(246,246,246,.82);">"¿Hay tenis dura el sábado por la mañana?"</p>
+          <p class="body-sm" style="color:rgba(246,246,246,.82);">"Cancela mi reserva de hoy"</p>
+        </div>
+      </div>
+    </div>
+    <div class="mock-wrap">
+      <div class="phone-frame" style="width:240px;">
+        <div class="phone-status"><span class="ph-time">7:48</span><div class="ph-icons"><div class="ph-dot"></div><div class="ph-dot"></div><div class="ph-dot"></div></div></div>
+        <div class="wa-header">
+          <div class="wa-av">B</div>
+          <div><div class="wa-name">Bahía Reservas</div><div class="wa-sub">agente · siempre disponible</div></div>
+        </div>
+        <div class="wa-body">
+          <div class="wa-msg wa-sent">Reserva pádel mañana a las 7am para 4</div>
+          <div class="wa-msg wa-recv">
+            Verificando disponibilidad... Cancha 3 de pádel libre mañana 7:00–8:30 am. ¿Confirmo la reserva?
+            <div class="wa-time">7:48</div>
+          </div>
+          <div class="wa-msg wa-sent">Sí, confirma</div>
+          <div class="wa-msg wa-recv" style="background:#0d2a1f;">
+            ✅ <strong style="color:rgba(80,190,110,.9);">Reserva confirmada</strong><br/>
+            📍 Cancha 3 · Pádel<br/>
+            🗓 Mié 11 jun · 7:00–8:30 am<br/>
+            👥 4 jugadores<br/><br/>
+            Te recuerdo una hora antes. ¡Hasta mañana!
+            <div class="wa-time">7:48 <span class="wa-check">✓✓</span></div>
+          </div>
+        </div>
+      </div>
+      <span class="mock-label">lenguaje natural · &lt;1 seg</span>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="slide bg-white accent-left" data-section="Reservas" data-title="app.bahiaclub.mx" data-tx="slide-u" data-anim="flip">
+  <div class="slide-accent"></div>
+  <img class="whale whale-left" src="bahiaclub-briefing/brandbook-pages/15-isotipo.jpg" alt="">
+  <div class="tag">Reservas · Portal propio</div>
+  <div class="connect-note">Complementa el Concierge de Reservas con una interfaz visual</div>
+  <h2><em>app.bahiaclub.mx</em></h2>
+  <p class="lead">Plataforma propia — la marca, los datos y la lógica del club. Sin Playtomic, sin comisiones, sin límites.</p>
+  <div class="two-col" style="gap:3rem; align-items:flex-start; margin-top:1rem;">
+    <!-- Left: feature cards -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:.75rem; align-content:start;">
+      <div class="card" style="padding:1rem 1.1rem;">
+        <div style="font-size:.78rem; font-weight:700; color:var(--fg); margin-bottom:.4rem;">22 canchas en tiempo real</div>
+        <p class="body-sm">Disponibilidad live, reserva con un tap. Sin llamar a recepción.</p>
+      </div>
+      <div class="card" style="padding:1rem 1.1rem;">
+        <div style="font-size:.78rem; font-weight:700; color:var(--fg); margin-bottom:.4rem;">Buscar pareja + Torneos</div>
+        <p class="body-sm">Matchmaking por nivel ELO. Inscripción a torneos relámpago en segundos.</p>
+      </div>
+      <div class="card" style="padding:1rem 1.1rem;">
+        <div style="font-size:.78rem; font-weight:700; color:var(--fg); margin-bottom:.4rem;">Perfil del jugador</div>
+        <p class="body-sm">Historial, estadísticas, nivel ELO y badges acumulados por temporada.</p>
+      </div>
+      <div class="card" style="padding:1rem 1.1rem;">
+        <div style="font-size:.78rem; font-weight:700; color:var(--fg); margin-bottom:.4rem;">Ligas permanentes</div>
+        <p class="body-sm">Tabla de posiciones, calendario, resultados y progresión de cada liga activa.</p>
+      </div>
+    </div>
+    <!-- Right: phone mocks -->
+    <div class="mock-wrap" style="flex-direction:row; align-items:flex-start; gap:.9rem; zoom:1.0; flex-shrink:0; transform-origin:top left;">
+    <!-- Phone 1: Reservas -->
+    <div style="display:flex; flex-direction:column; align-items:center; gap:.45rem; flex:1;">
+      <div style="width:100%; max-width:210px; background:#0a0e14; border-radius:22px; border:2px solid rgba(55,81,159,.45); padding:10px 8px 12px; box-shadow:0 14px 40px rgba(0,0,0,.55); display:flex; flex-direction:column; gap:0;">
+        <div style="display:flex; justify-content:space-between; padding:0 4px 5px; align-items:center;">
+          <span style="font-size:8px; font-weight:700; color:rgba(255,255,255,.6); font-family:'Nunito',sans-serif;">9:20</span>
+          <div style="display:flex; gap:2px;"><div class="ph-dot"></div><div class="ph-dot"></div><div class="ph-dot"></div></div>
+        </div>
+        <div style="background:linear-gradient(135deg,#37519f,#2a3f80); border-radius:8px 8px 0 0; padding:8px 9px; display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <div style="font-size:9px; font-weight:800; color:#fff; font-family:'Nunito',sans-serif; letter-spacing:.06em;">BAHÍA</div>
+            <div style="font-size:5.5px; color:rgba(255,255,255,.5); font-family:'Nunito',sans-serif; letter-spacing:.12em;">SOCIAL SPORTS CLUB</div>
+          </div>
+          <div style="width:24px; height:24px; border-radius:50%; background:rgba(255,255,255,.12); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:#fff; font-family:'Nunito',sans-serif;">C</div>
+        </div>
+        <div style="background:#0f1620; padding:7px 9px;">
+          <div style="font-size:6.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:rgba(139,172,214,.55); margin-bottom:5px; font-family:'Nunito',sans-serif;">Reservar cancha</div>
+          <div style="display:flex; flex-direction:column; gap:3px;">
+            <div style="background:rgba(55,81,159,.18); border:1px solid rgba(55,81,159,.35); border-radius:5px; padding:5px 7px; display:flex; justify-content:space-between; align-items:center;">
+              <div><div style="font-size:7.5px; color:rgba(255,255,255,.85); font-family:'Nunito',sans-serif; font-weight:600;">Pádel 1</div><div style="font-size:6px; color:rgba(139,172,214,.5); font-family:'Nunito',sans-serif;">Techada · 4 jug.</div></div>
+              <span style="font-size:6.5px; background:rgba(80,190,110,.15); color:rgba(80,190,110,.9); border:1px solid rgba(80,190,110,.3); border-radius:3px; padding:2px 6px; font-family:'Nunito',sans-serif; font-weight:600;">Libre</span>
+            </div>
+            <div style="background:rgba(55,81,159,.18); border:1px solid rgba(55,81,159,.35); border-radius:5px; padding:5px 7px; display:flex; justify-content:space-between; align-items:center;">
+              <div><div style="font-size:7.5px; color:rgba(255,255,255,.85); font-family:'Nunito',sans-serif; font-weight:600;">Tenis 3</div><div style="font-size:6px; color:rgba(139,172,214,.5); font-family:'Nunito',sans-serif;">Exterior · 2 jug.</div></div>
+              <span style="font-size:6.5px; background:rgba(80,190,110,.15); color:rgba(80,190,110,.9); border:1px solid rgba(80,190,110,.3); border-radius:3px; padding:2px 6px; font-family:'Nunito',sans-serif; font-weight:600;">Libre</span>
+            </div>
+            <div style="background:rgba(180,60,60,.07); border:1px solid rgba(180,60,60,.22); border-radius:5px; padding:5px 7px; display:flex; justify-content:space-between; align-items:center;">
+              <div><div style="font-size:7.5px; color:rgba(255,255,255,.45); font-family:'Nunito',sans-serif; font-weight:600;">Pádel 3</div><div style="font-size:6px; color:rgba(139,172,214,.3); font-family:'Nunito',sans-serif;">Techada · 4 jug.</div></div>
+              <span style="font-size:6.5px; background:rgba(180,60,60,.12); color:rgba(240,100,100,.75); border:1px solid rgba(180,60,60,.25); border-radius:3px; padding:2px 6px; font-family:'Nunito',sans-serif;">14:00</span>
+            </div>
+          </div>
+          <div style="background:#37519f; border-radius:5px; padding:5px; text-align:center; margin-top:6px; cursor:pointer;">
+            <span style="font-size:7px; font-weight:700; color:#fff; font-family:'Nunito',sans-serif; letter-spacing:.06em;">RESERVAR AHORA</span>
+          </div>
+        </div>
+      </div>
+      <span style="font-size:.5rem; letter-spacing:.1em; text-transform:uppercase; color:var(--fg3); font-family:'Nunito',sans-serif;">22 canchas live</span>
+    </div>
+    <!-- Phone 2: Perfil y ELO -->
+    <div style="display:flex; flex-direction:column; align-items:center; gap:.45rem; flex:1;">
+      <div style="width:100%; max-width:210px; background:#0a0e14; border-radius:22px; border:2px solid rgba(184,168,122,.3); padding:10px 8px 12px; box-shadow:0 14px 40px rgba(0,0,0,.55); display:flex; flex-direction:column; gap:0;">
+        <div style="display:flex; justify-content:space-between; padding:0 4px 5px; align-items:center;">
+          <span style="font-size:8px; font-weight:700; color:rgba(255,255,255,.6); font-family:'Nunito',sans-serif;">9:22</span>
+          <div style="display:flex; gap:2px;"><div class="ph-dot"></div><div class="ph-dot"></div><div class="ph-dot"></div></div>
+        </div>
+        <div style="background:linear-gradient(135deg,#1a1205,#2a1e0a); border-radius:8px 8px 0 0; padding:8px 9px; display:flex; align-items:center; gap:8px;">
+          <div style="width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,#37519f,#8e8055); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:#fff; font-family:'Nunito',sans-serif; flex-shrink:0;">C</div>
+          <div>
+            <div style="font-size:9px; font-weight:700; color:#fff; font-family:'Nunito',sans-serif;">Carlos M.</div>
+            <div style="font-size:6px; color:rgba(184,168,122,.7); font-family:'Nunito',sans-serif;">Socio Plus · 3 años</div>
+          </div>
+        </div>
+        <div style="background:#0f1620; padding:7px 9px; display:flex; flex-direction:column; gap:4px;">
+          <!-- ELO -->
+          <div style="background:rgba(184,168,122,.08); border:1px solid rgba(184,168,122,.2); border-radius:6px; padding:6px 8px; display:flex; justify-content:space-between; align-items:center;">
+            <div><div style="font-size:6.5px; color:rgba(184,168,122,.55); letter-spacing:.1em; text-transform:uppercase; font-family:'Nunito',sans-serif;">ELO Pádel</div><div style="font-size:14px; font-weight:200; color:rgba(184,168,122,.9); font-family:'Nunito',sans-serif;">4.2</div></div>
+            <div style="text-align:right;"><div style="font-size:6.5px; color:rgba(139,172,214,.55); letter-spacing:.1em; text-transform:uppercase; font-family:'Nunito',sans-serif;">Ranking</div><div style="font-size:14px; font-weight:200; color:rgba(139,172,214,.9); font-family:'Nunito',sans-serif;">#8</div></div>
+          </div>
+          <!-- Badges -->
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:4px;">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:2px; background:rgba(255,255,255,.04); border-radius:5px; padding:4px 2px;"><span style="font-size:12px;">🎾</span><span style="font-size:5px; color:rgba(184,168,122,.6); font-family:'Nunito',sans-serif; text-align:center;">Liga A</span></div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:2px; background:rgba(255,255,255,.04); border-radius:5px; padding:4px 2px;"><span style="font-size:12px;">🏆</span><span style="font-size:5px; color:rgba(139,172,214,.6); font-family:'Nunito',sans-serif; text-align:center;">Campeón</span></div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:2px; background:rgba(255,255,255,.04); border-radius:5px; padding:4px 2px;"><span style="font-size:12px;">⭐</span><span style="font-size:5px; color:rgba(168,184,167,.6); font-family:'Nunito',sans-serif; text-align:center;">250 pts</span></div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:2px; background:rgba(255,255,255,.04); border-radius:5px; padding:4px 2px;"><span style="font-size:12px;">🔥</span><span style="font-size:5px; color:rgba(240,140,80,.6); font-family:'Nunito',sans-serif; text-align:center;">12 vis.</span></div>
+          </div>
+          <!-- stats -->
+          <div style="display:flex; gap:4px; margin-top:1px;">
+            <div style="flex:1; background:rgba(55,81,159,.1); border-radius:4px; padding:4px; text-align:center;"><div style="font-size:10px; font-weight:300; color:rgba(139,172,214,.8); font-family:'Nunito',sans-serif;">47</div><div style="font-size:5.5px; color:rgba(255,255,255,.3); font-family:'Nunito',sans-serif;">Partidos</div></div>
+            <div style="flex:1; background:rgba(80,160,100,.08); border-radius:4px; padding:4px; text-align:center;"><div style="font-size:10px; font-weight:300; color:rgba(80,190,110,.7); font-family:'Nunito',sans-serif;">68%</div><div style="font-size:5.5px; color:rgba(255,255,255,.3); font-family:'Nunito',sans-serif;">Victorias</div></div>
+            <div style="flex:1; background:rgba(184,168,122,.08); border-radius:4px; padding:4px; text-align:center;"><div style="font-size:10px; font-weight:300; color:rgba(184,168,122,.8); font-family:'Nunito',sans-serif;">3</div><div style="font-size:5.5px; color:rgba(255,255,255,.3); font-family:'Nunito',sans-serif;">Ligas</div></div>
+          </div>
+        </div>
+      </div>
+      <span style="font-size:.5rem; letter-spacing:.1em; text-transform:uppercase; color:var(--fg3); font-family:'Nunito',sans-serif;">perfil · ELO · badges</span>
+    </div>
+    <!-- Phone 3: Ligas y torneos -->
+    <div style="display:flex; flex-direction:column; align-items:center; gap:.45rem; flex:1;">
+      <div style="width:100%; max-width:210px; background:#0a0e14; border-radius:22px; border:2px solid rgba(122,138,121,.35); padding:10px 8px 12px; box-shadow:0 14px 40px rgba(0,0,0,.55); display:flex; flex-direction:column; gap:0;">
+        <div style="display:flex; justify-content:space-between; padding:0 4px 5px; align-items:center;">
+          <span style="font-size:8px; font-weight:700; color:rgba(255,255,255,.6); font-family:'Nunito',sans-serif;">9:24</span>
+          <div style="display:flex; gap:2px;"><div class="ph-dot"></div><div class="ph-dot"></div><div class="ph-dot"></div></div>
+        </div>
+        <div style="background:linear-gradient(135deg,#0d1f10,#152a18); border-radius:8px 8px 0 0; padding:8px 9px;">
+          <div style="font-size:7px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:rgba(168,184,167,.7); font-family:'Nunito',sans-serif; margin-bottom:2px;">Liga Pádel · Temporada 3</div>
+          <div style="font-size:8.5px; font-weight:600; color:rgba(255,255,255,.85); font-family:'Nunito',sans-serif;">Tabla de posiciones</div>
+        </div>
+        <div style="background:#0f1620; padding:6px 9px; display:flex; flex-direction:column; gap:2px;">
+          <!-- standings -->
+          <div style="display:flex; align-items:center; gap:6px; background:rgba(184,168,122,.1); border:1px solid rgba(184,168,122,.2); border-radius:4px; padding:4px 6px;">
+            <span style="font-size:8px; font-weight:700; color:rgba(184,168,122,.9); font-family:'Nunito',sans-serif; width:12px;">#1</span>
+            <span style="font-size:7.5px; color:rgba(255,255,255,.85); font-family:'Nunito',sans-serif; flex:1;">Carlos M.</span>
+            <span style="font-size:7px; color:rgba(80,190,110,.8); font-family:'Nunito',sans-serif;">9 pts</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; padding:4px 6px;">
+            <span style="font-size:8px; font-weight:600; color:rgba(255,255,255,.4); font-family:'Nunito',sans-serif; width:12px;">#2</span>
+            <span style="font-size:7.5px; color:rgba(255,255,255,.65); font-family:'Nunito',sans-serif; flex:1;">Rodrigo V.</span>
+            <span style="font-size:7px; color:rgba(255,255,255,.45); font-family:'Nunito',sans-serif;">7 pts</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; padding:4px 6px;">
+            <span style="font-size:8px; font-weight:600; color:rgba(255,255,255,.4); font-family:'Nunito',sans-serif; width:12px;">#3</span>
+            <span style="font-size:7.5px; color:rgba(255,255,255,.65); font-family:'Nunito',sans-serif; flex:1;">Alejandro T.</span>
+            <span style="font-size:7px; color:rgba(255,255,255,.45); font-family:'Nunito',sans-serif;">6 pts</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; padding:4px 6px;">
+            <span style="font-size:8px; font-weight:600; color:rgba(255,255,255,.3); font-family:'Nunito',sans-serif; width:12px;">#4</span>
+            <span style="font-size:7.5px; color:rgba(255,255,255,.45); font-family:'Nunito',sans-serif; flex:1;">Marco S.</span>
+            <span style="font-size:7px; color:rgba(255,255,255,.3); font-family:'Nunito',sans-serif;">4 pts</span>
+          </div>
+          <div style="height:1px; background:rgba(255,255,255,.06); margin:3px 0;"></div>
+          <div style="font-size:6.5px; color:rgba(168,184,167,.55); font-family:'Nunito',sans-serif; text-align:center; padding:2px;">Próximo partido · Vie 13 jun · 18:00</div>
+          <div style="background:rgba(122,138,121,.15); border:1px solid rgba(122,138,121,.3); border-radius:4px; padding:4px 7px; text-align:center; margin-top:2px;">
+            <span style="font-size:7px; font-weight:700; color:rgba(168,184,167,.9); font-family:'Nunito',sans-serif; letter-spacing:.06em;">VER CALENDARIO</span>
+          </div>
+        </div>
+      </div>
+      <span style="font-size:.5rem; letter-spacing:.1em; text-transform:uppercase; color:var(--fg3); font-family:'Nunito',sans-serif;">ligas · torneos · comunidad</span>
+    </div>
+    </div><!-- /mock-wrap right -->
+  </div><!-- /two-col -->
+</div>
+
+<!-- CLIMA -->
+<div class="slide bg-white" data-section="Reservas" data-title="Pronóstico del Clima" data-tx="slide-r" data-anim="cascade">
+  <div class="slide-accent"></div>
+  <img class="whale whale-sm" src="bahiaclub-briefing/brandbook-pages/15-isotipo.jpg" alt="">
+  <div class="tag">Reservas · Canchas exteriores</div>
+  <div class="connect-note">Conectado con el Concierge de Reservas — canchas de tenis exteriores</div>
+  <h2>Pronóstico <em>del Clima</em></h2>
+  <div class="divider"></div>
+  <div class="two-col">
+    <div>
+      <h3>Qué hace</h3>
+      <ul class="point-list" style="margin-top:.38rem;">
+        <li>Las 6 canchas de tenis son exteriores — la lluvia puede arruinar una reserva.</li>
+        <li>API climática monitoreando la ubicación exacta del club cada 3 horas.</li>
+        <li>Si detecta lluvia en las próximas 3 horas, WhatsApp automático con opción de reprogramar.</li>
+        <li>El miembro se entera antes de salir de su casa.</li>
+      </ul>
+    </div>
+    <div class="mock-wrap">
+      <div class="phone-frame" style="width:240px;">
+        <div class="phone-status"><span class="ph-time" style="color:rgba(0,0,0,.6);">11:05</span><div class="ph-icons"><div class="ph-dot" style="background:rgba(0,0,0,.3);"></div><div class="ph-dot" style="background:rgba(0,0,0,.3);"></div><div class="ph-dot" style="background:rgba(0,0,0,.3);"></div></div></div>
+        <div class="wa-header" style="background:#1f2c34;">
+          <div class="wa-av">B</div>
+          <div><div class="wa-name">Bahía Club</div><div class="wa-sub">Alerta automática</div></div>
+        </div>
+        <div class="wa-body">
+          <!-- Weather card inside WA -->
+          <div style="background:#1a2634; border-radius:6px; padding:7px 8px; margin-bottom:3px; border:1px solid rgba(255,255,255,.08);">
+            <div style="display:flex; align-items:center; gap:5px; margin-bottom:4px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 16.5A4.5 4.5 0 0015.5 12H15A6 6 0 104.5 15.5" stroke="#60a5fa" stroke-width="1.5" stroke-linecap="round"/><path d="M8 18v1M8 21v1M12 18v1M12 21v1M16 18v1M16 21v1" stroke="#93c5fd" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <div>
+                <div style="font-size:6.5px; font-weight:700; color:rgba(147,197,253,.9); font-family:'Nunito',sans-serif;">LLUVIA DETECTADA</div>
+                <div style="font-size:5.5px; color:rgba(255,255,255,.45); font-family:'Nunito',sans-serif;">Punta de Mita · 14:00–16:00 hrs</div>
+              </div>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:2px;">
+              <div style="text-align:center;"><div style="font-size:10px; font-weight:300; color:rgba(255,255,255,.8); font-family:'Nunito',sans-serif;">28°</div><div style="font-size:5px; color:rgba(255,255,255,.35); font-family:'Nunito',sans-serif;">Ahora</div></div>
+              <div style="text-align:center;"><div style="font-size:10px; font-weight:300; color:rgba(147,197,253,.8); font-family:'Nunito',sans-serif;">22°</div><div style="font-size:5px; color:rgba(255,255,255,.35); font-family:'Nunito',sans-serif;">14:00</div></div>
+              <div style="text-align:center;"><div style="font-size:10px; font-weight:300; color:rgba(255,255,255,.5); font-family:'Nunito',sans-serif;">24°</div><div style="font-size:5px; color:rgba(255,255,255,.35); font-family:'Nunito',sans-serif;">16:00</div></div>
+            </div>
+          </div>
+          <div class="wa-msg wa-recv" style="font-size:6.8px;">
+            ⛈️ Hola Roberto — hay lluvia prevista de 14:00 a 16:00 en tu cancha de tenis exterior.<br/><br/>
+            ¿Quieres reprogramar tu reserva de las 14:30?<br/><br/>
+            Responde <strong>SÍ</strong> para ver horarios o <strong>NO</strong> para mantenerla.
+            <div class="wa-time">11:05</div>
+          </div>
+          <div class="wa-msg wa-sent">Sí, reprograma</div>
+          <div class="wa-msg wa-recv" style="background:#0d2a1f; font-size:6.8px;">
+            ✅ Reserva movida al miércoles 11 jun · 14:30 — Cancha 4 interior libre. ¡Confirmado!
+            <div class="wa-time">11:05 <span class="wa-check">✓✓</span></div>
+          </div>
+        </div>
+      </div>
+      <span class="mock-label" style="color:rgba(12,26,46,.35);">3 h antes de lluvia</span>
+    </div>
+  </div>
+</div>
+
+<!-- NPS / SATISFACCIÓN -->
+<div class="slide bg-white accent-left" data-section="Retención" data-title="Satisfacción" data-tx="slide-l" data-anim="waterfall">
+  <div class="slide-accent"></div>
+  <img class="whale whale-sm" src="bahiaclub-briefing/brandbook-pages/15-isotipo.jpg" alt="">
+  <div class="tag">Retención · Satisfacción</div>
+  <div class="connect-note">El timing de la encuesta lo define el Check-in Tracker — se envía justo después de una visita</div>
+  <h2>Agente de <em>Satisfacción</em></h2>
+  <div class="divider"></div>
+  <div class="two-col">
+    <div>
+      <h3>Qué hace</h3>
+      <ul class="point-list" style="margin-top:.38rem;">
+        <li>Una encuesta por mes, enviada cuando el miembro acaba de visitar el club.</li>
+        <li>El club conoce la satisfacción real sin saturar a los miembros.</li>
+        <li>El agente analiza las respuestas y genera el resumen mensual.</li>
+        <li>Los miembros insatisfechos se identifican antes de que cancelen.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Señales de churn</h3>
+      <ul class="point-list" style="margin-top:.38rem;">
+        <li><strong>Score menor a 6 —</strong> alerta inmediata. El equipo actúa ese día.</li>
+        <li><strong>Bajó 3 puntos o más —</strong> algo cambió. Alerta amarilla.</li>
+        <li><strong>Sin respuesta 2 meses —</strong> desenganchado. Pre-churn silencioso.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- VENTAS -->
+<div class="slide bg-sage" data-section="Crecimiento" data-title="Ventas" data-tx="zoom" data-anim="flip">
+  <div class="slide-accent"></div>
+  <img class="whale whale-lg" src="bahiaclub-briefing/brandbook-pages/15-isotipo.jpg" alt="">
+  <div class="tag">Crecimiento · Prospectos</div>
+  <h2>Agente de <em>Ventas</em></h2>
+  <div class="divider"></div>
+  <div class="two-col">
+    <div>
+      <h3>Qué hace</h3>
+      <ul class="point-list" style="margin-top:.38rem;">
+        <li>El club atiende prospectos <strong>24/7</strong> en WhatsApp, Instagram y Facebook.</li>
+        <li>Califica el lead, resuelve dudas sobre planes y precios, agenda cita en Google Calendar.</li>
+        <li>El prospecto llega a la reunión ya informado. El equipo cierra, no explica.</li>
+        <li>Cuando no sabe algo, escala al admin con el contexto completo del prospecto.</li>
+      </ul>
+    </div>
+    <div class="mock-wrap" style="zoom:1.18; align-items:flex-start;">
+      <div class="phone-frame" style="width:235px; background:#0b1114;">
+        <div class="phone-status">
+          <span class="ph-time">14:22</span>
+          <div style="display:flex;gap:3px;"><div class="ph-dot"></div><div class="ph-dot"></div><div class="ph-dot"></div></div>
+        </div>
+        <div class="wa-header">
+          <div class="wa-av" style="background:#37519f;">B</div>
+          <div><div class="wa-name">Bahía Club</div><div class="wa-sub">Agente de Ventas · en línea</div></div>
+        </div>
+        <div class="wa-body" style="min-height:120px; max-height:200px; overflow:hidden; gap:5px;">
+          <!-- prospect msg -->
+          <div class="wa-msg wa-recv">
+            Vi sus instalaciones en Instagram. ¿Cuánto cuesta la membresía?
+            <div class="wa-time">14:22</div>
+          </div>
+          <!-- agent reply -->
+          <div class="wa-msg wa-sent" style="max-width:94%;">
+            ¡Hola! Tenemos 3 planes según tu perfil. ¿Practicas pádel, tenis o ambos? 🎾
+            <div class="wa-time">14:22 ✓✓</div>
+          </div>
+          <!-- prospect -->
+          <div class="wa-msg wa-recv">
+            Pádel principalmente, aunque me interesa tenis también.
+            <div class="wa-time">14:23</div>
+          </div>
+          <!-- agent -->
+          <div class="wa-msg wa-sent" style="max-width:94%;">
+            Perfecto — el plan <strong style="color:#a8d8a8;">Socio Plus</strong> incluye todas las canchas + clases. ¿Te gustaría conocer el club esta semana?
+            <div class="wa-time">14:23 ✓✓</div>
+          </div>
+          <!-- prospect -->
+          <div class="wa-msg wa-recv">
+            Sí, me interesa 👍
+            <div class="wa-time">14:24</div>
+          </div>
+          <!-- booking card -->
+          <div class="wa-msg wa-sent" style="max-width:96%; padding:0; overflow:hidden; border-radius:6px 0 6px 6px;">
+            <div style="background:#004d3d; padding:5px 8px; font-size:7.5px; font-weight:700; color:rgba(255,255,255,.9); letter-spacing:.04em;">AGENDAR VISITA</div>
+            <div style="padding:5px 8px; display:flex; flex-direction:column; gap:3px;">
+              <div style="display:flex; justify-content:space-between; font-size:7px; color:rgba(255,255,255,.8);">
+                <span>Jue 12 Jun · 11:00</span><span style="color:#a8d8a8;">Disponible</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:7px; color:rgba(255,255,255,.8);">
+                <span>Vie 13 Jun · 10:00</span><span style="color:#a8d8a8;">Disponible</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:7px; color:rgba(255,255,255,.8);">
+                <span>Sáb 14 Jun · 09:00</span><span style="color:#a8d8a8;">Disponible</span>
+              </div>
+            </div>
+            <div style="background:#005c4b; padding:4px 8px; font-size:7px; font-weight:600; color:rgba(255,255,255,.75); text-align:center;">Selecciona un horario →</div>
+            <div class="wa-time" style="padding:2px 8px 4px;">14:24 ✓✓</div>
+          </div>
+          <!-- typing indicator -->
+          <div class="wa-typing"><span></span><span></span><span></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MARKETING -->
+<div class="slide bg-sage accent-left" data-section="Crecimiento" data-title="Marketing" data-tx="slide-r" data-anim="cascade">
+  <div class="slide-accent"></div>
+  <img class="whale whale-left whale-sm" src="bahiaclub-briefing/brandbook-pages/15-isotipo.jpg" alt="">
+  <div class="tag">Crecimiento · Contenido y campañas</div>
+  <div class="connect-note">Alimenta leads directamente al Agente de Ventas</div>
+  <h2>Agente de <em>Marketing</em></h2>
+  <div class="divider"></div>
+  <div class="two-col">
+    <div>
+      <h3>Qué hace</h3>
+      <ul class="point-list" style="margin-top:.38rem;">
+        <li>Detecta tendencias en Riviera Nayarit en TikTok, Instagram y X.</li>
+        <li>Las convierte en propuestas de contenido listas para aprobar.</li>
+        <li>Admin aprueba con un click — Meta Ads lanza la campaña.</li>
+        <li>Cada campaña retroalimenta la siguiente con datos de performance real.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>El flujo</h3>
+      <div class="card" style="margin-top:.38rem;">
+        <div style="display:flex; flex-direction:column; gap:.46rem;">
+          <div class="body-sm"><strong style="color:rgba(246,246,246,.9);">1.</strong> Detecta tendencia local relevante</div>
+          <div class="body-sm"><strong style="color:rgba(246,246,246,.9);">2.</strong> Genera variantes de contenido</div>
+          <div class="body-sm"><strong style="color:rgba(246,246,246,.9);">3.</strong> Propone segmento y presupuesto</div>
+          <div class="body-sm"><strong style="color:rgba(246,246,246,.9);">4.</strong> Admin aprueba — Meta Ads lanza</div>
+          <div class="body-sm"><strong style="color:rgba(246,246,246,.9);">5.</strong> Performance alimenta el siguiente ciclo</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DAY PASS -->
+<div class="slide bg-sage accent-left" data-section="Crecimiento" data-title="Day Pass" data-tx="blur" data-anim="burst">
+  <div class="slide-accent"></div>
+  <img class="whale whale-sm" src="bahiaclub-briefing/brandbook-pages/15-isotipo.jpg" alt="">
+  <div class="tag">Crecimiento · Conversión</div>
+  <div class="connect-note">El lead pasa automáticamente al Agente de Ventas</div>
+  <h2>Day <em>Pass</em></h2>
+  <div class="divider"></div>
+  <div class="two-col">
+    <div>
+      <h3>Qué hace</h3>
+      <ul class="point-list" style="margin-top:.38rem;">
+        <li>Visitante paga el Day Pass, se registra y accede por el día.</li>
+        <li>Al salir, encuesta de satisfacción vía WhatsApp.</li>
+        <li>Si el score es positivo, el agente propone membresía con el punto de equilibrio calculado.</li>
+        <li>El lead pasa al Agente de Ventas para seguimiento automático.</li>
+      </ul>
+    </div>
+    <div class="mock-wrap">
+      <!-- Day Pass ticket -->
+      <div style="width:250px; background:linear-gradient(145deg,#0C1A2E,#1a2a4a); border-radius:10px; border:1px solid rgba(139,172,214,.3); overflow:hidden; box-shadow:0 12px 36px rgba(0,0,0,.5);">
+        <!-- ticket header -->
+        <div style="background:linear-gradient(90deg,#37519f,#2a3f80); padding:8px 12px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:7px; font-weight:700; color:#fff; font-family:'Nunito',sans-serif; letter-spacing:.12em;">BAHÍA CLUB</div>
+            <div style="font-size:5.5px; color:rgba(255,255,255,.55); font-family:'Nunito',sans-serif; letter-spacing:.08em;">SOCIAL SPORTS CLUB</div>
+          </div>
+          <div style="background:rgba(255,255,255,.12); border-radius:3px; padding:2px 6px;"><span style="font-size:6.5px; font-weight:700; color:rgba(255,255,255,.9); font-family:'Nunito',sans-serif;">DAY PASS</span></div>
+        </div>
+        <!-- ticket body -->
+        <div style="padding:9px 12px; display:flex; flex-direction:column; gap:5px;">
+          <div style="display:flex; justify-content:space-between;">
+            <div><div style="font-size:5px; color:rgba(139,172,214,.5); letter-spacing:.1em; font-family:'Nunito',sans-serif; text-transform:uppercase;">Titular</div><div style="font-size:7px; font-weight:600; color:rgba(255,255,255,.88); font-family:'Nunito',sans-serif;">Sofía Ramírez</div></div>
+            <div style="text-align:right;"><div style="font-size:5px; color:rgba(139,172,214,.5); letter-spacing:.1em; font-family:'Nunito',sans-serif; text-transform:uppercase;">Válido</div><div style="font-size:7px; font-weight:600; color:rgba(255,255,255,.88); font-family:'Nunito',sans-serif;">11 Jun 2026</div></div>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px;">
+            <div><div style="font-size:5px; color:rgba(139,172,214,.5); letter-spacing:.1em; font-family:'Nunito',sans-serif; text-transform:uppercase;">Acceso</div><div style="font-size:7px; font-weight:600; color:rgba(255,255,255,.88); font-family:'Nunito',sans-serif;">8:00–20:00</div></div>
+            <div style="text-align:right;"><div style="font-size:5px; color:rgba(139,172,214,.5); letter-spacing:.1em; font-family:'Nunito',sans-serif; text-transform:uppercase;">Monto</div><div style="font-size:8px; font-weight:700; color:rgba(184,168,122,.9); font-family:'Nunito',sans-serif;">$500 MXN</div></div>
+          </div>
+        </div>
+        <!-- dotted separator -->
+        <div style="border-top:1px dashed rgba(255,255,255,.12); margin:0 12px; position:relative;">
+          <div style="position:absolute; left:-18px; top:-7px; width:12px; height:12px; border-radius:50%; background:#0C1A2E;"></div>
+          <div style="position:absolute; right:-18px; top:-7px; width:12px; height:12px; border-radius:50%; background:#0C1A2E;"></div>
+        </div>
+        <!-- ticket footer with QR area -->
+        <div style="padding:8px 12px; display:flex; align-items:center; gap:8px;">
+          <svg width="38" height="38" viewBox="0 0 38 38"><rect width="38" height="38" fill="rgba(255,255,255,.05)" rx="3"/><rect x="3" y="3" width="11" height="11" rx="1" fill="none" stroke="rgba(139,172,214,.6)" stroke-width="1.2"/><rect x="5.5" y="5.5" width="6" height="6" rx=".5" fill="rgba(139,172,214,.6)"/><rect x="24" y="3" width="11" height="11" rx="1" fill="none" stroke="rgba(139,172,214,.6)" stroke-width="1.2"/><rect x="26.5" y="5.5" width="6" height="6" rx=".5" fill="rgba(139,172,214,.6)"/><rect x="3" y="24" width="11" height="11" rx="1" fill="none" stroke="rgba(139,172,214,.6)" stroke-width="1.2"/><rect x="5.5" y="26.5" width="6" height="6" rx=".5" fill="rgba(139,172,214,.6)"/><rect x="18" y="16" width="3" height="3" fill="rgba(139,172,214,.5)"/><rect x="22" y="16" width="3" height="3" fill="rgba(139,172,214,.4)"/><rect x="26" y="16" width="3" height="3" fill="rgba(139,172,214,.6)"/><rect x="18" y="20" width="3" height="3" fill="rgba(139,172,214,.4)"/><rect x="26" y="20" width="3" height="3" fill="rgba(139,172,214,.5)"/><rect x="18" y="24" width="3" height="3" fill="rgba(139,172,214,.6)"/><rect x="22" y="24" width="3" height="3" fill="rgba(139,172,214,.4)"/><rect x="30" y="24" width="3" height="3" fill="rgba(139,172,214,.5)"/><rect x="22" y="20" width="3" height="3" fill="rgba(139,172,214,.7)"/></svg>
+          <div>
+            <div style="font-size:5.5px; color:rgba(255,255,255,.35); font-family:'Nunito',sans-serif; margin-bottom:2px;">#DP-20260611-047</div>
+            <div style="font-size:5.5px; color:rgba(80,190,110,.7); font-family:'Nunito',sans-serif;">✓ Verificado · Entrada activa</div>
+          </div>
+        </div>
+      </div>
+      <span class="mock-label">ticket digital · WhatsApp</span>
+    </div>
+  </div>
+</div>
+
+<!-- MANTENIMIENTO -->
+<div class="slide bg-sage" data-section="Operación" data-title="Mantenimiento" data-tx="slide-u" data-anim="waterfall">
+  <div class="slide-accent"></div>
+  <img class="whale whale-sm" src="bahiaclub-briefing/brandbook-pages/15-isotipo.jpg" alt="">
+  <div class="tag">Operación · Canchas e instalaciones</div>
+  <div class="connect-note">Un ticket urgente bloquea la cancha en el Concierge de Reservas automáticamente</div>
+  <h2>Agente de <em>Mantenimiento</em></h2>
+  <div class="divider"></div>
+  <div class="two-col">
+    <div>
+      <h3>Qué hace</h3>
+      <ul class="point-list" style="margin-top:.38rem;">
+        <li>Miembros y staff reportan incidencias por WhatsApp o portal.</li>
+        <li>El mantenimiento preventivo se programa una vez y los tickets se generan solos.</li>
+        <li>Control de inventario con alertas de stock bajo.</li>
+      </ul>
+    </div>
+    <div class="mock-wrap" style="align-items:flex-start;">
+      <!-- Mini task board -->
+      <div style="width:290px; background:rgba(0,0,0,.22); border:1px solid var(--bdr); border-radius:6px; overflow:hidden;">
+        <!-- board header -->
+        <div style="background:rgba(0,0,0,.3); padding:5px 9px; display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:6px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:rgba(168,184,167,.7); font-family:'Nunito',sans-serif;">Tablero de mantenimiento</span>
+          <span style="font-size:6px; color:rgba(255,255,255,.28); font-family:'Nunito',sans-serif;">Jun 11</span>
+        </div>
+        <!-- tickets -->
+        <div style="padding:6px 8px; display:flex; flex-direction:column; gap:4px;">
+          <!-- urgent -->
+          <div style="background:rgba(180,60,60,.1); border:1px solid rgba(180,60,60,.3); border-radius:4px; padding:5px 8px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:2px;">
+              <span style="font-size:5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#f09090; font-family:'Nunito',sans-serif;">Urgente</span>
+              <span style="font-size:5px; color:rgba(255,255,255,.3); font-family:'Nunito',sans-serif;">#047</span>
+            </div>
+            <div style="font-size:6.5px; font-weight:600; color:rgba(255,255,255,.85); font-family:'Nunito',sans-serif; margin-bottom:1px;">Red eléctrica · Vestidor H</div>
+            <div style="font-size:5.5px; color:rgba(255,255,255,.4); font-family:'Nunito',sans-serif;">⚡ Cancha 7 bloqueada · Gerencia notificada</div>
+          </div>
+          <!-- alta -->
+          <div style="background:rgba(180,140,50,.08); border:1px solid rgba(180,140,50,.25); border-radius:4px; padding:5px 8px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:2px;">
+              <span style="font-size:5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#e0c078; font-family:'Nunito',sans-serif;">Alta · 24h</span>
+              <span style="font-size:5px; color:rgba(255,255,255,.3); font-family:'Nunito',sans-serif;">#046</span>
+            </div>
+            <div style="font-size:6.5px; font-weight:600; color:rgba(255,255,255,.85); font-family:'Nunito',sans-serif; margin-bottom:1px;">Malla rota · Pádel 2</div>
+            <div style="font-size:5.5px; color:rgba(255,255,255,.4); font-family:'Nunito',sans-serif;">Reportado por socio · Asignado a Rodrigo</div>
+          </div>
+          <!-- normal x2 -->
+          <div style="background:rgba(80,160,100,.07); border:1px solid rgba(80,160,100,.2); border-radius:4px; padding:5px 8px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:2px;">
+              <span style="font-size:5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#90d8a8; font-family:'Nunito',sans-serif;">Normal</span>
+              <span style="font-size:5px; color:rgba(255,255,255,.3); font-family:'Nunito',sans-serif;">#045</span>
+            </div>
+            <div style="font-size:6.5px; font-weight:600; color:rgba(255,255,255,.85); font-family:'Nunito',sans-serif; margin-bottom:1px;">Pintura · Barda perimetral</div>
+            <div style="font-size:5.5px; color:rgba(255,255,255,.4); font-family:'Nunito',sans-serif;">Preventivo semanal · En cola</div>
+          </div>
+          <div style="background:rgba(80,160,100,.07); border:1px solid rgba(80,160,100,.2); border-radius:4px; padding:5px 8px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:2px;">
+              <span style="font-size:5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#90d8a8; font-family:'Nunito',sans-serif;">Normal</span>
+              <span style="font-size:5px; color:rgba(255,255,255,.3); font-family:'Nunito',sans-serif;">#044</span>
+            </div>
+            <div style="font-size:6.5px; font-weight:600; color:rgba(255,255,255,.85); font-family:'Nunito',sans-serif; margin-bottom:1px;">Revisión filtros · Alberca</div>
+            <div style="font-size:5.5px; color:rgba(255,255,255,.4); font-family:'Nunito',sans-serif;">⬜ Completado ayer</div>
+          </div>
+        </div>
+      </div>
+      <span class="mock-label">dashboard en tiempo real</span>
+    </div>
+  </div>
+</div>
+
+<!-- STAFF -->
+<div class="slide bg-khaki accent-left" data-section="Operación" data-title="Staff & Horarios" data-tx="slide-r" data-anim="flip">
+  <div class="slide-accent"></div>
+  <img class="whale whale-left whale-sm" src="bahiaclub-briefing/brandbook-pages/15-isotipo.jpg" alt="">
+  <div class="tag">Operación · Plantilla semanal</div>
+  <div class="connect-note">Cruza la demanda del Check-in Tracker con la disponibilidad del staff</div>
+  <h2>Agente de <em>Staff & Horarios</em></h2>
+  <div class="divider"></div>
+  <div class="two-col">
+    <div>
+      <h3>Qué hace</h3>
+      <ul class="point-list" style="margin-top:.38rem;">
+        <li>El horario semanal se genera cruzando la demanda proyectada con disponibilidad.</li>
+        <li>Admin revisa y aprueba. Cada empleado recibe su turno por WhatsApp.</li>
+        <li>En temporada alta ajusta la cobertura semana a semana.</li>
+        <li>Alertas si hay huecos de cobertura o sobrecarga de horas.</li>
+      </ul>
+    </div>
+    <div class="mock-wrap" style="zoom:1.32; align-items:flex-start;">
+      <!-- Staff roster card -->
+      <div style="width:290px; background:#1a1a12; border-radius:8px; overflow:hidden; box-shadow:0 14px 44px rgba(0,0,0,.55); font-family:'Nunito',sans-serif; border:1px solid rgba(184,168,122,.2);">
+        <!-- header -->
+        <div style="background:linear-gradient(90deg,#2a2a1a,#1e2a1e); padding:8px 12px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid rgba(184,168,122,.18);">
+          <div>
+            <div style="font-size:7px; font-weight:700; letter-spacing:.15em; text-transform:uppercase; color:rgba(184,168,122,.75);">Plantilla Semanal</div>
+            <div style="font-size:6px; color:rgba(255,255,255,.35); letter-spacing:.08em; margin-top:1px;">9 – 15 JUN 2026 · Generado por IA</div>
+          </div>
+          <div style="background:rgba(80,190,110,.15); border:1px solid rgba(80,190,110,.3); border-radius:3px; padding:2px 7px; font-size:6px; font-weight:700; color:rgba(80,190,110,.9); letter-spacing:.06em;">APROBADO</div>
+        </div>
+        <!-- legend row -->
+        <div style="display:flex; gap:8px; padding:5px 12px; background:rgba(255,255,255,.03); border-bottom:1px solid rgba(255,255,255,.06);">
+          <div style="display:flex; align-items:center; gap:3px;"><div style="width:10px; height:7px; background:#37519f; border-radius:1px;"></div><span style="font-size:5.5px; color:rgba(255,255,255,.45);">Mañana 6–14h</span></div>
+          <div style="display:flex; align-items:center; gap:3px;"><div style="width:10px; height:7px; background:#8e6a1a; border-radius:1px;"></div><span style="font-size:5.5px; color:rgba(255,255,255,.45);">Tarde 14–22h</span></div>
+          <div style="display:flex; align-items:center; gap:3px;"><div style="width:10px; height:7px; background:rgba(255,255,255,.08); border-radius:1px; border:1px solid rgba(255,255,255,.1);"></div><span style="font-size:5.5px; color:rgba(255,255,255,.45);">Descanso</span></div>
+        </div>
+        <!-- days header -->
+        <div style="display:grid; grid-template-columns:70px repeat(7,1fr); font-size:5.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:rgba(255,255,255,.38); text-align:center; padding:5px 8px 3px; border-bottom:1px solid rgba(255,255,255,.06);">
+          <div></div>
+          <div style="color:rgba(139,172,214,.7);">LUN</div><div>MAR</div><div>MIÉ</div><div>JUE</div><div>VIE</div>
+          <div style="color:rgba(184,168,122,.7);">SÁB</div><div style="color:rgba(168,184,167,.7);">DOM</div>
+        </div>
+        <!-- staff rows -->
+        <!-- Carlos -->
+        <div style="display:grid; grid-template-columns:70px repeat(7,1fr); align-items:center; padding:3px 8px; gap:2px; border-bottom:1px solid rgba(255,255,255,.04);">
+          <div style="font-size:7px; font-weight:600; color:rgba(255,255,255,.75);">Carlos R.</div>
+          <div style="height:14px; background:#37519f; border-radius:2px;"></div>
+          <div style="height:14px; background:#37519f; border-radius:2px;"></div>
+          <div style="height:14px; background:#8e6a1a; border-radius:2px;"></div>
+          <div style="height:14px; background:rgba(255,255,255,.07); border-radius:2px; border:1px solid rgba(255,255,255,.09);"></div>
+          <div style="height:14px; background:#37519f; border-radius:2px;"></div>
+          <div style="height:14px; background:#37519f; border-radius:2px;"></div>
+          <div style="height:14px; background:rgba(255,255,255,.07); border-radius:2px; border:1px solid rgba(255,255,255,.09);"></div>
+        </div>
+        <!-- Ana -->
+        <div style="display:grid; grid-template-columns:70px repeat(7,1fr); align-items:center; padding:3px 8px; gap:2px; border-bottom:1px solid rgba(255,255,255,.04);">
+          <div style="font-size:7px; font-weight:600; color:rgba(255,255,255,.75);">Ana M.</div>
+          <div style="height:14px; background:#8e6a1a; border-radius:2px;"></div>
+          <div style="height:14px; background:#8e6a1a; border-radius:2px;"></div>
+          <div style="height:14px; background:rgba(255,255,255,.07); border-radius:2px; border:1px solid rgba(255,255,255,.09);"></div>
+          <div style="height:14px; background:#8e6a1a; border-radius:2px;"></div>
+          <div style="height:14px; background:#8e6a1a; border-radius:2px;"></div>
+          <div style="height:14px; background:#8e6a1a; border-radius:2px;"></div>
+          <div style="height:14px; background:#8e6a1a; border-radius:2px;"></div>
+        </div>
+        <!-- Roberto -->
+        <div style="display:grid; grid-template-columns:70px repeat(7,1fr); align-items:center; padding:3px 8px; gap:2px; border-bottom:1px solid rgba(255,255,255,.04);">
+          <div style="font-size:7px; font-weight:600; color:rgba(255,255,255,.75);">Roberto S.</div>
+          <div style="height:14px; background:#37519f; border-radius:2px;"></div>
+          <div style="height:14px; background:rgba(255,255,255,.07); border-radius:2px; border:1px solid rgba(255,255,255,.09);"></div>
+          <div style="height:14px; background:#37519f; border-radius:2px;"></div>
+          <div style="height:14px; background:#37519f; border-radius:2px;"></div>
+          <div style="height:14px; background:rgba(255,255,255,.07); border-radius:2px; border:1px solid rgba(255,255,255,.09);"></div>
+          <div style="height:14px; background:#37519f; border-radius:2px;"></div>
+          <div style="height:14px; background:#37519f; border-radius:2px;"></div>
+        </div>
+        <!-- Sofía -->
+        <div style="display:grid; grid-template-columns:70px repeat(7,1fr); align-items:center; padding:3px 8px; gap:2px; border-bottom:1px solid rgba(255,255,255,.06);">
+          <div style="font-size:7px; font-weight:600; color:rgba(255,255,255,.75);">Sofía V.</div>
+          <div style="height:14px; background:rgba(255,255,255,.07); border-radius:2px; border:1px solid rgba(255,255,255,.09);"></div>
+          <div style="height:14px; background:#8e6a1a; border-radius:2px;"></div>
+          <div style="height:14px; background:#8e6a1a; border-radius:2px;"></div>
+          <div style="height:14px; background:#8e6a1a; border-radius:2px;"></div>
+          <div style="height:14px; background:#37519f; border-radius:2px;"></div>
+          <div style="height:14px; background:#37519f; border-radius:2px;"></div>
+          <div style="height:14px; background:rgba(255,255,255,.07); border-radius:2px; border:1px solid rgba(255,255,255,.09);"></div>
+        </div>
+        <!-- WA auto-send notice -->
+        <div style="padding:7px 12px; display:flex; align-items:center; gap:7px; background:rgba(0,92,75,.12); border-top:1px solid rgba(0,92,75,.25);">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.555 4.116 1.528 5.845L.057 23.75l6.047-1.588A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.855 0-3.596-.5-5.1-1.372l-.364-.217-3.588.942.958-3.5-.238-.375A9.944 9.944 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+          <span style="font-size:6.5px; color:rgba(255,255,255,.55);">Turnos enviados por WA · 4/4 recibidos</span>
+          <span style="margin-left:auto; font-size:6px; color:rgba(80,190,110,.75); font-weight:700;">✓✓</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EVENTOS -->
+<div class="slide bg-khaki" data-section="Operación" data-title="Eventos" data-tx="zoom" data-anim="burst">
+  <div class="slide-accent"></div>
+  <img class="whale" src="bahiaclub-briefing/brandbook-pages/15-isotipo.jpg" alt="">
+  <div class="tag">Operación · Eventos y ligas</div>
+  <div class="connect-note">Analiza los huecos de tráfico del Check-in Tracker para proponer eventos</div>
+  <h2>Agente de <em>Eventos</em></h2>
+  <div class="divider"></div>
+  <div class="two-col">
+    <div>
+      <h3>Qué hace</h3>
+      <ul class="point-list" style="margin-top:.38rem;">
+        <li>Detecta los días de menor tráfico y propone eventos para llenar esos espacios.</li>
+        <li>Responde consultas de planeación en lenguaje natural.</li>
+        <li>Aprende de cada evento — los resultados mejoran las sugerencias siguientes.</li>
+      </ul>
+    </div>
+    <div class="mock-wrap">
+      <!-- Official Bahía Tournament Flyer -->
+      <div style="width:240px; background:#0C1A2E; border-radius:10px; border:1.5px solid rgba(184,168,122,.35); overflow:hidden; box-shadow:0 18px 52px rgba(0,0,0,.65);">
+        <!-- top stripe -->
+        <div style="height:4px; background:linear-gradient(90deg,#37519f,#8e8055,#7a8a79,#37519f);"></div>
+        <!-- header with logo area -->
+        <div style="background:linear-gradient(160deg,#0C1A2E 60%,#1a2a45); padding:14px 16px 10px; display:flex; flex-direction:column; align-items:center; gap:6px;">
+          <!-- whale logo oficial -->
+          <img src="bahiaclub-briefing/brandbook-pages/15-isotipo.jpg" style="height:38px; filter:invert(1) sepia(1) saturate(2) hue-rotate(5deg) brightness(1.1); mix-blend-mode:screen; opacity:.75;">
+          <div style="text-align:center;">
+            <div style="font-size:7px; letter-spacing:.3em; text-transform:uppercase; color:rgba(184,168,122,.55); font-family:'Nunito',sans-serif;">Bahía Social Sports Club</div>
+            <div style="font-size:6px; letter-spacing:.15em; text-transform:uppercase; color:rgba(139,172,214,.4); font-family:'Nunito',sans-serif;">Riviera Nayarit · México</div>
+          </div>
+        </div>
+        <!-- title block -->
+        <div style="background:linear-gradient(135deg,#37519f 0%,#2a3f80 100%); padding:12px 16px; text-align:center;">
+          <div style="font-size:7px; letter-spacing:.35em; text-transform:uppercase; color:rgba(255,255,255,.5); font-family:'Nunito',sans-serif; margin-bottom:4px;">Convoca al</div>
+          <div style="font-size:22px; font-weight:800; color:#fff; font-family:'Nunito',sans-serif; line-height:1; letter-spacing:-.01em;">TORNEO</div>
+          <div style="font-size:22px; font-weight:800; color:rgba(184,168,122,.95); font-family:'Nunito',sans-serif; line-height:1.05; letter-spacing:-.01em;">RELÁMPAGO</div>
+          <div style="font-size:9px; font-weight:300; letter-spacing:.25em; text-transform:uppercase; color:rgba(255,255,255,.6); font-family:'Nunito',sans-serif; margin-top:4px;">de Pádel · 2026</div>
+        </div>
+        <!-- gold divider -->
+        <div style="height:1.5px; background:linear-gradient(90deg,transparent,rgba(184,168,122,.5),transparent);"></div>
+        <!-- info grid -->
+        <div style="padding:10px 16px; display:flex; flex-direction:column; gap:6px;">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px;">
+            <div style="background:rgba(55,81,159,.12); border:1px solid rgba(55,81,159,.25); border-radius:5px; padding:6px 8px;">
+              <div style="font-size:6px; letter-spacing:.12em; text-transform:uppercase; color:rgba(139,172,214,.5); font-family:'Nunito',sans-serif; margin-bottom:2px;">Fecha</div>
+              <div style="font-size:8px; font-weight:700; color:rgba(255,255,255,.88); font-family:'Nunito',sans-serif;">Sáb 14 Jun</div>
+              <div style="font-size:6.5px; color:rgba(255,255,255,.4); font-family:'Nunito',sans-serif;">9:00 am · puntual</div>
+            </div>
+            <div style="background:rgba(142,128,85,.1); border:1px solid rgba(184,168,122,.2); border-radius:5px; padding:6px 8px;">
+              <div style="font-size:6px; letter-spacing:.12em; text-transform:uppercase; color:rgba(184,168,122,.5); font-family:'Nunito',sans-serif; margin-bottom:2px;">Formato</div>
+              <div style="font-size:8px; font-weight:700; color:rgba(255,255,255,.88); font-family:'Nunito',sans-serif;">Dobles mixtos</div>
+              <div style="font-size:6.5px; color:rgba(255,255,255,.4); font-family:'Nunito',sans-serif;">8 parejas máx.</div>
+            </div>
+          </div>
+          <!-- schedule -->
+          <div style="background:rgba(255,255,255,.04); border-radius:5px; padding:7px 10px;">
+            <div style="font-size:6px; letter-spacing:.12em; text-transform:uppercase; color:rgba(255,255,255,.3); font-family:'Nunito',sans-serif; margin-bottom:5px;">Horario de partidos</div>
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:3px;">
+              <div style="text-align:center;"><div style="font-size:7.5px; font-weight:700; color:rgba(139,172,214,.8); font-family:'Nunito',sans-serif;">9:00</div><div style="font-size:5.5px; color:rgba(255,255,255,.3); font-family:'Nunito',sans-serif;">Fase 1</div></div>
+              <div style="text-align:center;"><div style="font-size:7.5px; font-weight:700; color:rgba(139,172,214,.8); font-family:'Nunito',sans-serif;">10:00</div><div style="font-size:5.5px; color:rgba(255,255,255,.3); font-family:'Nunito',sans-serif;">Fase 2</div></div>
+              <div style="text-align:center;"><div style="font-size:7.5px; font-weight:700; color:rgba(139,172,214,.8); font-family:'Nunito',sans-serif;">11:00</div><div style="font-size:5.5px; color:rgba(255,255,255,.3); font-family:'Nunito',sans-serif;">Semis</div></div>
+              <div style="text-align:center;"><div style="font-size:7.5px; font-weight:700; color:rgba(184,168,122,.9); font-family:'Nunito',sans-serif;">12:00</div><div style="font-size:5.5px; color:rgba(184,168,122,.4); font-family:'Nunito',sans-serif;">Final</div></div>
+            </div>
+          </div>
+          <!-- prize -->
+          <div style="background:linear-gradient(90deg,rgba(184,168,122,.12),rgba(142,128,85,.08)); border:1px solid rgba(184,168,122,.25); border-radius:5px; padding:6px 10px; display:flex; align-items:center; justify-content:space-between;">
+            <div><div style="font-size:6px; letter-spacing:.1em; text-transform:uppercase; color:rgba(184,168,122,.5); font-family:'Nunito',sans-serif;">Premio campeón</div><div style="font-size:8.5px; font-weight:700; color:rgba(184,168,122,.9); font-family:'Nunito',sans-serif;">2 meses membresía + ELO</div></div>
+            <span style="font-size:18px; margin-left:5px;">🏆</span>
+          </div>
+        </div>
+        <!-- footer -->
+        <div style="background:rgba(55,81,159,.15); border-top:1.5px solid rgba(55,81,159,.25); padding:7px 16px; display:flex; align-items:center; justify-content:space-between;">
+          <div style="font-size:6.5px; color:rgba(255,255,255,.4); font-family:'Nunito',sans-serif;">Inscripción gratuita · WhatsApp</div>
+          <div style="font-size:7px; font-weight:700; letter-spacing:.1em; color:rgba(139,172,214,.8); font-family:'Nunito',sans-serif;">BAHÍA CLUB</div>
+        </div>
+      </div>
+      <span class="mock-label">generado por el agente · un click</span>
+    </div>
+  </div>
+</div>
+
+<!-- CLASES -->
+<div class="slide bg-khaki" data-section="Operación" data-title="Clases & Instrucción" data-tx="slide-u" data-anim="cascade">
+  <div class="slide-accent"></div>
+  <img class="whale whale-sm" src="bahiaclub-briefing/brandbook-pages/15-isotipo.jpg" alt="">
+  <div class="tag">Operación · Instrucción</div>
+  <div class="connect-note">Usa el sistema de reservas — verifica instructor y cancha antes de confirmar</div>
+  <h2>Agente de <em>Clases</em></h2>
+  <div class="divider"></div>
+  <div class="two-col">
+    <div>
+      <h3>Qué hace</h3>
+      <ul class="point-list" style="margin-top:.38rem;">
+        <li>El miembro reserva clase en segundos. El agente verifica instructor y cancha.</li>
+        <li>El instructor registra notas post-clase. El agente genera el resumen de progresión.</li>
+        <li>El historial documentado refuerza el valor percibido de la membresía.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Tipos de clase</h3>
+      <div class="pill-list" style="margin-top:.38rem;">
+        <span class="pill">Individual</span>
+        <span class="pill">Grupal</span>
+        <span class="pill">Clínica</span>
+        <span class="pill">Torneo interno</span>
+      </div>
+      <p class="body-sm" style="margin-top:.78rem;">La progresión de cada alumno está conectada con su perfil en app.bahiaclub.mx y con el ranking ELO.</p>
+    </div>
+  </div>
+</div>
+
+<!-- CONTABILIDAD -->
+<div class="slide bg-khaki accent-left" data-section="Financiero" data-title="Contabilidad" data-tx="blur" data-anim="waterfall">
+  <div class="slide-accent"></div>
+  <img class="whale whale-left whale-sm" src="bahiaclub-briefing/brandbook-pages/15-isotipo.jpg" alt="">
+  <div class="tag">Financiero · La caja mayor</div>
+  <h2>Agente de <em>Contabilidad</em></h2>
+  <div class="divider"></div>
+  <div class="two-col">
+    <div>
+      <h3>Qué hace</h3>
+      <ul class="point-list" style="margin-top:.38rem;">
+        <li>P&L, flujo de caja y presupuesto vs. real disponibles en cualquier momento.</li>
+        <li>Cada rol accede solo a lo que le corresponde, vía magic link de email.</li>
+      </ul>
+      <h3 style="margin-top:.85rem;">Roles de acceso</h3>
+      <div style="display:flex; flex-direction:column; gap:.38rem; margin-top:.38rem;">
+        <p class="body-sm"><strong>Gerencia / Consejo —</strong> P&L completo, cada ingreso y egreso.</p>
+        <p class="body-sm"><strong>Socios-dueños —</strong> Resumen ejecutivo con narrativa generada por el agente.</p>
+        <p class="body-sm"><strong>Admin operativo —</strong> Captura de gastos e ingresos.</p>
+      </div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:.75rem;">
+      <!-- Mini dashboard -->
+      <div style="background:#fff; border-radius:6px; box-shadow:0 6px 24px rgba(0,0,0,.18); overflow:hidden; font-family:'Nunito',sans-serif;">
+        <!-- Dashboard header -->
+        <div style="background:#1a2a1a; padding:7px 12px; display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:8px; font-weight:700; color:#7ec87e; letter-spacing:.12em; text-transform:uppercase;">Dashboard · Junio 2026</span>
+          <div style="display:flex; gap:3px;">
+            <div style="width:6px; height:6px; border-radius:50%; background:#ff5f57;"></div>
+            <div style="width:6px; height:6px; border-radius:50%; background:#febc2e;"></div>
+            <div style="width:6px; height:6px; border-radius:50%; background:#28c840;"></div>
+          </div>
+        </div>
+        <!-- KPI row -->
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:0; border-bottom:1px solid #e8e8e8;">
+          <div style="padding:10px 12px; border-right:1px solid #e8e8e8;">
+            <div style="font-size:6.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:#888; margin-bottom:4px;">Ingresos</div>
+            <div style="font-size:16px; font-weight:200; color:#1d6f42; line-height:1;">$327k</div>
+            <div style="font-size:6px; color:#4CAF50; margin-top:3px;">▲ 3.8% vs mayo</div>
+          </div>
+          <div style="padding:10px 12px; border-right:1px solid #e8e8e8;">
+            <div style="font-size:6.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:#888; margin-bottom:4px;">Egresos</div>
+            <div style="font-size:16px; font-weight:200; color:#9c2700; line-height:1;">$163k</div>
+            <div style="font-size:6px; color:#9c2700; margin-top:3px;">▲ 1.2% vs mayo</div>
+          </div>
+          <div style="padding:10px 12px;">
+            <div style="font-size:6.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:#888; margin-bottom:4px;">Utilidad</div>
+            <div style="font-size:16px; font-weight:200; color:#1a4a8a; line-height:1;">$164k</div>
+            <div style="font-size:6px; color:#4CAF50; margin-top:3px;">▲ 6.6% vs mayo</div>
+          </div>
+        </div>
+        <!-- Mini bar chart -->
+        <div style="padding:8px 12px;">
+          <div style="font-size:6px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#aaa; margin-bottom:5px;">Ingresos vs Egresos · Q2</div>
+          <div style="display:flex; align-items:flex-end; gap:6px; height:36px;">
+            <!-- Abril -->
+            <div style="display:flex; flex-direction:column; align-items:center; gap:2px; flex:1;">
+              <div style="display:flex; align-items:flex-end; gap:2px; height:28px;">
+                <div style="width:10px; background:#1d6f42; border-radius:1px 1px 0 0; height:85%;"></div>
+                <div style="width:10px; background:#fce4d6; border:1px solid #f4c2aa; border-radius:1px 1px 0 0; height:53%;"></div>
+              </div>
+              <div style="font-size:5.5px; color:#999; letter-spacing:.04em;">ABR</div>
+            </div>
+            <!-- Mayo -->
+            <div style="display:flex; flex-direction:column; align-items:center; gap:2px; flex:1;">
+              <div style="display:flex; align-items:flex-end; gap:2px; height:28px;">
+                <div style="width:10px; background:#1d6f42; border-radius:1px 1px 0 0; height:91%;"></div>
+                <div style="width:10px; background:#fce4d6; border:1px solid #f4c2aa; border-radius:1px 1px 0 0; height:52%;"></div>
+              </div>
+              <div style="font-size:5.5px; color:#999; letter-spacing:.04em;">MAY</div>
+            </div>
+            <!-- Junio -->
+            <div style="display:flex; flex-direction:column; align-items:center; gap:2px; flex:1;">
+              <div style="display:flex; align-items:flex-end; gap:2px; height:28px;">
+                <div style="width:10px; background:#157a3a; border-radius:1px 1px 0 0; height:100%; outline:1.5px solid #0d5a28;"></div>
+                <div style="width:10px; background:#f7c8b2; border:1.5px solid #9c2700; border-radius:1px 1px 0 0; height:50%;"></div>
+              </div>
+              <div style="font-size:5.5px; color:#555; font-weight:700; letter-spacing:.04em;">JUN</div>
+            </div>
+            <!-- spacer + legend -->
+            <div style="flex:2; display:flex; flex-direction:column; justify-content:flex-end; gap:3px; padding-bottom:8px; padding-left:4px;">
+              <div style="display:flex; align-items:center; gap:3px;"><div style="width:8px; height:6px; background:#1d6f42; border-radius:1px;"></div><span style="font-size:5.5px; color:#555;">Ingresos</span></div>
+              <div style="display:flex; align-items:center; gap:3px;"><div style="width:8px; height:6px; background:#fce4d6; border:1px solid #f4c2aa; border-radius:1px;"></div><span style="font-size:5.5px; color:#555;">Egresos</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="mock-wrap" style="align-items:flex-start; zoom:1.0;">
+      <!-- Excel-style spreadsheet mock -->
+      <div style="width:310px; background:#fff; border-radius:4px; overflow:hidden; box-shadow:0 10px 36px rgba(0,0,0,.45); font-family:'Nunito',sans-serif;">
+        <!-- Excel title bar -->
+        <div style="background:#1d6f42; padding:4px 8px; display:flex; align-items:center; justify-content:space-between;">
+          <div style="display:flex; align-items:center; gap:5px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="3" fill="#1d6f42"/><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" fill="rgba(255,255,255,.3)"/><path d="M7 7L10 17M10 7L7 17" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <span style="font-size:7px; font-weight:600; color:#fff; letter-spacing:.02em;">P&L_BahiaClub_Jun2026.xlsx</span>
+          </div>
+          <div style="display:flex; gap:3px;"><div style="width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,.35);"></div><div style="width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,.35);"></div><div style="width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,.35);"></div></div>
+        </div>
+        <!-- formula bar -->
+        <div style="background:#f3f3f3; border-bottom:1px solid #d4d4d4; padding:3px 8px; display:flex; align-items:center; gap:5px;">
+          <div style="background:#fff; border:1px solid #bbb; border-radius:2px; padding:2px 6px; font-size:6px; color:#333; min-width:28px; text-align:center;">B12</div>
+          <span style="font-size:6px; color:#555;">fx</span>
+          <span style="font-size:6px; color:#1d6f42; font-weight:600;">=SUMA(B5:B8)</span>
+        </div>
+        <!-- column letters -->
+        <div style="background:#f3f3f3; border-bottom:1px solid #d4d4d4; display:grid; grid-template-columns:90px repeat(4,55px); font-size:6px; font-weight:600; color:#666; text-align:center;">
+          <div style="border-right:1px solid #d4d4d4; padding:2px 4px;"></div>
+          <div style="border-right:1px solid #d4d4d4; padding:2px 4px;">B</div>
+          <div style="border-right:1px solid #d4d4d4; padding:2px 4px;">C</div>
+          <div style="border-right:1px solid #d4d4d4; padding:2px 4px;">D</div>
+          <div style="padding:2px 4px;">E</div>
+        </div>
+        <!-- header row -->
+        <div style="background:#e2efda; border-bottom:1px solid #d4d4d4; display:grid; grid-template-columns:90px repeat(4,55px); font-size:6.5px; font-weight:700; color:#1d6f42; text-align:right;">
+          <div style="border-right:1px solid #d4d4d4; padding:3px 6px; color:#555; font-size:6px;">1</div>
+          <div style="border-right:1px solid #d4d4d4; padding:3px 5px;">Abril</div>
+          <div style="border-right:1px solid #d4d4d4; padding:3px 5px;">Mayo</div>
+          <div style="border-right:1px solid #d4d4d4; padding:3px 5px; background:#c6efce; color:#276221;">Junio</div>
+          <div style="padding:3px 5px;">TOTAL Q2</div>
+        </div>
+        <!-- section: INGRESOS -->
+        <div style="background:#e2efda; border-bottom:1px solid #c4d9bb; display:grid; grid-template-columns:90px repeat(4,55px); font-size:6.5px; font-weight:700; color:#1d6f42; text-align:right;">
+          <div style="border-right:1px solid #d4d4d4; padding:3px 6px; text-align:left;">INGRESOS</div>
+          <div style="border-right:1px solid #d4d4d4;"></div><div style="border-right:1px solid #d4d4d4;"></div><div style="border-right:1px solid #d4d4d4;"></div><div></div>
+        </div>
+        <!-- data rows -->
+        <div style="border-bottom:1px solid #e8e8e8; display:grid; grid-template-columns:90px repeat(4,55px); font-size:6.5px; color:#333; text-align:right; background:#fff;">
+          <div style="border-right:1px solid #e8e8e8; padding:3px 6px; text-align:left; color:#555;">Mensualidades</div>
+          <div style="border-right:1px solid #e8e8e8; padding:3px 5px;">$205,000</div>
+          <div style="border-right:1px solid #e8e8e8; padding:3px 5px;">$212,000</div>
+          <div style="border-right:1px solid #e8e8e8; padding:3px 5px; background:#f0f9f0;">$218,400</div>
+          <div style="padding:3px 5px; font-weight:600;">$635,400</div>
+        </div>
+        <div style="border-bottom:1px solid #e8e8e8; display:grid; grid-template-columns:90px repeat(4,55px); font-size:6.5px; color:#333; text-align:right; background:#f9f9f9;">
+          <div style="border-right:1px solid #e8e8e8; padding:3px 6px; text-align:left; color:#555;">Reservas</div>
+          <div style="border-right:1px solid #e8e8e8; padding:3px 5px;">$61,500</div>
+          <div style="border-right:1px solid #e8e8e8; padding:3px 5px;">$64,200</div>
+          <div style="border-right:1px solid #e8e8e8; padding:3px 5px; background:#f0f9f0;">$68,000</div>
+          <div style="padding:3px 5px; font-weight:600;">$193,700</div>
+        </div>
+        <div style="border-bottom:1px solid #e8e8e8; display:grid; grid-template-columns:90px repeat(4,55px); font-size:6.5px; color:#333; text-align:right; background:#fff;">
+          <div style="border-right:1px solid #e8e8e8; padding:3px 6px; text-align:left; color:#555;">Clases</div>
+          <div style="border-right:1px solid #e8e8e8; padding:3px 5px;">$38,000</div>
+          <div style="border-right:1px solid #e8e8e8; padding:3px 5px;">$39,500</div>
+          <div style="border-right:1px solid #e8e8e8; padding:3px 5px; background:#f0f9f0;">$41,200</div>
+          <div style="padding:3px 5px; font-weight:600;">$118,700</div>
+        </div>
+        <!-- total ingresos -->
+        <div style="border-bottom:2px solid #1d6f42; display:grid; grid-template-columns:90px repeat(4,55px); font-size:6.5px; font-weight:700; color:#1d6f42; text-align:right; background:#e2efda;">
+          <div style="border-right:1px solid #c4d9bb; padding:3px 6px; text-align:left;">Total Ingresos</div>
+          <div style="border-right:1px solid #c4d9bb; padding:3px 5px;">$304,500</div>
+          <div style="border-right:1px solid #c4d9bb; padding:3px 5px;">$315,700</div>
+          <div style="border-right:1px solid #c4d9bb; padding:3px 5px; background:#c6efce;">$327,600</div>
+          <div style="padding:3px 5px;">$947,800</div>
+        </div>
+        <!-- EGRESOS section -->
+        <div style="background:#fce4d6; border-bottom:1px solid #f4c2aa; display:grid; grid-template-columns:90px repeat(4,55px); font-size:6.5px; font-weight:700; color:#9c2700; text-align:right;">
+          <div style="border-right:1px solid #f4c2aa; padding:3px 6px; text-align:left;">EGRESOS</div>
+          <div style="border-right:1px solid #f4c2aa;"></div><div style="border-right:1px solid #f4c2aa;"></div><div style="border-right:1px solid #f4c2aa;"></div><div></div>
+        </div>
+        <div style="border-bottom:1px solid #e8e8e8; display:grid; grid-template-columns:90px repeat(4,55px); font-size:6.5px; color:#333; text-align:right; background:#fff;">
+          <div style="border-right:1px solid #e8e8e8; padding:3px 6px; text-align:left; color:#555;">Nómina</div>
+          <div style="border-right:1px solid #e8e8e8; padding:3px 5px; color:#9c2700;">$115,000</div>
+          <div style="border-right:1px solid #e8e8e8; padding:3px 5px; color:#9c2700;">$115,000</div>
+          <div style="border-right:1px solid #e8e8e8; padding:3px 5px; background:#fff2ee; color:#9c2700;">$115,000</div>
+          <div style="padding:3px 5px; font-weight:600; color:#9c2700;">$345,000</div>
+        </div>
+        <div style="border-bottom:1px solid #e8e8e8; display:grid; grid-template-columns:90px repeat(4,55px); font-size:6.5px; color:#333; text-align:right; background:#f9f9f9;">
+          <div style="border-right:1px solid #e8e8e8; padding:3px 6px; text-align:left; color:#555;">Servicios</div>
+          <div style="border-right:1px solid #e8e8e8; padding:3px 5px; color:#9c2700;">$48,200</div>
+          <div style="border-right:1px solid #e8e8e8; padding:3px 5px; color:#9c2700;">$46,800</div>
+          <div style="border-right:1px solid #e8e8e8; padding:3px 5px; background:#fff2ee; color:#9c2700;">$48,600</div>
+          <div style="padding:3px 5px; font-weight:600; color:#9c2700;">$143,600</div>
+        </div>
+        <!-- UTILIDAD -->
+        <div style="display:grid; grid-template-columns:90px repeat(4,55px); font-size:7px; font-weight:800; color:#fff; text-align:right; background:#1d6f42;">
+          <div style="border-right:1px solid rgba(255,255,255,.2); padding:4px 6px; text-align:left;">UTILIDAD NETA</div>
+          <div style="border-right:1px solid rgba(255,255,255,.2); padding:4px 5px;">$141,300</div>
+          <div style="border-right:1px solid rgba(255,255,255,.2); padding:4px 5px;">$153,900</div>
+          <div style="border-right:1px solid rgba(255,255,255,.2); padding:4px 5px; background:#157a3a;">$164,000</div>
+          <div style="padding:4px 5px;">$459,200</div>
+        </div>
+      </div>
+      <span class="mock-label">P&L en tiempo real · acceso por rol</span>
+      </div><!-- /mock-wrap -->
+    </div><!-- /right col wrapper -->
+  </div>
+</div>
+
+<!-- CFO -->
+<div class="slide bg-navy" data-section="Financiero" data-title="CFO IA" data-tx="zoom" data-anim="burst">
+  <div class="slide-accent"></div>
+  <img class="whale whale-lg" src="bahiaclub-briefing/brandbook-pages/15-isotipo.jpg" alt="">
+  <div class="tag">Financiero · Inteligencia estratégica</div>
+  <div class="connect-note">Trabaja con los datos del Agente de Contabilidad en tiempo real</div>
+  <h2>Agente <em>CFO</em></h2>
+  <div class="divider"></div>
+  <div class="two-col">
+    <div>
+      <h3>Qué hace</h3>
+      <ul class="point-list" style="margin-top:.38rem;">
+        <li>Proyecciones y escenarios en lenguaje natural, sin abrir una hoja de cálculo.</li>
+        <li>Alertas tempranas de caída de ingresos antes de que ocurran.</li>
+        <li>Reporte para el consejo generado automáticamente con los datos reales.</li>
+        <li>Estacionalidad integrada: temporada alta dic–abr, baja may–oct.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Chat del CFO para socios</h3>
+      <div class="card" style="margin-top:.38rem;">
+        <div style="display:flex; flex-direction:column; gap:.46rem;">
+          <p class="body-sm" style="color:rgba(246,246,246,.82);">"¿Cuántos meses aguantamos si la ocupación cae 30%?"</p>
+          <p class="body-sm" style="color:rgba(246,246,246,.82);">"¿En qué mes lanzamos el nuevo plan de membresía?"</p>
+          <p class="body-sm" style="color:rgba(246,246,246,.82);">"¿Cuál es nuestro peor escenario si perdemos 20 socios?"</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- REPUTACIÓN -->
+<div class="slide bg-navy accent-left" data-section="Reputación" data-title="Reputación Digital" data-tx="slide-r" data-anim="cascade">
+  <div class="slide-accent"></div>
+  <img class="whale whale-left" src="bahiaclub-briefing/brandbook-pages/15-isotipo.jpg" alt="">
+  <div class="tag">Reputación · La cara pública del club</div>
+  <h2>Agente de <em>Reputación</em></h2>
+  <div class="divider"></div>
+  <div class="two-col">
+    <div>
+      <h3>Qué hace</h3>
+      <ul class="point-list" style="margin-top:.38rem;">
+        <li>El club responde a todas las reseñas en todos los canales, sin revisarlos manualmente.</li>
+        <li>Reseña negativa — el agente genera una respuesta empática — admin aprueba con un click.</li>
+        <li>Reseñas positivas respondidas automáticamente, nunca con la misma respuesta dos veces.</li>
+        <li>Alerta inmediata cuando el score baja o hay una mención con alto alcance.</li>
+      </ul>
+    </div>
+    <div class="mock-wrap" style="align-items:flex-start;">
+      <!-- Google Reviews mock -->
+      <div style="width:310px; background:#1e1e1e; border-radius:8px; border:1px solid rgba(255,255,255,.1); overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,.5); font-family:'Nunito',sans-serif;">
+        <!-- Platform header -->
+        <div style="background:#111; padding:5px 10px; display:flex; align-items:center; gap:5px; border-bottom:1px solid rgba(255,255,255,.06);">
+          <svg width="12" height="12" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+          <span style="font-size:6px; font-weight:600; color:rgba(255,255,255,.6);">Google Reviews · Bahía Club</span>
+          <span style="margin-left:auto; font-size:5.5px; color:rgba(240,100,100,.7);">⚠ Nueva reseña negativa</span>
+        </div>
+        <!-- negative review -->
+        <div style="padding:8px 10px; border-bottom:1px solid rgba(255,255,255,.06);">
+          <div style="display:flex; align-items:center; gap:5px; margin-bottom:4px;">
+            <div style="width:18px; height:18px; border-radius:50%; background:#555; display:flex; align-items:center; justify-content:center; font-size:7px; color:#fff; flex-shrink:0;">M</div>
+            <div>
+              <div style="font-size:6.5px; font-weight:600; color:rgba(255,255,255,.8);">Marco T.</div>
+              <div style="display:flex; gap:1px;">
+                <span style="font-size:7px; color:#f4c430;">★</span>
+                <span style="font-size:7px; color:#f4c430;">★</span>
+                <span style="font-size:7px; color:rgba(255,255,255,.2);">★</span>
+                <span style="font-size:7px; color:rgba(255,255,255,.2);">★</span>
+                <span style="font-size:7px; color:rgba(255,255,255,.2);">★</span>
+                <span style="font-size:5px; color:rgba(255,255,255,.3); margin-left:3px; margin-top:1px;">hace 2 horas</span>
+              </div>
+            </div>
+          </div>
+          <p style="font-size:6.3px; color:rgba(255,255,255,.6); line-height:1.5; margin:0;">Llegué a las 9am con reserva confirmada y la cancha estaba ocupada. Nadie me avisó ni me ofreció una solución. Mala organización, espero que mejoren.</p>
+        </div>
+        <!-- agent draft response -->
+        <div style="padding:7px 10px; background:rgba(55,81,159,.07);">
+          <div style="display:flex; align-items:center; gap:4px; margin-bottom:4px;">
+            <div style="width:5px; height:5px; border-radius:50%; background:rgba(139,172,214,.7);"></div>
+            <span style="font-size:5.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:rgba(139,172,214,.6);">Respuesta generada · pendiente de aprobación</span>
+          </div>
+          <p style="font-size:6px; color:rgba(255,255,255,.7); line-height:1.55; margin:0 0 6px; font-style:italic;">Hola Marco, lamentamos mucho lo que viviste — eso no debe ocurrir. Ya revisamos el incidente: hubo un error en la asignación de tu cancha que ya corregimos. Nos encantaría invitarte de regreso sin costo para que veas el club como debe funcionar. Escríbenos por WhatsApp y te lo arreglamos hoy.</p>
+          <div style="display:flex; gap:4px;">
+            <div style="flex:1; background:#37519f; border-radius:3px; padding:3px 7px; text-align:center; cursor:pointer;"><span style="font-size:5.5px; font-weight:700; color:#fff; letter-spacing:.06em;">PUBLICAR</span></div>
+            <div style="background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:3px; padding:3px 7px; cursor:pointer;"><span style="font-size:5.5px; color:rgba(255,255,255,.45);">Editar</span></div>
+          </div>
+        </div>
+      </div>
+      <span class="mock-label">un click para publicar</span>
+    </div>
+  </div>
+</div>
+
+<!-- COMUNIDAD -->
+<div class="slide bg-navy" data-section="Comunidad" data-title="Comunidad & Retención" data-tx="slide-l" data-anim="burst">
+  <div class="slide-accent"></div>
+  <img class="whale whale-sm" src="bahiaclub-briefing/brandbook-pages/15-isotipo.jpg" alt="">
+  <div class="tag">Comunidad · El tejido social del club</div>
+  <h2>Lo que hace que un <em>miembro no se vaya</em></h2>
+  <div class="divider"></div>
+  <div class="three-col">
+    <div class="agent-cell no-nav"><span class="ac-label">Lealtad</span><span class="ac-name">Programa de Puntos</span><span class="ac-desc">Acumula por visitas, clases, torneos, referidos. Canjea por clases o descuentos.</span></div>
+    <div class="agent-cell no-nav"><span class="ac-label">Competencia</span><span class="ac-name">Ranking ELO</span><span class="ac-desc">Calibración inicial + nutrición por resultados. Ranking público por deporte.</span></div>
+    <div class="agent-cell no-nav"><span class="ac-label">Retención</span><span class="ac-name">Ligas Permanentes</span><span class="ac-desc">Temporadas fijas. Un miembro en liga activa no cancela.</span></div>
+    <div class="agent-cell no-nav"><span class="ac-label">Logros</span><span class="ac-name">Badges</span><span class="ac-desc">Asistencia, deportivo, comunidad, antigüedad. Notificación WA al ganarlo.</span></div>
+    <div class="agent-cell no-nav"><span class="ac-label">Operación</span><span class="ac-name">Casilleros</span><span class="ac-desc">Registro digital. Al cancelar membresía — devolución automática.</span></div>
+    <div class="agent-cell no-nav"><span class="ac-label">Comunicación</span><span class="ac-name">Mensajes Segmentados</span><span class="ac-desc">Avisos y reactivación según plan, deporte o frecuencia de visita.</span></div>
+  </div>
+</div>
+
+<!-- PRÓXIMOS PASOS -->
+<div class="slide bg-navy" data-section="Próximos pasos" data-title="Próximos pasos" data-tx="blur" data-anim="waterfall">
+  <div class="cover-bg"></div>
+  <div class="cover-line"></div>
+  <div class="slide-accent"></div>
+  <img class="whale whale-lg" src="bahiaclub-briefing/brandbook-pages/15-isotipo.jpg" alt=""
+       style="right:-4vw; bottom:-5vh;">
+  <div class="tag">Próximos pasos</div>
+  <h2>Arrancamos con <em>lo más importante</em></h2>
+  <div class="divider"></div>
+  <div class="two-col" style="max-width:700px;">
+    <div>
+      <h3>Primera entrega</h3>
+      <ul class="point-list" style="margin-top:.38rem;">
+        <li>Check-in QR/NFC en recepción</li>
+        <li>Control de Acceso en torniquete</li>
+        <li>Cobranza y base de membresías</li>
+        <li>Reservas de las 22 canchas por WhatsApp</li>
+        <li>app.bahiaclub.mx en producción</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Pendiente de confirmar</h3>
+      <ul class="point-list" style="margin-top:.38rem;">
+        <li>Meta Business Account activa</li>
+        <li>Días de gracia y umbrales de bloqueo</li>
+        <li>Fecha de inicio acordada</li>
+      </ul>
+    </div>
+  </div>
+  <div class="divider" style="margin-top:1.05rem;"></div>
+  <div class="stack-grid" style="margin-top:.72rem;">
+    <div class="stack-item"><div class="stack-code">IA</div><div><div class="stack-name">Agente IA</div><div class="stack-role">Inteligencia de todos los agentes</div></div></div>
+    <div class="stack-item"><div class="stack-code">DB</div><div><div class="stack-name">Supabase</div><div class="stack-role">Base de datos central en tiempo real</div></div></div>
+    <div class="stack-item"><div class="stack-code">WA</div><div><div class="stack-name">WhatsApp</div><div class="stack-role">Canal de comunicación principal</div></div></div>
+  </div>
+</div>
+
+</div><!-- /deck -->
+<script>
+(function(){
+  /* ── refs ─────────────────────────────── */
+  /* ── aurora canvas ───────────────────── */
+  const aurora = document.getElementById('aurora');
+  const actx = aurora.getContext('2d');
+  function resizeAurora(){ aurora.width=window.innerWidth; aurora.height=window.innerHeight; }
+  resizeAurora(); window.addEventListener('resize',resizeAurora);
+
+  const bahiaColors=[
+    {r:55,g:81,b:159},{r:12,g:26,b:46},{r:139,g:172,b:214},
+    {r:201,g:169,b:110},{r:122,g:138,b:121},{r:55,g:65,b:110},
+    {r:168,g:148,b:100},{r:30,g:50,b:100}
+  ];
+  class AuroraOrb{
+    constructor(){
+      this.x=Math.random()*aurora.width; this.y=Math.random()*aurora.height;
+      this.r=Math.random()*420+180; this.c=bahiaColors[Math.floor(Math.random()*bahiaColors.length)];
+      this.vx=(Math.random()-.5)*.35; this.vy=(Math.random()-.5)*.35;
+      this.t=Math.random()*Math.PI*2; this.a=Math.random()*.14+.07;
+    }
+    draw(){
+      const g=actx.createRadialGradient(this.x,this.y,0,this.x,this.y,this.r);
+      g.addColorStop(0,`rgba(${this.c.r},${this.c.g},${this.c.b},${this.a})`);
+      g.addColorStop(.55,`rgba(${this.c.r},${this.c.g},${this.c.b},${this.a*.3})`);
+      g.addColorStop(1,`rgba(${this.c.r},${this.c.g},${this.c.b},0)`);
+      actx.fillStyle=g; actx.beginPath(); actx.arc(this.x,this.y,this.r,0,Math.PI*2); actx.fill();
+    }
+    update(){
+      this.t+=.003;
+      this.x+=this.vx+Math.sin(this.t)*.7; this.y+=this.vy+Math.cos(this.t*.9)*.55;
+      if(this.x<-this.r) this.x=aurora.width+this.r;
+      if(this.x>aurora.width+this.r) this.x=-this.r;
+      if(this.y<-this.r) this.y=aurora.height+this.r;
+      if(this.y>aurora.height+this.r) this.y=-this.r;
+    }
+  }
+  const auroraOrbs=Array.from({length:9},()=>new AuroraOrb());
+  let lightSlide = false;
+  (function animAurora(){
+    actx.clearRect(0,0,aurora.width,aurora.height);
+    if(!lightSlide) auroraOrbs.forEach(o=>{o.update();o.draw();});
+    requestAnimationFrame(animAurora);
+  })();
+
+  /* ── ghost number ────────────────────── */
+  const ghostNum = document.getElementById('ghost-num');
+
+  /* ── progress bar ────────────────────── */
+  const progressBar = document.getElementById('progress-bar');
+
+  /* ── 3D card tilt ────────────────────── */
+  function initTilt(){
+    document.querySelectorAll('.card,.agent-cell').forEach(el=>{
+      el.addEventListener('mouseenter',()=>{ el.style.transition='none'; });
+      el.addEventListener('mouseleave',()=>{
+        el.style.transition='transform .55s cubic-bezier(.22,1,.36,1),border-color .22s,box-shadow .22s';
+        el.style.transform='';
+      });
+      el.addEventListener('mousemove',e=>{
+        const r=el.getBoundingClientRect();
+        const x=(e.clientX-r.left)/r.width-.5, y=(e.clientY-r.top)/r.height-.5;
+        el.style.transform=`perspective(480px) rotateX(${-y*9}deg) rotateY(${x*9}deg) translateY(-3px) scale(1.01)`;
+      });
+    });
+  }
+  initTilt();
+
+  const cursor  = document.getElementById('cursor'),
+        ring    = document.getElementById('c-ring'),
+        nav     = document.getElementById('nav'),
+        counter = document.getElementById('slide-counter'),
+        secLabel= document.getElementById('section-label'),
+        menuGrid= document.getElementById('menu-grid'),
+        menuEl  = document.getElementById('slide-menu'),
+        menuBtn = document.getElementById('menu-btn'),
+        backBtn = document.getElementById('back-btn'),
+        ambientEl= document.getElementById('ambient'),
+        ptc     = document.getElementById('ptc'),
+        slides  = Array.from(document.querySelectorAll('.slide'));
+  const INDEX = 1;
+  let cur = 0, menuOpen = false;
+
+  /* ── cursor + ring + magnetic ─────────── */
+  let mx=window.innerWidth/2, my=window.innerHeight/2;
+  let rx=mx, ry=my;
+  const magnetTargets = '.card,.agent-cell,.flow-node,.dot,#menu-btn,#back-btn,.menu-item';
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    cursor.style.left = mx+'px'; cursor.style.top = my+'px';
+    // magnetic ring
+    let minD=90, nearEl=null;
+    document.querySelectorAll(magnetTargets).forEach(el=>{
+      const r=el.getBoundingClientRect();
+      const d=Math.hypot(mx-(r.left+r.width/2), my-(r.top+r.height/2));
+      if(d<minD){minD=d;nearEl=el;}
+    });
+    ring.classList.toggle('near', !!nearEl);
+  });
+  document.addEventListener('mousedown', () => { cursor.classList.add('big'); ring.classList.add('big'); });
+  document.addEventListener('mouseup',   () => { cursor.classList.remove('big'); ring.classList.remove('big'); });
+
+  /* Normalized mouse offset from center (−0.5 to 0.5) */
+  let mnx=0, mny=0, pnx=0, pny=0;
+  document.addEventListener('mousemove', e => {
+    mnx = (e.clientX / window.innerWidth)  - 0.5;
+    mny = (e.clientY / window.innerHeight) - 0.5;
+  });
+
+  (function animRing(){
+    rx += (mx - rx) * .12; ry += (my - ry) * .12;
+    ring.style.left = rx+'px'; ring.style.top = ry+'px';
+    // Subtle content parallax — active slide content drifts gently with mouse
+    pnx += (mnx - pnx) * .032;
+    pny += (mny - pny) * .032;
+    const activeSlide = slides[cur];
+    if(activeSlide && !menuOpen){
+      const px = pnx * 10, py = pny * 7;
+      activeSlide.style.setProperty('--px', px+'px');
+      activeSlide.style.setProperty('--py', py+'px');
+    }
+    requestAnimationFrame(animRing);
+  })();
+
+  /* ── particle network canvas ──────────── */
+  const ctx = ptc.getContext('2d');
+  let W, H, particles = [];
+  const PARTICLE_COUNT = 55, MAX_DIST = 120;
+
+  function resizeCanvas(){
+    W = ptc.width  = window.innerWidth;
+    H = ptc.height = window.innerHeight;
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  function initParticles(){
+    particles = Array.from({length: PARTICLE_COUNT}, () => ({
+      x:  Math.random() * W,
+      y:  Math.random() * H,
+      vx: (Math.random() - .5) * .28,
+      vy: (Math.random() - .5) * .28,
+      r:  Math.random() * 1.4 + .6,
+      a:  Math.random() * .22 + .05
+    }));
+  }
+  initParticles();
+
+  function drawParticles(){
+    ctx.clearRect(0, 0, W, H);
+    if(lightSlide){ requestAnimationFrame(drawParticles); return; }
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      if(p.x < 0) p.x = W; if(p.x > W) p.x = 0;
+      if(p.y < 0) p.y = H; if(p.y > H) p.y = 0;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(139,172,214,${p.a})`;
+      ctx.fill();
+    });
+    // network lines
+    for(let i=0; i<particles.length; i++){
+      for(let j=i+1; j<particles.length; j++){
+        const a=particles[i], b=particles[j];
+        const d = Math.hypot(a.x-b.x, a.y-b.y);
+        if(d < MAX_DIST){
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+          ctx.strokeStyle = `rgba(139,172,214,${.07*(1-d/MAX_DIST)})`;
+          ctx.lineWidth = .5;
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(drawParticles);
+  }
+  drawParticles();
+
+  /* ── ambient mouse glow ───────────────── */
+  let ax=50, ay=50, tax=50, tay=50;
+  document.addEventListener('mousemove', e => {
+    tax = (e.clientX / window.innerWidth)  * 100;
+    tay = (e.clientY / window.innerHeight) * 100;
+  });
+  (function animAmbient(){
+    ax += (tax-ax)*.025; ay += (tay-ay)*.025;
+    if(!lightSlide){
+      ambientEl.style.background = `radial-gradient(ellipse 38% 38% at ${ax}% ${ay}%, rgba(55,81,159,.14) 0%, transparent 70%)`;
+      ambientEl.style.opacity = '1';
+    } else {
+      ambientEl.style.opacity = '0';
+    }
+    requestAnimationFrame(animAmbient);
+  })();
+
+  /* ── count-up numbers ─────────────────── */
+  function countUp(el, target, duration){
+    const start = performance.now();
+    (function update(now){
+      const p = Math.min((now-start)/duration, 1);
+      // spring-like easing: fast start, overshoot, settle
+      const e = p < 1
+        ? 1 - Math.pow(1-p, 4) + (p * (1-p) * 0.08)
+        : 1;
+      el.textContent = Math.round(Math.min(e*target, target));
+      if(p<1) requestAnimationFrame(update);
+      else el.textContent = target;
+    })(start);
+  }
+  function runCounters(slide){
+    slide.querySelectorAll('[data-count]').forEach(el => {
+      countUp(el, parseInt(el.dataset.count), 1400);
+    });
+  }
+
+  /* ── slide navigation ─────────────────── */
+  slides.forEach((_,i)=>{
+    const d=document.createElement('div'); d.className='dot';
+    d.addEventListener('click',e=>{e.stopPropagation();goTo(i);}); nav.appendChild(d);
+  });
+  slides.forEach((sl,i)=>{
+    const m=document.createElement('div'); m.className='menu-item';
+    m.innerHTML=`<div class="mi-num">${String(i+1).padStart(2,'0')}</div><div class="mi-title">${sl.dataset.title||''}</div><div class="mi-section">${sl.dataset.section||''}</div>`;
+    m.addEventListener('click',()=>{goTo(i);closeMenu();}); menuGrid.appendChild(m);
+  });
+
+  backBtn.addEventListener('click',e=>{e.stopPropagation();goTo(INDEX);});
+
+  /* ── sub-step logic ──────────────────── */
+  function trySubStep(){
+    const sl = slides[cur];
+    if(!sl.hasAttribute('data-sub')) return false;
+    const items = sl.querySelectorAll('.sub-item');
+    const done  = sl.querySelectorAll('.sub-item.sub-visible').length;
+    if(done < items.length){
+      items[done].classList.add('sub-visible');
+      // hide hint when last item revealed
+      if(done+1 === items.length){
+        const hint = sl.querySelector('.sub-step-hint');
+        if(hint) hint.classList.add('done');
+      }
+      return true;
+    }
+    return false;
+  }
+
+  function resetSubSteps(sl){
+    sl.querySelectorAll('.sub-item').forEach(el=>el.classList.remove('sub-visible'));
+    const hint = sl.querySelector('.sub-step-hint');
+    if(hint) hint.classList.remove('done');
+  }
+
+  const cutFlash = document.getElementById('cut-flash');
+  function triggerFlash(){
+    cutFlash.classList.remove('flash');
+    void cutFlash.offsetWidth; // reflow
+    cutFlash.classList.add('flash');
+  }
+
+  function goTo(n, dir){
+    if(n<0||n>=slides.length||n===cur) return;
+    if(dir===undefined) dir=n>cur?1:-1;
+    // cinematic cut flash at transition moment
+    triggerFlash();
+    // reset sub-steps of current slide on leave
+    resetSubSteps(slides[cur]);
+    // tag exiting slide with direction from incoming slide's tx type
+    const nextTx = slides[n].dataset.tx || 'slide-r';
+    slides[cur].dataset.exitTx = nextTx;
+    slides[cur].classList.remove('active');
+    slides[cur].classList.add('exit');
+    const prev=cur;
+    setTimeout(()=>{ slides[prev].classList.remove('exit'); delete slides[prev].dataset.exitTx; }, 780);
+    cur=n;
+    const next=slides[cur];
+    next.offsetHeight; next.classList.add('active');
+    // auto-reveal first sub-item + re-init tilt on new cards
+    setTimeout(()=>{
+      runCounters(next);
+      if(next.hasAttribute('data-sub')){
+        const first = next.querySelector('.sub-item');
+        if(first) first.classList.add('sub-visible');
+      }
+      initTilt();
+    }, 820);
+    ui();
+  }
+
+  function ui(){
+    document.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('active',i===cur));
+    document.querySelectorAll('.menu-item').forEach((m,i)=>m.classList.toggle('current',i===cur));
+    counter.textContent=`${String(cur+1).padStart(2,'0')} / ${String(slides.length).padStart(2,'0')}`;
+    secLabel.textContent=slides[cur].dataset.section||'';
+    backBtn.classList.toggle('visible',cur!==0&&cur!==INDEX);
+    lightSlide = slides[cur].classList.contains('bg-white');
+    document.body.classList.toggle('light-slide', lightSlide);
+    progressBar.style.width = (cur/(slides.length-1)*100)+'%';
+    ghostNum.textContent = String(cur+1).padStart(2,'0');
+  }
+
+  function openMenu() { menuOpen=true; menuEl.classList.add('open'); menuBtn.classList.add('open'); }
+  function closeMenu(){ menuOpen=false;menuEl.classList.remove('open');menuBtn.classList.remove('open'); }
+
+  menuBtn.addEventListener('click',e=>{e.stopPropagation();menuOpen?closeMenu():openMenu();});
+  menuEl.addEventListener('click',e=>{if(e.target===menuEl)closeMenu();});
+
+  document.querySelectorAll('.agent-cell[data-goto]').forEach(c=>{
+    c.addEventListener('click',e=>{if(c.classList.contains('no-nav'))return;e.stopPropagation();goTo(parseInt(c.dataset.goto));});
+  });
+
+  document.addEventListener('keydown',e=>{
+    if(menuOpen){if(e.key==='Escape')closeMenu();return;}
+    if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key===' '){
+      e.preventDefault(); if(!trySubStep()) goTo(cur+1,1);
+    }
+    if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();goTo(cur-1,-1);}
+    if(e.key==='Home')goTo(0); if(e.key==='End')goTo(slides.length-1);
+    if(e.key==='m'||e.key==='M'||e.key==='Escape')openMenu();
+  });
+
+  document.getElementById('deck').addEventListener('click',e=>{
+    if(menuOpen||e.target.closest('.agent-cell')||e.target.closest('button'))return;
+    const h=window.innerWidth/2;
+    if(e.clientX>h){ if(!trySubStep()) goTo(cur+1,1); }
+    else { goTo(cur-1,-1); }
+  });
+
+  let tx=0;
+  document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;},{passive:true});
+  document.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-tx;if(Math.abs(dx)>50)goTo(dx<0?cur+1:cur-1,dx<0?1:-1);});
+
+  slides[0].classList.add('active');
+  runCounters(slides[0]);
+  if(slides[0].hasAttribute('data-sub')){
+    setTimeout(()=>{ const f=slides[0].querySelector('.sub-item'); if(f) f.classList.add('sub-visible'); }, 380);
+  }
+  ui();
+})();
+</script>
+</body>
+</html>

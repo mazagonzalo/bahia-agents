@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bahía — Sistema Actual vs. Agentes IA</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy:  #0A1628;
+    --navy2: #1C2B3A;
+    --gold:  #C9A96E;
+    --gold2: #E8C98A;
+    --cream: #F8F6F1;
+    --white: #FFFFFF;
+    --red:   #C0392B;
+    --green: #1A6B3A;
+    --green-bg: #EBF7EE;
+    --red-bg: #FDECEA;
+    --text:  #1C2B3A;
+    --muted: #6B7A8D;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--cream);
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  /* ── COVER ─────────────────────────────────────────── */
+  .cover {
+    background: var(--navy);
+    min-height: 240px;
+    padding: 60px 80px 50px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::after {
+    content: '';
+    position: absolute;
+    right: -60px; top: -60px;
+    width: 340px; height: 340px;
+    border: 1px solid rgba(201,169,110,.12);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .cover-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 18px;
+  }
+  .cover h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 42px;
+    font-weight: 600;
+    color: var(--white);
+    line-height: 1.15;
+    max-width: 640px;
+  }
+  .cover h1 em {
+    color: var(--gold);
+    font-style: italic;
+  }
+  .cover-sub {
+    margin-top: 14px;
+    color: rgba(255,255,255,.55);
+    font-size: 13px;
+    max-width: 520px;
+  }
+  .cover-meta {
+    margin-top: 32px;
+    display: flex;
+    gap: 40px;
+  }
+  .cover-meta-item { }
+  .cover-meta-item .label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 600;
+  }
+  .cover-meta-item .val {
+    color: rgba(255,255,255,.8);
+    font-size: 13px;
+    margin-top: 2px;
+  }
+
+  /* ── LAYOUT ─────────────────────────────────────────── */
+  .page { max-width: 960px; margin: 0 auto; padding: 52px 40px 80px; }
+
+  /* ── INTRO ─────────────────────────────────────────── */
+  .intro {
+    background: var(--white);
+    border-left: 3px solid var(--gold);
+    padding: 22px 26px;
+    border-radius: 2px;
+    margin-bottom: 48px;
+  }
+  .intro p { color: var(--text); font-size: 13.5px; line-height: 1.7; }
+  .intro strong { color: var(--navy); }
+
+  /* ── SECTION HEADER ─────────────────────────────────── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(10,22,40,.1);
+  }
+  .section-icon {
+    width: 40px; height: 40px;
+    background: var(--navy);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .section-header h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--navy);
+  }
+  .section-header .badge {
+    margin-left: auto;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: var(--navy);
+    color: var(--gold);
+  }
+
+  /* ── COMPARISON BLOCK ─────────────────────────────── */
+  .comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+  .col-current, .col-ai {
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .col-header {
+    padding: 10px 18px;
+    font-size: 9px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .col-current .col-header {
+    background: #F0F0F0;
+    color: var(--muted);
+  }
+  .col-ai .col-header {
+    background: var(--navy);
+    color: var(--gold);
+  }
+  .col-body {
+    padding: 20px 18px;
+    background: var(--white);
+    border: 1px solid rgba(0,0,0,.07);
+    border-top: none;
+    height: calc(100% - 38px);
+  }
+  .col-ai .col-body {
+    border-color: rgba(10,22,40,.15);
+    background: #FAFCFE;
+  }
+
+  /* ── ITEMS ─────────────────────────────────────────── */
+  .item {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 13px;
+  }
+  .item:last-child { margin-bottom: 0; }
+  .item-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 6px;
+  }
+  .col-current .item-dot { background: #C0C8D4; }
+  .col-ai .item-dot { background: var(--gold); }
+  .item-text { font-size: 12.5px; color: var(--text); line-height: 1.55; }
+  .item-text strong { color: var(--navy); font-weight: 600; }
+  .item-text .tag {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+  .tag-nuevo { background: #E8F7EE; color: var(--green); }
+  .tag-mejora { background: #FEF3E2; color: #9A6B00; }
+  .tag-reemplaza { background: var(--red-bg); color: var(--red); }
+
+  /* ── LIMIT BOX ─────────────────────────────────────── */
+  .limit-box {
+    background: var(--red-bg);
+    border-left: 3px solid var(--red);
+    border-radius: 2px;
+    padding: 10px 14px;
+    margin-top: 14px;
+    font-size: 11.5px;
+    color: #8B1A12;
+    line-height: 1.5;
+  }
+  .limit-box strong { color: var(--red); }
+
+  /* ── NEW AGENTS ─────────────────────────────────────── */
+  .new-agents-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 52px;
+  }
+  .new-agent-card {
+    background: var(--white);
+    border: 1px solid rgba(0,0,0,.07);
+    border-top: 3px solid var(--gold);
+    border-radius: 6px;
+    padding: 22px 20px;
+  }
+  .new-agent-card .icon {
+    font-size: 28px;
+    margin-bottom: 12px;
+  }
+  .new-agent-card h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: 8px;
+  }
+  .new-agent-card .desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 14px;
+  }
+  .api-list { list-style: none; }
+  .api-list li {
+    font-size: 11px;
+    color: var(--text);
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(0,0,0,.05);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .api-list li:last-child { border-bottom: none; }
+  .api-list li::before {
+    content: '';
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--gold);
+    flex-shrink: 0;
+  }
+
+  /* ── SUMMARY TABLE ──────────────────────────────────── */
+  .summary-label {
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--gold);
+    margin-bottom: 16px;
+  }
+  table.summary {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--white);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    margin-bottom: 52px;
+  }
+  table.summary thead tr {
+    background: var(--navy);
+  }
+  table.summary thead th {
+    padding: 12px 18px;
+    text-align: left;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 600;
+  }
+  table.summary tbody tr {
+    border-bottom: 1px solid rgba(0,0,0,.06);
+  }
+  table.summary tbody tr:last-child { border-bottom: none; }
+  table.summary tbody tr:nth-child(even) {
+    background: #FAFAFA;
+  }
+  table.summary td {
+    padding: 12px 18px;
+    font-size: 12px;
+    vertical-align: top;
+    line-height: 1.5;
+  }
+  table.summary td:first-child {
+    font-weight: 600;
+    color: var(--navy);
+    white-space: nowrap;
+  }
+  table.summary td.status-actual {
+    color: var(--muted);
+  }
+  table.summary td.status-ia {
+    color: var(--green);
+    font-weight: 500;
+  }
+  .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .pill-manual { background: #F0F0F0; color: var(--muted); }
+  .pill-auto { background: var(--green-bg); color: var(--green); }
+  .pill-new { background: #EAF0FB; color: #1A3A8B; }
+
+  /* ── SECTION DIVIDER ─────────────────────────────── */
+  .section-wrap { margin-bottom: 52px; }
+
+  /* ── FOOTER ─────────────────────────────────────────── */
+  .footer {
+    text-align: center;
+    padding: 32px 0 0;
+    border-top: 1px solid rgba(0,0,0,.08);
+    color: var(--muted);
+    font-size: 11px;
+  }
+  .footer strong { color: var(--navy); }
+
+  /* ── PRINT ─────────────────────────────────────────── */
+  @media print {
+    body { background: white; }
+    .cover { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .comparison { break-inside: avoid; }
+    .new-agents-grid { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <div class="cover-label">Bahía Social Sports Club · Análisis Estratégico</div>
+  <h1>Sistema Actual<br>vs. <em>Agentes IA</em></h1>
+  <p class="cover-sub">Comparación detallada entre el Bahía Performance System™ vigente y la propuesta de automatización inteligente con agentes de IA.</p>
+  <div class="cover-meta">
+    <div class="cover-meta-item">
+      <div class="label">Documento</div>
+      <div class="val">Comparación Estratégica</div>
+    </div>
+    <div class="cover-meta-item">
+      <div class="label">Secciones analizadas</div>
+      <div class="val">6 módulos activos</div>
+    </div>
+    <div class="cover-meta-item">
+      <div class="label">Agentes propuestos</div>
+      <div class="val">3 nuevos + 4 reemplazos</div>
+    </div>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- INTRO -->
+  <div class="intro">
+    <p>El <strong>Bahía Performance System™</strong> es un sistema de marketing digital bien construido: Meta Ads estructuradas, un chatbot de calificación ("Sof.iA"), secuencias de email y reportes semanales. Su objetivo es generar entre 8 y 20 membresías por mes con una pauta de $20,000 MXN. Sin embargo, cada módulo depende de intervención humana continua para funcionar: alguien renueva los creativos, alguien revisa el pipeline, alguien compila los reportes.<br><br>
+    Los <strong>agentes de IA</strong> eliminan esa dependencia sin eliminar el control humano. El equipo aprueba, los agentes ejecutan y aprenden.</p>
+  </div>
+
+  <!-- ═══ SECCIÓN 1: META ADS ════════════════════════════════════════ -->
+  <div class="section-wrap">
+    <div class="section-header">
+      <div class="section-icon">📱</div>
+      <h2>Estrategia Meta Ads (CBO)</h2>
+      <div class="badge">Módulo 1</div>
+    </div>
+    <div class="comparison">
+      <div class="col-current">
+        <div class="col-header">Sistema Actual</div>
+        <div class="col-body">
+          <div class="item"><div class="item-dot"></div><div class="item-text"><strong>Broad Packs:</strong> cada 14 días alguien elige manualmente un "Home Run" (anuncio de otra industria activo +1 mes) + 4 variantes propias (imagen, imagen 2, video, carrusel).</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><strong>Interest Packs:</strong> 3 grupos fijos — universitarios terminados, wellness, viajeros internacionales frecuentes. Se actualizan con los 2 anuncios ganadores de los últimos 3 meses.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><strong>Remarketing:</strong> 3 audiencias — engagement FB/IG (14 días), visitantes web (30 días), formularios abandonados (60 días). Los llevan a WhatsApp de Tania o ManyChat.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><strong>Retención:</strong> LAL de membresistas para comunicar actividades. Sin segmentación por tipo de socio o comportamiento.</div></div>
+          <div class="limit-box"><strong>Límite principal:</strong> La detección de fatiga creativa y la renovación de anuncios es manual y reactiva — sucede cuando el rendimiento ya cayó, no antes.</div>
+        </div>
+      </div>
+      <div class="col-ai">
+        <div class="col-header">Con Agente de Marketing Intelligence</div>
+        <div class="col-body">
+          <div class="item"><div class="item-dot"></div><div class="item-text"><span class="tag tag-mejora">Mejora</span> <strong>Detección proactiva de fatiga:</strong> el agente monitorea CPL y frecuencia en tiempo real. Cuando detecta que un anuncio está por caer, genera el reemplazo y lo presenta para aprobación — sin esperar 14 días.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><span class="tag tag-nuevo">Nuevo</span> <strong>Ad Library Intelligence:</strong> escanea Meta Ad Library para ver qué creativos están corriendo los competidores de la zona. Incorpora insights al brief de nuevos anuncios.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><span class="tag tag-nuevo">Nuevo</span> <strong>Tendencias locales:</strong> cruza Google Trends + datos de la zona Bahía de Banderas / Riviera Nayarit para proponer ángulos creativos antes de que se vuelvan genéricos.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><span class="tag tag-mejora">Mejora</span> <strong>Remarketing dinámico:</strong> el copy de cada anuncio de remarketing cambia según el comportamiento exacto del usuario — no 3 mensajes fijos, sino variantes generadas para cada segmento.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><span class="tag tag-nuevo">Nuevo</span> <strong>Retención inteligente:</strong> segmenta a socios por actividad real (Trainingym) y les manda comunicaciones personalizadas — no el mismo mensaje a todos los membresistas.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SECCIÓN 2: MANYCHAT ═══════════════════════════════════════ -->
+  <div class="section-wrap">
+    <div class="section-header">
+      <div class="section-icon">🐙</div>
+      <h2>Estrategia ManyChat — Sof.iA</h2>
+      <div class="badge">Módulo 2</div>
+    </div>
+    <div class="comparison">
+      <div class="col-current">
+        <div class="col-header">Sistema Actual</div>
+        <div class="col-body">
+          <div class="item"><div class="item-dot"></div><div class="item-text"><strong>Chatbot de árbol de decisiones.</strong> 3 preguntas fijas: ¿dónde vives? ¿qué membresía? ¿ya conocías el club?</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><strong>Brochure personalizado por membresía</strong> (familiar, pareja, individual, solo gym). Se envía automáticamente según la respuesta.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><strong>Link de calendario</strong> para agendar visita. Si no agenda, recibe contenido educativo en secuencia: amenidades, testimonios, promociones, ubicación.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><strong>Destino final: Tania.</strong> Cuando el lead "está listo", pasa a la asesora humana para cerrar.</div></div>
+          <div class="limit-box"><strong>Límite principal:</strong> Si el prospecto sale del guión programado — pregunta algo no previsto, usa lenguaje distinto, o tiene una objeción — el flujo muere. No hay inteligencia real detrás.</div>
+        </div>
+      </div>
+      <div class="col-ai">
+        <div class="col-header">Con Agente de Ventas (Claude)</div>
+        <div class="col-body">
+          <div class="item"><div class="item-dot"></div><div class="item-text"><span class="tag tag-reemplaza">Reemplaza</span> <strong>Conversación real, no flujo:</strong> el agente entiende lenguaje natural. Si el prospecto pregunta "¿cuánto sale traer a mis hijos a nadar sin que toda la familia entre?" — responde con información precisa, no con un botón de "Elige tu membresía".</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><span class="tag tag-mejora">Mejora</span> <strong>Manejo de objeciones:</strong> detecta cuando el prospecto duda por precio, por ubicación o por tiempo — y responde con el argumento correcto para cada caso.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><span class="tag tag-mejora">Mejora</span> <strong>Disponibilidad real:</strong> conectado a Trainingym, sabe qué horarios hay disponibles para agendar la visita y los ofrece en tiempo real, sin redirigir a un calendario externo.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><span class="tag tag-nuevo">Nuevo</span> <strong>Lead scoring dinámico:</strong> evalúa el tono, urgencia y señales de la conversación para priorizar quién necesita atención humana inmediata.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><span class="tag tag-mejora">Mejora</span> <strong>Traspaso inteligente:</strong> cuando el lead está listo para cerrar, el agente le avisa a Tania con un resumen completo de la conversación — no un lead frío, sino uno caliente con contexto.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SECCIÓN 3: MAILING ════════════════════════════════════════ -->
+  <div class="section-wrap">
+    <div class="section-header">
+      <div class="section-icon">📩</div>
+      <h2>Estrategia de Mailing (Klaviyo)</h2>
+      <div class="badge">Módulo 3</div>
+    </div>
+    <div class="comparison">
+      <div class="col-current">
+        <div class="col-header">Sistema Actual</div>
+        <div class="col-body">
+          <div class="item"><div class="item-dot"></div><div class="item-text"><strong>Welcome Series — 3 emails en secuencia fija:</strong></div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text">Email 1 (inmediato): bienvenida + CTA a agendar visita.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text">Email 2: tour de amenidades con fotos + mini historias de familias, atletas, expats.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text">Email 3: comparativa de membresías — familiar, pareja, individual.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><strong>Objetivo:</strong> convertir leads fríos en visitas. Los 3 emails van a todos los leads en el mismo orden y con el mismo timing.</div></div>
+          <div class="limit-box"><strong>Límite principal:</strong> La secuencia es idéntica para todos. Un lead que ya visitó el club recibe el mismo email que uno que nunca oyó hablar de Bahía. Sin personalización real.</div>
+        </div>
+      </div>
+      <div class="col-ai">
+        <div class="col-header">Con Nurturing Inteligente Multicanal</div>
+        <div class="col-body">
+          <div class="item"><div class="item-dot"></div><div class="item-text"><span class="tag tag-mejora">Mejora</span> <strong>Timing por comportamiento:</strong> el siguiente mensaje no sale "el día 3" — sale cuando el lead abre, visita el sitio o interactúa con algo. Si no abrió en 5 días, el canal cambia a WhatsApp.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><span class="tag tag-mejora">Mejora</span> <strong>Contenido según etapa real:</strong> un lead que ya contestó las preguntas de calificación no recibe el brochure general — recibe información específica de la membresía que le interesa.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><span class="tag tag-nuevo">Nuevo</span> <strong>Recuperación de leads inactivos:</strong> detecta leads que no han respondido en más de 14 días y genera un mensaje de reactivación personalizado — con un ángulo distinto al original.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><span class="tag tag-nuevo">Nuevo</span> <strong>Seguimiento post-visita:</strong> cuando el lead asistió a la visita pero no firmó, el agente activa una secuencia de cierre — no una secuencia genérica de bienvenida.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SECCIÓN 4: REPORTES ════════════════════════════════════════ -->
+  <div class="section-wrap">
+    <div class="section-header">
+      <div class="section-icon">📈</div>
+      <h2>Reportes | Bahía Club</h2>
+      <div class="badge">Módulo 4</div>
+    </div>
+    <div class="comparison">
+      <div class="col-current">
+        <div class="col-header">Sistema Actual</div>
+        <div class="col-body">
+          <div class="item"><div class="item-dot"></div><div class="item-text"><strong>Reportes semanales manuales:</strong> alguien compila los datos de Meta Ads, ManyChat y el calendario de visitas en un documento.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><strong>Sistema activo desde el 26 de enero</strong> con 2 campañas CBO (mensajes y clientes potenciales). Los reportes cubren semanas de enero, febrero y marzo.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><strong>Reunión semanal</strong> para revisar el reporte con el equipo de Bahía.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><strong>Métricas clave seguidas:</strong> leads, leads calificados, citas agendadas, citas presentadas, ventas cerradas y costo por etapa.</div></div>
+          <div class="limit-box"><strong>Límite principal:</strong> Los datos llegan con 7 días de retraso. Si algo falla (una campaña se dispara en costo, un flujo de ManyChat se rompe), se detecta en la siguiente reunión — no en el momento.</div>
+        </div>
+      </div>
+      <div class="col-ai">
+        <div class="col-header">Con CFO + Dashboard en Tiempo Real</div>
+        <div class="col-body">
+          <div class="item"><div class="item-dot"></div><div class="item-text"><span class="tag tag-reemplaza">Reemplaza</span> <strong>Dashboard vivo:</strong> CPL, citas agendadas, tasa de cierre y costo por venta actualizados en tiempo real — sin esperar el viernes.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><span class="tag tag-nuevo">Nuevo</span> <strong>Alertas automáticas:</strong> si el CPL supera un umbral definido o si la tasa de conversión cae más de X%, el agente notifica al equipo de inmediato — no al final de la semana.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><span class="tag tag-nuevo">Nuevo</span> <strong>Consultas en lenguaje natural:</strong> "¿Cuántas membresías vendimos en marzo comparado con febrero?" o "¿Qué campaña tuvo el CPL más bajo este mes?" — respuesta en segundos, sin buscar en el reporte.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><span class="tag tag-nuevo">Nuevo</span> <strong>Proyecciones del mes:</strong> con base en el ritmo actual, el agente proyecta cuántas membresías se cerrarán y si se está en camino de cumplir la meta de 35/mes.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SECCIÓN 5: CONTENIDO / ANUNCIOS ═══════════════════════════ -->
+  <div class="section-wrap">
+    <div class="section-header">
+      <div class="section-icon">✏️</div>
+      <h2>Solicitud de Anuncios y Diseño</h2>
+      <div class="badge">Módulo 5</div>
+    </div>
+    <div class="comparison">
+      <div class="col-current">
+        <div class="col-header">Sistema Actual</div>
+        <div class="col-body">
+          <div class="item"><div class="item-dot"></div><div class="item-text"><strong>Proceso de solicitud manual:</strong> el equipo de Bahía llena un formulario en Notion para pedir creativos nuevos.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><strong>Formatos requeridos:</strong> 4:5 y 9:16 (vertical y cuadrado) respetando Safe Zone de Stories y Reels.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><strong>Tipos de contenido:</strong> anuncios, brochures por tipo de membresía, imágenes informativas (clases, horarios, reglamentos, precios).</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><strong>Flujo:</strong> solicitud → diseñador crea → revisión → aprobación → subida manual a Meta Ads Manager.</div></div>
+          <div class="limit-box"><strong>Límite principal:</strong> El ciclo de solicitud-diseño-aprobación puede tardar días. Cuando surge una oportunidad de contenido (un evento local, una tendencia) la ventana se cierra antes de que el creativo esté listo.</div>
+        </div>
+      </div>
+      <div class="col-ai">
+        <div class="col-header">Con Agente de Contenido e Inteligencia Creativa</div>
+        <div class="col-body">
+          <div class="item"><div class="item-dot"></div><div class="item-text"><span class="tag tag-nuevo">Nuevo</span> <strong>Sugerencias proactivas de contenido:</strong> el agente monitorea tendencias locales y propone el tema del próximo contenido antes de que alguien lo solicite — con copy ya redactado.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><span class="tag tag-nuevo">Nuevo</span> <strong>Hashtag intelligence:</strong> analiza qué hashtags tienen tracción real en la zona y en el nicho de deportes/lifestyle en Riviera Nayarit — no listas genéricas.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><span class="tag tag-nuevo">Nuevo</span> <strong>Generación de carrusel:</strong> vía Canva API — el agente genera el carrusel completo con los templates y branding de Bahía, incluyendo copy por slide. El admin lo revisa y aprueba con un clic.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><span class="tag tag-nuevo">Nuevo</span> <strong>Publicación directa a Meta:</strong> una vez aprobado, el creativo se sube automáticamente a Meta Ads Manager en los formatos correctos (4:5 y 9:16) — sin pasos manuales.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><span class="tag tag-mejora">Mejora</span> <strong>Ciclo de horas, no días:</strong> de idea a anuncio activo en el mismo día — sin formulario de solicitud, sin esperar al diseñador.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SECCIÓN 6: ENCUESTA / NPS ════════════════════════════════ -->
+  <div class="section-wrap">
+    <div class="section-header">
+      <div class="section-icon">ℹ️</div>
+      <h2>Encuesta — Voz del Prospecto</h2>
+      <div class="badge">Módulo 6</div>
+    </div>
+    <div class="comparison">
+      <div class="col-current">
+        <div class="col-header">Sistema Actual</div>
+        <div class="col-body">
+          <div class="item"><div class="item-dot"></div><div class="item-text"><strong>Encuesta estática</strong> en Notion para capturar feedback de prospectos y miembros.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text">Alguien revisa las respuestas manualmente para detectar patrones o áreas de mejora.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text">Sin conexión al pipeline de ventas ni al sistema de seguimiento de leads.</div></div>
+          <div class="limit-box"><strong>Límite principal:</strong> El feedback existe pero no genera acción automática. Un prospecto que da una puntuación baja no activa ninguna alerta ni respuesta inmediata.</div>
+        </div>
+      </div>
+      <div class="col-ai">
+        <div class="col-header">Con Agente NPS Intelligence</div>
+        <div class="col-body">
+          <div class="item"><div class="item-dot"></div><div class="item-text"><span class="tag tag-mejora">Mejora</span> <strong>NPS automatizado post-visita:</strong> 24 horas después de cada visita al club, el agente envía una encuesta corta por WhatsApp — en el momento óptimo de respuesta.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><span class="tag tag-nuevo">Nuevo</span> <strong>Alerta inmediata:</strong> si la puntuación es menor a 7, el agente notifica al equipo en el momento — no al revisar el reporte semanal.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><span class="tag tag-nuevo">Nuevo</span> <strong>Oportunidad de conversión:</strong> si el score es ≥ 8, el agente activa automáticamente una secuencia de cierre — el prospecto está caliente y dispuesto.</div></div>
+          <div class="item"><div class="item-dot"></div><div class="item-text"><span class="tag tag-nuevo">Nuevo</span> <strong>Análisis de tendencias:</strong> detecta patrones en el feedback — si varias personas mencionan el estacionamiento o los precios, el agente lo reporta al equipo con frecuencia y contexto.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ NUEVOS AGENTES ═══════════════════════════════════════════ -->
+  <div class="section-header" style="margin-bottom:24px;">
+    <div class="section-icon" style="background:#1A6B3A;">✦</div>
+    <h2>Agentes Nuevos — Sin Equivalente Actual</h2>
+  </div>
+  <div class="new-agents-grid">
+    <div class="new-agent-card">
+      <div class="icon">📡</div>
+      <h3>Inteligencia Local + Meta Ads</h3>
+      <p class="desc">Monitoreo 24/7 de tendencias geográficas en Bahía de Banderas y Riviera Nayarit, cruzado con el rendimiento de campañas activas.</p>
+      <ul class="api-list">
+        <li>Meta Marketing API</li>
+        <li>Google Trends (geo-filtrado)</li>
+        <li>Meta Ad Library (competidores)</li>
+        <li>X/Twitter API (trending local)</li>
+        <li>NewsAPI (noticias zona)</li>
+      </ul>
+    </div>
+    <div class="new-agent-card">
+      <div class="icon">💼</div>
+      <h3>Contabilidad y Finanzas Completa</h3>
+      <p class="desc">P&L en vivo, flujo de caja y reconciliación automática conectando el sistema de membresías, el banco y el SAT.</p>
+      <ul class="api-list">
+        <li>Trainingym API (membresías)</li>
+        <li>Belvo (Open Banking México)</li>
+        <li>SAT — CFDI (facturas)</li>
+        <li>Dashboard lenguaje natural</li>
+        <li>Alertas automáticas de varianza</li>
+      </ul>
+    </div>
+    <div class="new-agent-card">
+      <div class="icon">🎨</div>
+      <h3>Contenido, Hashtags y Carruseles</h3>
+      <p class="desc">De la tendencia al anuncio publicado en horas — sin solicitud manual, sin esperar al diseñador, sin subida manual a Meta.</p>
+      <ul class="api-list">
+        <li>Canva API (diseño templated)</li>
+        <li>DALL-E / Flux (imágenes IA)</li>
+        <li>Instagram Graph API</li>
+        <li>Meta Ads Manager API</li>
+        <li>Google Trends (ángulos de copy)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ═══ TABLA RESUMEN ═══════════════════════════════════════════ -->
+  <div class="summary-label">Resumen comparativo</div>
+  <table class="summary">
+    <thead>
+      <tr>
+        <th>Módulo</th>
+        <th>Estado actual</th>
+        <th>Con agente IA</th>
+        <th>Tipo</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Meta Ads (creativos)</td>
+        <td class="status-actual">Renovación manual cada 14 días</td>
+        <td class="status-ia">Detección proactiva + sugerencia automática</td>
+        <td><span class="pill pill-auto">Mejora</span></td>
+      </tr>
+      <tr>
+        <td>Meta Ads (tendencias)</td>
+        <td class="status-actual">Sin monitoreo local</td>
+        <td class="status-ia">Google Trends + Ad Library + X en tiempo real</td>
+        <td><span class="pill pill-new">Nuevo</span></td>
+      </tr>
+      <tr>
+        <td>Sof.iA / Chatbot</td>
+        <td class="status-actual">Árbol de decisiones fijo — se rompe fuera del guión</td>
+        <td class="status-ia">Claude — lenguaje natural, cualquier pregunta</td>
+        <td><span class="pill pill-auto">Reemplaza</span></td>
+      </tr>
+      <tr>
+        <td>Lead Scoring</td>
+        <td class="status-actual">Reglas fijas (Plan Elite)</td>
+        <td class="status-ia">Predictivo por comportamiento y tono en tiempo real</td>
+        <td><span class="pill pill-auto">Mejora</span></td>
+      </tr>
+      <tr>
+        <td>Email / Nurturing</td>
+        <td class="status-actual">3 emails en secuencia fija igual para todos</td>
+        <td class="status-ia">Multi-canal, timing por comportamiento, personalizado</td>
+        <td><span class="pill pill-auto">Mejora</span></td>
+      </tr>
+      <tr>
+        <td>Reportes</td>
+        <td class="status-actual">Manual semanal — datos con 7 días de retraso</td>
+        <td class="status-ia">Dashboard en tiempo real + alertas + lenguaje natural</td>
+        <td><span class="pill pill-auto">Reemplaza</span></td>
+      </tr>
+      <tr>
+        <td>Contabilidad financiera</td>
+        <td class="status-actual">No existe en el sistema actual</td>
+        <td class="status-ia">Trainingym + banco (Belvo) + SAT — P&L vivo</td>
+        <td><span class="pill pill-new">Nuevo</span></td>
+      </tr>
+      <tr>
+        <td>Solicitud de anuncios</td>
+        <td class="status-actual">Formulario manual → diseñador → días de espera</td>
+        <td class="status-ia">IA genera concepto + diseño + publica — horas</td>
+        <td><span class="pill pill-auto">Reemplaza</span></td>
+      </tr>
+      <tr>
+        <td>Hashtags y contenido</td>
+        <td class="status-actual">Manual o sin estrategia documentada</td>
+        <td class="status-ia">Análisis de competencia + zona + tendencia automático</td>
+        <td><span class="pill pill-new">Nuevo</span></td>
+      </tr>
+      <tr>
+        <td>NPS / Encuesta</td>
+        <td class="status-actual">Formulario estático, revisión manual</td>
+        <td class="status-ia">Post-visita automático, alerta inmediata, conversión</td>
+        <td><span class="pill pill-auto">Mejora</span></td>
+      </tr>
+      <tr>
+        <td>Contabilidad del club</td>
+        <td class="status-actual">No existe integración</td>
+        <td class="status-ia">P&L, flujo de caja, reconciliación automática</td>
+        <td><span class="pill pill-new">Nuevo</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <p><strong>Bahía Social Sports Club</strong> · Sistema de Agentes IA · Documento confidencial</p>
+    <p style="margin-top:6px;">Preparado por mazagonzalo · Junio 2026</p>
+  </div>
+
+</div>
+</body>
+</html>

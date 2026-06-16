@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bahía Club — Sistema Actual vs. Sistema IA</title>
+<link href="https://fonts.googleapis.com/css2?family=Arapey:ital@0;1&family=Raleway:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --arena:   #E5E0DA;
+    --arena2:  #F2EFE9;
+    --sage:    #7A8A79;
+    --gold:    #8E8055;
+    --navy:    #073E78;
+    --navy-light: #0a4f99;
+    --red:     #c0392b;
+    --green:   #2e7d5b;
+    --white:   #ffffff;
+    --text:    #1a1a1a;
+    --muted:   #555;
+  }
+
+  body {
+    font-family: 'Raleway', sans-serif;
+    background: var(--arena2);
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--navy);
+    color: var(--white);
+    padding: 56px 48px 48px;
+    text-align: center;
+  }
+  header .label {
+    font-family: 'Raleway', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 16px;
+  }
+  header h1 {
+    font-family: 'Arapey', serif;
+    font-size: clamp(32px, 5vw, 52px);
+    font-weight: 400;
+    line-height: 1.2;
+    margin-bottom: 16px;
+  }
+  header p {
+    font-size: 16px;
+    color: rgba(255,255,255,0.7);
+    max-width: 560px;
+    margin: 0 auto;
+    font-weight: 300;
+  }
+
+  /* ── SUMMARY CARDS ── */
+  .summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    background: var(--white);
+    border-bottom: 3px solid var(--gold);
+  }
+  .summary-card {
+    padding: 32px 28px;
+    text-align: center;
+    border-right: 1px solid var(--arena);
+  }
+  .summary-card:last-child { border-right: none; }
+  .summary-card .number {
+    font-family: 'Arapey', serif;
+    font-size: 42px;
+    color: var(--navy);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .summary-card .number.gold { color: var(--gold); }
+  .summary-card .desc {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .summary-card .sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* ── CONTAINER ── */
+  .container { max-width: 1100px; margin: 0 auto; padding: 64px 32px; }
+
+  /* ── SECTION TITLE ── */
+  .section-title {
+    font-family: 'Arapey', serif;
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--navy);
+    margin-bottom: 6px;
+  }
+  .section-sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 32px;
+    font-weight: 400;
+  }
+
+  /* ── COMPARISON TABLE ── */
+  .compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 56px;
+    background: var(--white);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 16px rgba(7,62,120,0.07);
+  }
+  .compare-table thead tr {
+    background: var(--navy);
+  }
+  .compare-table thead th {
+    padding: 18px 24px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--white);
+  }
+  .compare-table thead th:first-child { width: 22%; color: rgba(255,255,255,0.6); }
+  .compare-table thead th.col-now { color: #f4a9a2; }
+  .compare-table thead th.col-new { color: #a8d8b0; }
+  .compare-table thead th.col-impact { color: var(--gold); text-align: center; }
+
+  .compare-table tbody tr {
+    border-bottom: 1px solid var(--arena);
+    transition: background 0.15s;
+  }
+  .compare-table tbody tr:last-child { border-bottom: none; }
+  .compare-table tbody tr:hover { background: #f8f6f2; }
+
+  .compare-table td {
+    padding: 20px 24px;
+    vertical-align: top;
+    font-size: 14px;
+    line-height: 1.55;
+  }
+  .compare-table td:first-child {
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--navy);
+    letter-spacing: 0.3px;
+  }
+  .compare-table td.col-now { color: #8a3030; background: #fff8f7; }
+  .compare-table td.col-new { color: #1e5c38; background: #f4faf6; }
+  .compare-table td.col-impact {
+    text-align: center;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--navy);
+    vertical-align: middle;
+  }
+
+  .pill {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  .pill-high { background: #1e5c38; color: #fff; }
+  .pill-med  { background: var(--gold); color: #fff; }
+  .pill-now  { background: #c0392b; color: #fff; }
+
+  /* ── FEATURE GRID ── */
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 56px;
+  }
+  .feature-card {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(7,62,120,0.06);
+    border-top: 3px solid var(--navy);
+  }
+  .feature-card.gold { border-top-color: var(--gold); }
+  .feature-card .icon { font-size: 28px; margin-bottom: 12px; }
+  .feature-card h3 {
+    font-family: 'Arapey', serif;
+    font-size: 18px;
+    color: var(--navy);
+    margin-bottom: 8px;
+    font-weight: 400;
+  }
+  .feature-card p { font-size: 13px; color: var(--muted); line-height: 1.55; }
+
+  /* ── COST TABLE ── */
+  .cost-section {
+    background: var(--navy);
+    border-radius: 16px;
+    padding: 48px;
+    margin-bottom: 56px;
+    color: var(--white);
+  }
+  .cost-section h2 {
+    font-family: 'Arapey', serif;
+    font-size: 28px;
+    font-weight: 400;
+    margin-bottom: 6px;
+  }
+  .cost-section .sub { color: rgba(255,255,255,0.6); font-size: 13px; margin-bottom: 32px; }
+  .cost-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 24px;
+    align-items: center;
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    font-size: 14px;
+  }
+  .cost-row:last-child { border-bottom: none; }
+  .cost-row .label { color: rgba(255,255,255,0.8); }
+  .cost-row .now { color: #f4a9a2; font-weight: 700; text-align: right; }
+  .cost-row .new { color: #a8d8b0; font-weight: 700; text-align: right; }
+  .cost-row.total .label { font-weight: 700; color: var(--white); font-size: 16px; }
+  .cost-row.total .now { font-size: 20px; }
+  .cost-row.total .new { font-size: 20px; }
+  .cost-headers {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    margin-bottom: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+  }
+  .cost-headers .now, .cost-headers .new { text-align: right; }
+  .savings-badge {
+    display: inline-block;
+    margin-top: 24px;
+    background: var(--gold);
+    color: var(--white);
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 15px;
+  }
+
+  /* ── QUOTE ── */
+  .quote {
+    background: var(--white);
+    border-left: 4px solid var(--gold);
+    border-radius: 0 12px 12px 0;
+    padding: 28px 32px;
+    margin-bottom: 56px;
+    box-shadow: 0 2px 12px rgba(7,62,120,0.06);
+  }
+  .quote p {
+    font-family: 'Arapey', serif;
+    font-size: 20px;
+    color: var(--navy);
+    line-height: 1.5;
+    font-style: italic;
+    margin-bottom: 8px;
+  }
+  .quote .author { font-size: 12px; color: var(--muted); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+
+  /* ── TIMELINE ── */
+  .timeline { margin-bottom: 56px; }
+  .timeline-row {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 24px;
+    margin-bottom: 20px;
+    align-items: start;
+  }
+  .timeline-label {
+    background: var(--navy);
+    color: var(--white);
+    border-radius: 8px;
+    padding: 10px 14px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    line-height: 1.3;
+  }
+  .timeline-label.gold { background: var(--gold); }
+  .timeline-content {
+    background: var(--white);
+    border-radius: 8px;
+    padding: 16px 20px;
+    box-shadow: 0 1px 8px rgba(7,62,120,0.06);
+  }
+  .timeline-content h4 { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
+  .timeline-content p { font-size: 13px; color: var(--muted); }
+
+  /* ── FOOTER ── */
+  footer {
+    background: var(--navy);
+    color: rgba(255,255,255,0.5);
+    text-align: center;
+    padding: 32px;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+  }
+  footer strong { color: var(--gold); }
+
+  /* ── PRINT ── */
+  @media print {
+    body { background: white; }
+    .summary, .compare-table, .cost-section, .quote, .feature-card { break-inside: avoid; }
+  }
+
+  @media (max-width: 768px) {
+    .summary { grid-template-columns: 1fr; }
+    .feature-grid { grid-template-columns: 1fr; }
+    .cost-section { padding: 28px; }
+    .compare-table thead th, .compare-table td { padding: 14px 14px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="label">Bahía Social Sports Club · 2026</div>
+  <h1>Sistema Actual vs.<br>Sistema de Agentes IA</h1>
+  <p>Comparativo completo de operación, eficiencia y costos entre la infraestructura actual y la plataforma propuesta.</p>
+</header>
+
+<!-- SUMMARY -->
+<div class="summary">
+  <div class="summary-card">
+    <div class="number">15</div>
+    <div class="desc">Agentes IA</div>
+    <div class="sub">operando 24/7 sin intervención</div>
+  </div>
+  <div class="summary-card">
+    <div class="number gold">$50k</div>
+    <div class="desc">Ahorro mensual</div>
+    <div class="sub">solo al eliminar Playtomic</div>
+  </div>
+  <div class="summary-card">
+    <div class="number">0</div>
+    <div class="desc">Tareas manuales repetitivas</div>
+    <div class="sub">todo automático con aprobación del admin</div>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="container">
+
+  <!-- SECTION 1: OPERATIONS -->
+  <div class="section-title">Operación día a día</div>
+  <div class="section-sub">Cómo se hace cada función hoy vs. cómo funcionará con el sistema IA</div>
+
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th>Área</th>
+        <th class="col-now">Sistema actual</th>
+        <th class="col-new">Sistema IA propuesto</th>
+        <th class="col-impact">Impacto</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Atención a prospectos</td>
+        <td class="col-now">Formulario en Squarespace + alguien responde por WhatsApp manualmente. Tiempo de respuesta: horas o días. Horario limitado.</td>
+        <td class="col-new">Agente de Ventas responde en &lt;2 minutos, 24/7, por WhatsApp e Instagram. Califica, resuelve dudas, agenda visita y genera propuesta personalizada.</td>
+        <td class="col-impact"><span class="pill pill-high">Crítico</span></td>
+      </tr>
+      <tr>
+        <td>Reservaciones de canchas</td>
+        <td class="col-now">Playtomic — plataforma externa que cobra al club ~$50,000 MXN/mes. El miembro descarga una app de terceros.</td>
+        <td class="col-new">Reservas por WhatsApp en lenguaje natural + portal propio en app.bahiaclub.mx. Sin costo adicional, sin app de terceros. 22 canchas disponibles.</td>
+        <td class="col-impact"><span class="pill pill-high">Crítico</span></td>
+      </tr>
+      <tr>
+        <td>Cobranza y pagos</td>
+        <td class="col-now">Excel manual. Recordatorios por WhatsApp cuando alguien se acuerda. Sin reporte de cartera vencida en tiempo real.</td>
+        <td class="col-new">Base central de pagos automática. Recordatorios por WhatsApp escalonados (1-5 días, 6-15, +15). Dashboard de presupuesto real vs. esperado en tiempo real.</td>
+        <td class="col-impact"><span class="pill pill-high">Alto</span></td>
+      </tr>
+      <tr>
+        <td>Marketing y contenido</td>
+        <td class="col-now">Manual. Publicaciones cuando hay tiempo. Sin datos de tendencias. Sin automatización de Meta Ads. Métricas revisadas esporádicamente.</td>
+        <td class="col-new">Agente de Tendencias analiza Riviera Nayarit cada día. Genera ideas de contenido con hooks virales y copy listo. Admin aprueba → Meta Ads lanza solo.</td>
+        <td class="col-impact"><span class="pill pill-high">Alto</span></td>
+      </tr>
+      <tr>
+        <td>Seguimiento de miembros</td>
+        <td class="col-now">Sin sistema. No se sabe quién dejó de venir hasta que ya canceló. Retención reactiva.</td>
+        <td class="col-new">Check-in Tracker detecta inactividad a 30/60/90 días. Alerta automática al admin. Agente de Seguimiento re-activa leads fríos sin intervención humana.</td>
+        <td class="col-impact"><span class="pill pill-high">Alto</span></td>
+      </tr>
+      <tr>
+        <td>Satisfacción (NPS)</td>
+        <td class="col-now">No existe. El club no sabe qué tan satisfechos están los miembros hasta que cancelan.</td>
+        <td class="col-new">Encuesta mensual inteligente enviada en el momento óptimo. Detecta riesgo de cancelación antes de que ocurra. Escala insatisfechos al equipo.</td>
+        <td class="col-impact"><span class="pill pill-med">Medio</span></td>
+      </tr>
+      <tr>
+        <td>Contabilidad / Finanzas</td>
+        <td class="col-now">Excel o sin sistema formal. Los socios no tienen visibilidad en tiempo real del estado financiero del club.</td>
+        <td class="col-new">P&L en tiempo real con tres niveles de acceso: gerencia, socios-dueños y administración. Proyecciones y escenarios en lenguaje natural.</td>
+        <td class="col-impact"><span class="pill pill-med">Medio</span></td>
+      </tr>
+      <tr>
+        <td>Mantenimiento</td>
+        <td class="col-now">Reportes verbales o por WhatsApp sin registro. Sin preventivo programado. Sin priorización.</td>
+        <td class="col-new">Tickets por WhatsApp o portal, clasificados por urgencia con Claude. Preventivo programado por instalación. Si hay falla urgente → cancha bloqueada automáticamente.</td>
+        <td class="col-impact"><span class="pill pill-med">Medio</span></td>
+      </tr>
+      <tr>
+        <td>Reputación digital</td>
+        <td class="col-now">Sin monitoreo. Reseñas negativas en Google o TripAdvisor pueden pasar semanas sin respuesta.</td>
+        <td class="col-new">Monitoreo automático de Google Reviews, TripAdvisor e Instagram. Respuesta empática generada por Claude lista para aprobar con un clic.</td>
+        <td class="col-impact"><span class="pill pill-med">Medio</span></td>
+      </tr>
+      <tr>
+        <td>Staff y horarios</td>
+        <td class="col-now">Plantilla manual. No cruza con demanda real del club. Ajustes reactivos.</td>
+        <td class="col-new">Plantilla semanal generada automáticamente cruzando afluencia real con disponibilidad del staff. Admin aprueba, empleados reciben turno por WhatsApp.</td>
+        <td class="col-impact"><span class="pill pill-med">Medio</span></td>
+      </tr>
+      <tr>
+        <td>Control de acceso</td>
+        <td class="col-now">Manual en recepción. Sin verificación de membresía activa ni estado de cuenta al momento de entrar.</td>
+        <td class="col-new">Torniquete vinculado al sistema. Verifica membresía y pagos en tiempo real. Si hay problema, el miembro recibe WhatsApp antes de llegar. Sin confrontación.</td>
+        <td class="col-impact"><span class="pill pill-med">Medio</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- QUOTE -->
+  <div class="quote">
+    <p>"El sistema actual funciona gracias a personas que recuerdan hacer cosas. El sistema propuesto funciona aunque nadie recuerde nada."</p>
+    <div class="author">Diferencia fundamental entre operación manual y operación con IA</div>
+  </div>
+
+  <!-- SECTION 2: COSTS -->
+  <div class="section-title">Comparativo de costos</div>
+  <div class="section-sub">Gasto mensual actual vs. costo del sistema IA</div>
+
+  <div class="cost-section">
+    <div class="cost-headers">
+      <div>Concepto</div>
+      <div class="now">Actual / mes</div>
+      <div class="new">Con IA / mes</div>
+    </div>
+    <div class="cost-row">
+      <div class="label">Playtomic (reservaciones)</div>
+      <div class="now">~$50,000 MXN</div>
+      <div class="new">$0</div>
+    </div>
+    <div class="cost-row">
+      <div class="label">Tiempo del equipo en tareas manuales</div>
+      <div class="now">40–80 hrs/mes</div>
+      <div class="new">~5 hrs/mes (solo aprobaciones)</div>
+    </div>
+    <div class="cost-row">
+      <div class="label">Leads perdidos por respuesta lenta</div>
+      <div class="now">Sin datos — estimado alto</div>
+      <div class="new">Mínimo — respuesta en &lt;2 min</div>
+    </div>
+    <div class="cost-row">
+      <div class="label">Membresías canceladas sin retención proactiva</div>
+      <div class="now">Sin datos — sin sistema de alerta</div>
+      <div class="new">Reducción estimada 20–30%</div>
+    </div>
+    <div class="cost-row">
+      <div class="label">Costo del sistema IA (infraestructura + IA)</div>
+      <div class="now">$0 (no existe)</div>
+      <div class="new">~$2,000–2,500 MXN/mes</div>
+    </div>
+    <div class="cost-row total">
+      <div class="label">Ahorro neto desde el día 1</div>
+      <div class="now"></div>
+      <div class="new">+$47,500 MXN/mes</div>
+    </div>
+    <div class="savings-badge">Solo eliminar Playtomic paga el sistema completo 20 veces</div>
+  </div>
+
+  <!-- SECTION 3: NEW CAPABILITIES -->
+  <div class="section-title">Lo que el sistema IA hace que hoy no existe</div>
+  <div class="section-sub">Funciones completamente nuevas — sin equivalente en la operación actual</div>
+
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="icon">🏆</div>
+      <h3>Ranking ELO por deporte</h3>
+      <p>Nivel verificado de cada miembro en pádel, tenis y pickleball. Ranking público en la app. El miembro puede ver su posición entre todos los socios del club.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">🏅</div>
+      <h3>Logros y badges</h3>
+      <p>Medallas digitales por asistencia, torneos, antigüedad y más. Aparecen en el perfil del miembro y se notifican por WhatsApp automáticamente.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">⚡</div>
+      <h3>Ligas permanentes</h3>
+      <p>Temporadas con calendario fijo entre los mismos jugadores. El mejor feature de retención: un miembro con liga activa no cancela su membresía.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">🎟️</div>
+      <h3>Day Pass + embudo automático</h3>
+      <p>El visitante de $500 MXN recibe al salir una encuesta y, si está satisfecho, una propuesta de membresía con el cálculo exacto de cuántas visitas necesita para que valga la pena.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">🌦️</div>
+      <h3>Alerta de lluvia en canchas</h3>
+      <p>Si hay lluvia en las próximas 3 horas, el miembro con reserva en cancha exterior recibe un WhatsApp con opción de reprogramar. Sin cancelaciones de último minuto.</p>
+    </div>
+    <div class="feature-card gold">
+      <div class="icon">💰</div>
+      <h3>Programa de lealtad</h3>
+      <p>Puntos por check-in, clases, torneos y NPS respondido. Canje por clases gratis, descuentos o acceso a eventos exclusivos. Todo configurable desde el dashboard.</p>
+    </div>
+  </div>
+
+  <!-- SECTION 4: TIMELINE -->
+  <div class="section-title">Plan de implementación</div>
+  <div class="section-sub">4 etapas ordenadas para maximizar el retorno desde el primer día</div>
+
+  <div class="timeline">
+    <div class="timeline-row">
+      <div class="timeline-label">Semanas<br>1–3</div>
+      <div class="timeline-content">
+        <h4>Oleada 1 — Infraestructura base y ahorro inmediato</h4>
+        <p>Check-in tracker · Cobranza · Reservaciones · Plataforma app.bahiaclub.mx. Elimina Playtomic desde el día 1 y genera los datos que todos los demás agentes necesitan.</p>
+      </div>
+    </div>
+    <div class="timeline-row">
+      <div class="timeline-label">Semanas<br>4–6</div>
+      <div class="timeline-content">
+        <h4>Oleada 2 — Inteligencia operativa y ventas</h4>
+        <p>Agente de Ventas 24/7 · NPS · Mantenimiento · Clases · Day Pass. El club empieza a responder prospectos automáticamente y a detectar miembros en riesgo.</p>
+      </div>
+    </div>
+    <div class="timeline-row">
+      <div class="timeline-label">Semanas<br>7–10</div>
+      <div class="timeline-content">
+        <h4>Oleada 3 — Estrategia, finanzas y retención</h4>
+        <p>Contabilidad · CFO · Eventos · Ligas · Programa de lealtad · ELO · Badges · Casilleros. Los socios tienen visibilidad financiera y los miembros tienen razones para quedarse.</p>
+      </div>
+    </div>
+    <div class="timeline-row">
+      <div class="timeline-label gold">Semanas<br>11–14</div>
+      <div class="timeline-content">
+        <h4>Oleada 4 — Inteligencia avanzada y marketing</h4>
+        <p>Marketing Intelligence · Reputación digital · Control de acceso · Comunicaciones segmentadas · Pronóstico del clima. El club opera prácticamente solo.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 5: BOTTOM LINE -->
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th>Dimensión</th>
+        <th class="col-now">Hoy</th>
+        <th class="col-new">Con el sistema IA</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Disponibilidad de atención</td>
+        <td class="col-now">Horario de oficina</td>
+        <td class="col-new">24/7 los 365 días</td>
+      </tr>
+      <tr>
+        <td>Tiempo de respuesta a prospectos</td>
+        <td class="col-now">Horas o días</td>
+        <td class="col-new">Menos de 2 minutos</td>
+      </tr>
+      <tr>
+        <td>Visibilidad financiera para socios</td>
+        <td class="col-now">Ninguna en tiempo real</td>
+        <td class="col-new">P&L en vivo con acceso diferenciado</td>
+      </tr>
+      <tr>
+        <td>Detección de miembros en riesgo</td>
+        <td class="col-now">Cuando ya cancelaron</td>
+        <td class="col-new">30 días antes de que cancelen</td>
+      </tr>
+      <tr>
+        <td>Costo de reservaciones</td>
+        <td class="col-now">~$50,000 MXN/mes (Playtomic)</td>
+        <td class="col-new">Incluido — $0 adicional</td>
+      </tr>
+      <tr>
+        <td>Escalabilidad</td>
+        <td class="col-now">Requiere más personal al crecer</td>
+        <td class="col-new">El sistema escala sin aumentar personal</td>
+      </tr>
+      <tr>
+        <td>Decisiones de marketing</td>
+        <td class="col-now">Intuición + disponibilidad de tiempo</td>
+        <td class="col-new">Datos de tendencias en tiempo real de Riviera Nayarit</td>
+      </tr>
+      <tr>
+        <td>Intervención del admin</td>
+        <td class="col-now">Necesaria para todo</td>
+        <td class="col-new">Solo aprobaciones — el resto lo ejecuta el sistema</td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <strong>Bahía Social Sports Club</strong> · Sistema de Agentes IA · Propuesta 2026<br>
+  Paseo de los Flamingos, Nuevo Vallarta, Nayarit
+</footer>
+
+</body>
+</html>

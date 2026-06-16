@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bahía · Social Sports Club</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous">
+</head>
+<body>
+
+<template id="__bundler_thumbnail">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+    <rect width="400" height="400" fill="#37519f"/>
+    <g transform="translate(200 178)" fill="none" stroke="#f6f6f6" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M-70 6 C -54 30, -20 40, 6 28 C 28 18, 40 -4, 70 -20 C 50 -6, 40 16, 22 26"/>
+      <path d="M-70 6 C -84 2, -92 -10, -94 -22 C -82 -16, -74 -8, -70 6 Z"/>
+    </g>
+    <text x="200" y="270" text-anchor="middle" fill="#f6f6f6" font-family="Georgia, serif" font-size="46" letter-spacing="10">BAHÍA</text>
+    <text x="200" y="300" text-anchor="middle" fill="#7a8a79" font-family="Arial, sans-serif" font-size="13" letter-spacing="6">SOCIAL SPORTS CLUB</text>
+  </svg>
+</template>
+
+<!-- ============ PAGE LOADER ============ -->
+<div class="loader" id="pageLoader" aria-hidden="true">
+  <img class="loader__whale" src="assets/whale-white.png" alt="">
+  <div class="loader__name">BAHÍA</div>
+  <div class="loader__bar"></div>
+</div>
+
+<!-- ============ SIDE NAV ============ -->
+<nav class="side-nav" aria-label="Navegación por secciones"></nav>
+
+<!-- ============ SCROLL TO TOP ============ -->
+<button class="scroll-top" aria-label="Volver arriba">
+  <svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
+</button>
+
+<div class="scroll-progress"></div>
+
+<!-- ============ NAV ============ -->
+<header class="nav">
+  <div class="brand" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+    <img class="brand__whale" src="assets/whale-white.png" alt="Bahía">
+    <span class="brand__txt">
+      <span class="brand__name">BAHÍA</span>
+      <span class="brand__sub">SOCIAL SPORTS CLUB</span>
+    </span>
+  </div>
+
+  <nav class="nav__links">
+    <a class="nav__link" href="#inicio" data-i18n="nav_inicio">Inicio</a>
+    <a class="nav__link" href="#actividades" data-i18n="nav_act">Actividades</a>
+    <a class="nav__link" href="#amenidades" data-i18n="nav_amen">Amenidades</a>
+    <a class="nav__link" href="#planes" data-i18n="nav_planes">Planes</a>
+    <a class="nav__link" href="#contacto" data-i18n="nav_contacto">Contacto</a>
+  </nav>
+
+  <div class="nav__right">
+    <div class="lang">
+      <button data-lang="es" class="active">ES</button>
+      <button data-lang="en">EN</button>
+    </div>
+<a class="btn btn--primary" href="https://calendar.app.google/cedvSmtcwGR3grVc6" target="_blank" rel="noopener" data-i18n="nav_cta">Agendar Visita</a>
+    <button class="hamburger" aria-label="Menú"><span></span><span></span><span></span></button>
+  </div>
+</header>
+
+<!-- ============ MENÚ MÓVIL ============ -->
+<div class="mobile-menu">
+  <img class="mobile-menu__whale" src="assets/whale-white.png" alt="">
+  <a href="#inicio" data-i18n="nav_inicio">Inicio</a>
+  <a href="#actividades" data-i18n="nav_act">Actividades</a>
+  <a href="#amenidades" data-i18n="nav_amen">Amenidades</a>
+  <a href="#planes" data-i18n="nav_planes">Planes</a>
+  <a href="#contacto" data-i18n="nav_contacto">Contacto</a>
+  <a class="btn btn--ghost" href="https://calendar.app.google/cedvSmtcwGR3grVc6" target="_blank" rel="noopener" data-i18n="nav_cta">Agendar Visita</a>
+</div>
+
+<!-- ============ HERO ============ -->
+<section class="hero" id="inicio" data-screen-label="Hero">
+  <!-- Fondo animado tipo video: rota las fotos con cruce suave + zoom lento.
+       Cuando tengas el video real, se puede sustituir este bloque por un <video>. -->
+  <div class="hero__slides">
+    <div class="hero__slide is-active" style="background-image:url('assets/cancha-tenis-dura-01.png'); background-position:center 38%;"></div>
+    <div class="hero__slide" style="background-image:url('assets/pickleball-lifestyle.jpg');"></div>
+    <div class="hero__slide" style="background-image:url('assets/alberca-01.jpg');"></div>
+    <div class="hero__slide" style="background-image:url('assets/gym.png');"></div>
+    <div class="hero__slide" style="background-image:url('assets/cancha-tenis-arcilla.jpg');"></div>
+    <div class="hero__slide" style="background-image:url('assets/vista-restaurante.jpg');"></div>
+  </div>
+  <div class="hero__scrim"></div>
+  <!-- Contador de slides -->
+  <div class="hero__counter" aria-hidden="true">
+    <span class="hero__counter-cur">01</span>
+    <span class="hero__counter-line"></span>
+    <span class="hero__counter-tot">06</span>
+  </div>
+  <div class="hero__inner">
+    <img class="hero__whale" src="assets/whale-white.png" alt="Ballena Bahía">
+    <h1 class="hero__title">BAHÍA</h1>
+    <div class="hero__sub">SOCIAL SPORTS CLUB</div>
+    <div class="hero__rule"></div>
+    <p class="hero__tag" id="heroTag">Donde el deporte, la naturaleza y la buena vida se encuentran.</p>
+    <div class="hero__chips">
+      <span>Pádel</span><span>Tenis</span><span>Pickleball</span><span>Gym</span><span>Bienestar</span>
+    </div>
+    <div class="hero__cta">
+      <a class="btn btn--primary" href="https://calendar.app.google/cedvSmtcwGR3grVc6" target="_blank" rel="noopener">
+        <span data-i18n="hero_cta1">Agendar Visita</span>
+        <span class="arrow">→</span>
+      </a>
+      <a class="btn btn--ghost" href="#actividades" data-i18n="hero_cta2">Conoce el club</a>
+    </div>
+  </div>
+  <a href="#carrusel" class="scroll-cue">
+    <svg class="tennis-ball" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="14" cy="14" r="13" fill="#c8d84c" stroke="rgba(0,0,0,0.15)" stroke-width=".5"/>
+      <path d="M4 8 Q9 14 4 20" stroke="white" stroke-width="1.4" fill="none" opacity=".7" stroke-linecap="round"/>
+      <path d="M24 8 Q19 14 24 20" stroke="white" stroke-width="1.4" fill="none" opacity=".7" stroke-linecap="round"/>
+    </svg>
+    <span data-i18n="scroll">Descubre</span>
+  </a>
+</section>
+
+<!-- ============ BALL ARC ============ -->
+<div class="ball-arc" id="ballArc" aria-hidden="true">
+  <svg style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;" viewBox="0 0 1440 100" preserveAspectRatio="none">
+    <path class="ball-arc__path" d="M-20 80 Q360 -60 760 40 Q1080 110 1460 20"/>
+  </svg>
+  <div class="ball-arc__ball">
+    <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="7" cy="7" r="6.5" fill="#c8d84c" stroke="rgba(0,0,0,.1)" stroke-width=".5"/>
+      <path d="M2 4 Q5 7 2 10" stroke="white" stroke-width=".8" fill="none" opacity=".7" stroke-linecap="round"/>
+      <path d="M12 4 Q9 7 12 10" stroke="white" stroke-width=".8" fill="none" opacity=".7" stroke-linecap="round"/>
+    </svg>
+  </div>
+</div>
+
+<!-- ============ COURT DIVIDER ============ -->
+<div class="court-divider" aria-hidden="true">
+  <svg viewBox="0 0 1440 40" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <line class="court-divider__line" x1="0" y1="20" x2="1440" y2="20" stroke="rgba(55,81,159,0.18)" stroke-width="1.5" stroke-dasharray="8 6"/>
+    <circle cx="720" cy="20" r="12" fill="none" stroke="rgba(55,81,159,0.18)" stroke-width="1.5"/>
+  </svg>
+</div>
+
+<!-- ============ CARRUSEL (movimiento lento) ============ -->
+<section class="marquee" id="carrusel" data-screen-label="Carrusel" aria-label="Galería de fotos en movimiento">
+  <div class="marquee__track">
+    <div class="marquee__item"><img src="assets/cancha-tenis-dura-01.png" alt="Canchas de tenis"></div>
+    <div class="marquee__item"><img src="assets/alberca-01.jpg" alt="Alberca"></div>
+    <div class="marquee__item"><img src="assets/pickleball-lifestyle.jpg" alt="Pickleball"></div>
+    <div class="marquee__item"><img src="assets/cancha-tenis-arcilla.jpg" alt="Tenis en arcilla"></div>
+    <div class="marquee__item"><img src="assets/gym.png" alt="Gimnasio"></div>
+    <div class="marquee__item"><img src="assets/vista-restaurante.jpg" alt="Terraza"></div>
+    <div class="marquee__item"><img src="assets/pickleball-01.jpg" alt="Pickleball"></div>
+    <div class="marquee__item" aria-hidden="true"><img src="assets/cancha-tenis-dura-01.png" alt=""></div>
+    <div class="marquee__item" aria-hidden="true"><img src="assets/alberca-01.jpg" alt=""></div>
+    <div class="marquee__item" aria-hidden="true"><img src="assets/pickleball-lifestyle.jpg" alt=""></div>
+    <div class="marquee__item" aria-hidden="true"><img src="assets/cancha-tenis-arcilla.jpg" alt=""></div>
+    <div class="marquee__item" aria-hidden="true"><img src="assets/gym.png" alt=""></div>
+    <div class="marquee__item" aria-hidden="true"><img src="assets/vista-restaurante.jpg" alt=""></div>
+    <div class="marquee__item" aria-hidden="true"><img src="assets/pickleball-01.jpg" alt=""></div>
+  </div>
+</section>
+
+<!-- ============ ESENCIA — ¿Qué es Bahía? ============ -->
+<section class="esencia" id="esencia" data-screen-label="¿Qué es Bahía?" data-section-index="01">
+  <img class="watermark whale" src="assets/whale-blue.png" alt="" data-parallax="0.08" style="width:520px; right:-140px; top:-60px; transform:rotate(8deg);">
+  <div class="wrap esencia__grid">
+    <div class="esencia__copy reveal">
+      <span class="eyebrow" data-i18n="esencia_eyebrow">¿Qué es Bahía?</span>
+      <h2 class="section-title" data-i18n="esencia_title">Un club para vivir, no solo para entrenar.</h2>
+      <p class="lead" data-i18n="esencia_p1">Combinamos pádel, tenis y pickleball con gimnasio, áreas sociales y amenidades pensadas para enriquecer el estilo de vida de cada miembro.</p>
+      <p data-i18n="esencia_p2">Instalaciones de vanguardia, atención impecable y una atmósfera cercana y cálida — donde el deporte, la conexión y el bienestar trascienden generaciones.</p>
+    </div>
+    <div class="esencia__visual reveal" data-delay="1">
+      <div class="esencia__seal"><img src="assets/whale-rider-white.png" alt="Bahía"></div>
+      <img class="esencia__img" src="assets/moodboard.png" alt="Ambiente Bahía">
+      <div class="esencia__badge">
+        <strong data-i18n="esencia_badge_n">+19</strong>
+        <span data-i18n="esencia_badge_t">canchas de pádel, tenis y pickleball</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ COURT DIVIDER ============ -->
+<div class="court-divider" aria-hidden="true">
+  <svg viewBox="0 0 1440 40" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <line class="court-divider__line" x1="0" y1="20" x2="1440" y2="20" stroke="rgba(55,81,159,0.14)" stroke-width="1.5" stroke-dasharray="8 6"/>
+    <circle cx="720" cy="20" r="12" fill="none" stroke="rgba(55,81,159,0.14)" stroke-width="1.5"/>
+  </svg>
+</div>
+
+<!-- ============ ACTIVIDADES ============ -->
+<section class="actividades" id="actividades" data-screen-label="Actividades" data-section-index="02">
+  <div class="wrap">
+    <div class="act__head reveal">
+      <span class="eyebrow" data-i18n="act_eyebrow">Actividades</span>
+      <h2 class="section-title" data-i18n="act_title">Todo para moverte</h2>
+      <p class="lead" data-i18n="act_sub">Deporte de raqueta, fuerza y comunidad — en un mismo lugar.</p>
+    </div>
+  </div>
+
+  <div class="act-scroll-hint wrap reveal">
+    <span class="eyebrow" style="color:var(--sage)">← desliza →</span>
+  </div>
+  <div class="act-hscroll">
+    <div class="act-hscroll__track">
+      <article class="act-card">
+        <div class="act-card__img"><img src="assets/cancha-tenis-dura-02.png" alt="Tenis"></div>
+        <span class="act-card__num">01</span>
+        <div class="act-card__overlay">
+          <h3 class="act-card__title" data-i18n="act_tenis_t">Tenis</h3>
+          <button class="act-card__cta" type="button" data-title="Tenis" data-gallery="assets/cancha-tenis-dura-01.png|assets/cancha-tenis-dura-02.png|assets/cancha-tenis-arcilla.jpg" data-i18n="act_card_cta">Conócelas</button>
+        </div>
+      </article>
+      <article class="act-card">
+        <div class="act-card__img act-card__img--empty"><span>FOTO PÁDEL</span></div>
+        <span class="act-card__num">02</span>
+        <div class="act-card__overlay">
+          <h3 class="act-card__title" data-i18n="act_padel_t">Pádel</h3>
+          <button class="act-card__cta" type="button" data-title="Pádel" data-gallery="" data-i18n="act_card_cta">Conócelas</button>
+        </div>
+      </article>
+      <article class="act-card">
+        <div class="act-card__img"><img src="assets/pickleball-lifestyle.jpg" alt="Pickleball"></div>
+        <span class="act-card__num">03</span>
+        <div class="act-card__overlay">
+          <h3 class="act-card__title" data-i18n="act_pick_t">Pickleball</h3>
+          <button class="act-card__cta" type="button" data-title="Pickleball" data-gallery="assets/pickleball-01.jpg|assets/pickleball-lifestyle.jpg|assets/pickleball-vista-aerea.png" data-i18n="act_card_cta">Conócelas</button>
+        </div>
+      </article>
+      <article class="act-card">
+        <div class="act-card__img"><img src="assets/alberca-01.jpg" alt="Alberca"></div>
+        <span class="act-card__num">04</span>
+        <div class="act-card__overlay">
+          <h3 class="act-card__title">Alberca</h3>
+          <button class="act-card__cta" type="button" data-title="Alberca" data-gallery="assets/alberca-01.jpg|assets/alberca-restaurante.png" data-i18n="act_card_cta">Conócela</button>
+        </div>
+      </article>
+      <article class="act-card">
+        <div class="act-card__img"><img src="assets/gym.png" alt="Gimnasio"></div>
+        <span class="act-card__num">05</span>
+        <div class="act-card__overlay">
+          <h3 class="act-card__title" data-i18n="act_gym_t">Gimnasio</h3>
+          <button class="act-card__cta" type="button" data-title="Gimnasio" data-gallery="assets/gym.png" data-i18n="act_card_cta">Conócelo</button>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ NATURALEZA — diferenciador ============ -->
+<section class="naturaleza" data-screen-label="Naturaleza">
+  <div class="naturaleza__bg" data-parallax="0.05"></div>
+  <div class="naturaleza__headline-mask" aria-hidden="true"><h2>BAHÍA</h2></div>
+
+  <div class="wrap">
+    <div class="naturaleza__inner reveal">
+      <span class="eyebrow" data-i18n="nat_eyebrow">Nuestro diferenciador</span>
+      <h2 data-i18n="nat_title">Un club que vive con la naturaleza.</h2>
+      <p data-i18n="nat_p">En el predio de Bahía corren ríos naturales habitados por cocodrilos, tortugas y garzas. Un entorno vivo que ningún otro club ofrece, y que convierte cada visita en una experiencia entre el deporte y lo salvaje.</p>
+      <div class="fauna">
+        <div><span class="fauna__name" data-i18n="f1_t">Cocodrilos</span><span class="fauna__sub" data-i18n="f_sub">en el predio</span></div>
+        <div><span class="fauna__name" data-i18n="f2_t">Tortugas</span><span class="fauna__sub" data-i18n="f_sub2">vida silvestre</span></div>
+        <div><span class="fauna__name" data-i18n="f3_t">Garzas</span><span class="fauna__sub" data-i18n="f_sub3">entre los ríos</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ COURT DIVIDER ============ -->
+<div class="court-divider" aria-hidden="true">
+  <svg viewBox="0 0 1440 40" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <line class="court-divider__line" x1="0" y1="20" x2="1440" y2="20" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" stroke-dasharray="8 6"/>
+    <circle cx="720" cy="20" r="12" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1.5"/>
+  </svg>
+</div>
+
+<!-- ============ STICKY TOUR ============ -->
+<section class="sticky-tour" id="amenidades" data-screen-label="Amenidades" data-section-index="03">
+  <div class="sticky-tour__img-col">
+    <div class="sticky-tour__img-wrap">
+      <img class="sticky-tour__img is-active" src="assets/lockers.png" alt="Vestidores">
+      <img class="sticky-tour__img" src="assets/regaderas.png" alt="Regaderas">
+      <img class="sticky-tour__img" src="assets/vista-restaurante.jpg" alt="Restaurante">
+      <img class="sticky-tour__img" src="assets/alberca-01.jpg" alt="Alberca">
+      <img class="sticky-tour__img" src="assets/alberca-restaurante.png" alt="Área social">
+    </div>
+    <div class="sticky-tour__progress">
+      <div class="sticky-tour__progress-fill"></div>
+    </div>
+  </div>
+  <div class="sticky-tour__items-col">
+    <div class="sticky-tour__head">
+      <span class="eyebrow" data-i18n="amen_eyebrow">Amenidades</span>
+      <h2 class="section-title" data-i18n="amen_title">Cada detalle, cuidado</h2>
+    </div>
+    <div class="sticky-tour__item" data-tour-img="0">
+      <span class="sticky-tour__num">01</span>
+      <h3 data-i18n="amen_vest">Vestidores</h3>
+      <p>Lockers de madera oscura y acabados de alta calidad. Un espacio diseñado para que la experiencia empiece antes de pisar la cancha.</p>
+    </div>
+    <div class="sticky-tour__item" data-tour-img="1">
+      <span class="sticky-tour__num">02</span>
+      <h3 data-i18n="amen_reg">Regaderas</h3>
+      <p>Área de regaderas con mármol gris y puertas de madera oscura. Lujo accesible en cada detalle del recorrido post-entrenamiento.</p>
+    </div>
+    <div class="sticky-tour__item" data-tour-img="2">
+      <span class="sticky-tour__num">03</span>
+      <h3 data-i18n="amen_rest">Restaurante & Terraza</h3>
+      <p>Vista panorámica desde el restaurante de 2 pisos. Menú de snacks saludables, platillos reconfortantes y cocteles originales.</p>
+    </div>
+    <div class="sticky-tour__item" data-tour-img="3">
+      <span class="sticky-tour__num">04</span>
+      <h3>Alberca</h3>
+      <p>Alberca al aire libre rodeada de palmeras tropicales. El punto de reunión favorito para familias y miembros después del deporte.</p>
+    </div>
+    <div class="sticky-tour__item" data-tour-img="4">
+      <span class="sticky-tour__num">05</span>
+      <h3>Palapas & Áreas Sociales</h3>
+      <p>Espacios de sombra y convivencia a lo largo del predio. El lugar donde el deporte se convierte en comunidad.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ GALERÍA MASONRY ============ -->
+<section class="masonry-gallery" data-screen-label="Galería">
+  <div class="wrap masonry-gallery__head reveal">
+    <span class="eyebrow">Galería</span>
+    <h2 class="section-title">El ambiente Bahía</h2>
+  </div>
+  <div class="masonry-grid" id="masonryGrid">
+    <div class="masonry-item masonry-item--tall" data-gallery="assets/cancha-tenis-dura-01.png" data-title="Canchas de tenis">
+      <img src="assets/cancha-tenis-dura-01.png" alt="Canchas de tenis">
+      <div class="masonry-item__overlay"><span>Tenis</span></div>
+    </div>
+    <div class="masonry-item" data-gallery="assets/alberca-01.jpg" data-title="Alberca">
+      <img src="assets/alberca-01.jpg" alt="Alberca">
+      <div class="masonry-item__overlay"><span>Alberca</span></div>
+    </div>
+    <div class="masonry-item" data-gallery="assets/pickleball-lifestyle.jpg" data-title="Pickleball">
+      <img src="assets/pickleball-lifestyle.jpg" alt="Pickleball">
+      <div class="masonry-item__overlay"><span>Pickleball</span></div>
+    </div>
+    <div class="masonry-item masonry-item--wide" data-gallery="assets/vista-restaurante.jpg" data-title="Restaurante">
+      <img src="assets/vista-restaurante.jpg" alt="Restaurante">
+      <div class="masonry-item__overlay"><span>Restaurante & Terraza</span></div>
+    </div>
+    <div class="masonry-item" data-gallery="assets/lockers.png" data-title="Vestidores">
+      <img src="assets/lockers.png" alt="Vestidores">
+      <div class="masonry-item__overlay"><span>Vestidores</span></div>
+    </div>
+    <div class="masonry-item masonry-item--tall" data-gallery="assets/cancha-tenis-arcilla.jpg" data-title="Tenis arcilla">
+      <img src="assets/cancha-tenis-arcilla.jpg" alt="Cancha arcilla">
+      <div class="masonry-item__overlay"><span>Arcilla</span></div>
+    </div>
+    <div class="masonry-item" data-gallery="assets/gym.png" data-title="Gimnasio">
+      <img src="assets/gym.png" alt="Gimnasio">
+      <div class="masonry-item__overlay"><span>Gimnasio</span></div>
+    </div>
+    <div class="masonry-item" data-gallery="assets/regaderas.png" data-title="Regaderas">
+      <img src="assets/regaderas.png" alt="Regaderas">
+      <div class="masonry-item__overlay"><span>Regaderas</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PLANES ============ -->
+<section class="planes" id="planes" data-screen-label="Planes" data-section-index="04">
+  <!-- Logo dorado al fondo de la sección, semi-transparente -->
+  <div class="planes__logos" aria-hidden="true">
+    <img src="assets/whale-gold.png" alt="" style="width:min(760px,84vw); left:50%; top:46%; transform:translate(-50%,-50%);">
+  </div>
+  <div class="wrap">
+    <div class="planes__head reveal">
+      <span class="eyebrow" data-i18n="planes_eyebrow">Membresías</span>
+      <h2 class="section-title" data-i18n="planes_title">Elige tu forma de pertenecer</h2>
+      <p class="lead" data-i18n="planes_sub">Membresías temporales y permanentes, para locales y visitantes. Toca un plan para verlo a detalle.</p>
+    </div>
+
+    <div class="bill-toggle reveal" role="tablist">
+      <span class="bill-toggle__pill"></span>
+      <button data-bill="monthly" class="active" data-i18n="bill_month">Mensualidad</button>
+      <button data-bill="signup" data-i18n="bill_signup">Inscripción</button>
+    </div>
+
+    <div class="plans-grid">
+      <!-- Familiar -->
+      <article class="plan plan--featured plan--active reveal" data-delay="1" data-monthly="6,500" data-signup="13,000">
+        <span class="plan__tag" data-i18n="plan_tag">Más elegido</span>
+        <div class="plan__icon"><img src="assets/plan-familiar.png" alt=""></div>
+        <h3 class="plan__name" data-i18n="p_fam">Familiar</h3>
+        <p class="plan__who" data-i18n="p_fam_who">2 adultos + hasta 3 hijos menores de 28 años</p>
+        <div class="plan__price">
+          <span class="plan__amount"><span class="cur">$</span><span class="num">6,500</span></span>
+          <span class="plan__per"></span>
+        </div>
+        <span class="plan__alt"></span>
+        <ul class="plan__list">
+          <li data-i18n="perk_raqueta">Pádel, tenis y pickleball</li>
+          <li data-i18n="perk_gym">Gimnasio y fitness funcional</li>
+          <li data-i18n="perk_alberca">Alberca y vestidores premium</li>
+          <li data-i18n="perk_social">Restaurante, bar y áreas sociales</li>
+          <li data-i18n="perk_ninos">Espacios exclusivos para niños</li>
+        </ul>
+        <a class="btn" href="https://wa.me/message/47BNUPNJYZDWL1" target="_blank" rel="noopener" data-i18n="plan_cta">Me interesa</a>
+      </article>
+
+      <!-- Pareja -->
+      <article class="plan reveal" data-delay="2" data-monthly="4,500" data-signup="9,000">
+        <span class="plan__tag" data-i18n="plan_tag">Más elegido</span>
+        <div class="plan__icon"><img src="assets/plan-pareja.png" alt=""></div>
+        <h3 class="plan__name" data-i18n="p_par">Pareja</h3>
+        <p class="plan__who" data-i18n="p_par_who">2 adultos</p>
+        <div class="plan__price">
+          <span class="plan__amount"><span class="cur">$</span><span class="num">4,500</span></span>
+          <span class="plan__per"></span>
+        </div>
+        <span class="plan__alt"></span>
+        <ul class="plan__list">
+          <li data-i18n="perk_raqueta">Pádel, tenis y pickleball</li>
+          <li data-i18n="perk_gym">Gimnasio y fitness funcional</li>
+          <li data-i18n="perk_alberca">Alberca y vestidores premium</li>
+          <li data-i18n="perk_social">Restaurante, bar y áreas sociales</li>
+        </ul>
+        <a class="btn" href="https://wa.me/message/47BNUPNJYZDWL1" target="_blank" rel="noopener" data-i18n="plan_cta">Me interesa</a>
+      </article>
+
+      <!-- Individual -->
+      <article class="plan reveal" data-delay="3" data-monthly="2,500" data-signup="5,000">
+        <span class="plan__tag" data-i18n="plan_tag">Más elegido</span>
+        <div class="plan__icon"><img src="assets/plan-individual.png" alt=""></div>
+        <h3 class="plan__name" data-i18n="p_ind">Individual</h3>
+        <p class="plan__who" data-i18n="p_ind_who">1 adulto</p>
+        <div class="plan__price">
+          <span class="plan__amount"><span class="cur">$</span><span class="num">2,500</span></span>
+          <span class="plan__per"></span>
+        </div>
+        <span class="plan__alt"></span>
+        <ul class="plan__list">
+          <li data-i18n="perk_raqueta">Pádel, tenis y pickleball</li>
+          <li data-i18n="perk_gym">Gimnasio y fitness funcional</li>
+          <li data-i18n="perk_alberca">Alberca y vestidores premium</li>
+          <li data-i18n="perk_social">Restaurante, bar y áreas sociales</li>
+        </ul>
+        <a class="btn" href="https://wa.me/message/47BNUPNJYZDWL1" target="_blank" rel="noopener" data-i18n="plan_cta">Me interesa</a>
+      </article>
+
+      <!-- Solo Gym -->
+      <article class="plan reveal" data-delay="4" data-monthly="1,800" data-signup="3,600">
+        <span class="plan__tag" data-i18n="plan_tag">Más elegido</span>
+        <div class="plan__icon"><img src="assets/plan-gym.png" alt=""></div>
+        <h3 class="plan__name" data-i18n="p_gym">Solo Gym</h3>
+        <p class="plan__who" data-i18n="p_gym_who">1 adulto · acceso a gym, vestidores y alberca</p>
+        <div class="plan__price">
+          <span class="plan__amount"><span class="cur">$</span><span class="num">1,800</span></span>
+          <span class="plan__per"></span>
+        </div>
+        <span class="plan__alt"></span>
+        <ul class="plan__list">
+          <li data-i18n="perk_gym">Gimnasio y fitness funcional</li>
+          <li data-i18n="perk_vest">Vestidores premium</li>
+          <li data-i18n="perk_alberca2">Alberca al aire libre</li>
+          <li class="off" data-i18n="perk_noraqueta">Sin acceso a áreas de raqueta</li>
+        </ul>
+        <a class="btn" href="https://wa.me/message/47BNUPNJYZDWL1" target="_blank" rel="noopener" data-i18n="plan_cta">Me interesa</a>
+      </article>
+    </div>
+  </div>
+</section>
+
+
+
+<!-- ============ CTA VISITA ============ -->
+<section class="visita" id="visita" data-screen-label="Agenda tu visita">
+  <img class="watermark whale" src="assets/whale-white.png" alt="" data-parallax="0.04" style="width:600px; left:-160px; bottom:-120px; transform:rotate(-10deg) scaleX(-1);">
+  <div class="wrap visita__inner reveal">
+    <img class="visita__whale" src="assets/whale-white.png" alt="">
+    <h2 data-i18n="visita_title">Agenda tu visita</h2>
+    <p data-i18n="visita_p">Conoce el club en persona. Te mostramos cada espacio y resolvemos todas tus dudas sobre membresías.</p>
+    <div class="visita__cta">
+      <a class="btn btn--primary" href="https://calendar.app.google/cedvSmtcwGR3grVc6" target="_blank" rel="noopener">
+        <span data-i18n="visita_cta1">Agendar Visita</span>
+        <span class="arrow">→</span>
+      </a>
+      <a class="btn btn--ghost" href="https://wa.me/message/47BNUPNJYZDWL1" target="_blank" rel="noopener" data-i18n="visita_cta2">Escríbenos por WhatsApp</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ UBICACIÓN ============ -->
+<section class="ubicacion" id="ubicacion" data-screen-label="Ubicación">
+  <div class="wrap ubicacion__top reveal">
+    <span class="eyebrow">Encuéntranos</span>
+    <h2 class="section-title">Bahía de Banderas, Nayarit</h2>
+    <p class="lead">Paseo de los Flamingos 38, Fraccionamiento Flamingos, Bahía de Banderas, Nayarit · A 10 min del aeropuerto de Puerto Vallarta</p>
+    <div class="ubicacion__actions">
+      <a class="btn btn--primary" href="https://maps.google.com/?q=Bahia+Social+Sports+Club+Paseo+de+los+Flamingos+38+Bahia+de+Banderas+Nayarit" target="_blank" rel="noopener">
+        <span>Cómo llegar</span><span class="arrow">→</span>
+      </a>
+      <a class="btn btn--outline" href="https://wa.me/message/47BNUPNJYZDWL1" target="_blank" rel="noopener">Contactar</a>
+    </div>
+  </div>
+  <div class="ubicacion__map reveal" data-delay="1">
+    <iframe
+      src="https://www.google.com/maps?q=20.7225,-105.2697&hl=es&z=16&output=embed"
+      width="100%" height="480" style="border:0;" allowfullscreen="" loading="lazy"
+      referrerpolicy="no-referrer-when-downgrade" title="Ubicación Bahía Social Sports Club">
+    </iframe>
+    <div class="ubicacion__map-overlay">
+      <div class="ubicacion__pin">
+        <img src="assets/whale-white.png" alt="Bahía" style="width:32px;margin-bottom:8px;">
+        <span>Bahía Social Sports Club</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer class="footer" id="contacto" data-screen-label="Footer">
+  <div class="wrap footer__grid">
+    <div class="footer__brand">
+      <img class="footer__whale" src="assets/whale-white.png" alt="">
+      <span class="brand__name" style="font-family:var(--display); font-weight:400; font-size:1.5rem; letter-spacing:.22em; color:#fff; display:block;">BAHÍA</span>
+      <span class="brand__sub" style="font-family:var(--body); font-weight:600; font-size:.52rem; letter-spacing:.36em; color:var(--sage);">SOCIAL SPORTS CLUB</span>
+      <p data-i18n="foot_tagline">Club deportivo y social en Bahía de Banderas. Deporte, comunidad y bienestar en armonía con la naturaleza.</p>
+    </div>
+    <div>
+      <h4 data-i18n="foot_explore">Explorar</h4>
+      <ul>
+        <li><a href="#inicio" data-i18n="nav_inicio">Inicio</a></li>
+        <li><a href="#actividades" data-i18n="nav_act">Actividades</a></li>
+        <li><a href="#amenidades" data-i18n="nav_amen">Amenidades</a></li>
+        <li><a href="#planes" data-i18n="nav_planes">Planes</a></li>
+        <li><a href="#contacto" data-i18n="nav_contacto">Contacto</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4 data-i18n="foot_contacto">Contacto</h4>
+      <ul class="footer__contact">
+        <li><a href="mailto:membresias@bahiaclub.mx">membresias@bahiaclub.mx</a></li>
+        <li><a href="tel:+523221818382">+52 322 181 8382</a></li>
+        <li><a href="https://www.instagram.com/bahiaclub.mx" target="_blank" rel="noopener">@bahiaclub.mx</a></li>
+        <li><a href="https://calendar.app.google/cedvSmtcwGR3grVc6" target="_blank" rel="noopener" data-i18n="foot_cal">Agenda tu visita →</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4 data-i18n="foot_horario">Visítanos</h4>
+      <ul class="footer__contact">
+        <li data-i18n="foot_dir">Paseo de los Flamingos 38, Bahía de Banderas, Nayarit</li>
+      </ul>
+      <div class="footer__social" style="margin-top:18px;">
+        <a href="https://www.instagram.com/bahiaclub.mx" target="_blank" rel="noopener" aria-label="Instagram">
+          <i class="fab fa-instagram"></i>
+        </a>
+        <a href="https://www.facebook.com/share/15B9L7CHpV/" target="_blank" rel="noopener" aria-label="Facebook">
+          <i class="fab fa-facebook-f"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+  <div class="footer__wordmark" aria-hidden="true">BAHÍA</div>
+  <div class="wrap footer__bottom">
+    <span data-i18n="foot_rights">© 2025 Bahía Social Sports Club. Todos los derechos reservados.</span>
+    <span>Bahía de Banderas · Nayarit, México</span>
+  </div>
+</footer>
+
+<!-- ============ WHATSAPP ============ -->
+<a class="wa" href="https://wa.me/message/47BNUPNJYZDWL1" target="_blank" rel="noopener" aria-label="WhatsApp">
+  <svg viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163a11.867 11.867 0 01-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.817 11.817 0 018.413 3.488 11.824 11.824 0 013.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 01-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 001.515 5.26l-.999 3.648 3.973-1.045zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+</a>
+
+<!-- ============ MODAL GALERÍA ============ -->
+<div class="gallery-modal" id="galleryModal" aria-hidden="true" role="dialog" aria-modal="true">
+  <button class="gallery-modal__close" aria-label="Cerrar">&times;</button>
+  <div class="gallery-modal__inner">
+    <h3 class="gallery-modal__title"></h3>
+    <div class="gallery-modal__grid"></div>
+  </div>
+</div>
+
+<script src="js/main.js"></script>
+</body>
+</html>
