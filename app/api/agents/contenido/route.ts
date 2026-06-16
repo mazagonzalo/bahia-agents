@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { ask } from '@/lib/claude'
 import { sendText } from '@/lib/whatsapp'
 import { getClubContext, contextToPrompt, type ClubEvent } from '@/lib/context'
+import { generateImage, generateVideo } from '@/lib/muapi'
 
 type ContentIdea = {
   title: string
@@ -77,9 +78,12 @@ export async function POST(req: NextRequest) {
   if (format === 'Reel') {
     reelBrief = await generateReelBrief(contexto, idea, upcomingEvents)
     aiScore = await checkAiScore(reelBrief)
+    // Generar video real con seedance-2 basado en el brief
+    const videoPrompt = buildVideoPrompt(idea, trend, upcomingEvents)
+    const videoUrl = await generateVideo(videoPrompt, { aspectRatio: '9:16', duration: 10 })
     const { data } = await supabase
       .from('creatives')
-      .insert({ type: 'reel_brief', content: { idea, trend, reelBrief, availableAssets, aiScore }, status: 'borrador' })
+      .insert({ type: 'reel_brief', content: { idea, trend, reelBrief, availableAssets, aiScore, videoUrl }, status: 'borrador' })
       .select().single()
     creative = data
   } else {
@@ -87,14 +91,20 @@ export async function POST(req: NextRequest) {
     if (!carousel) return NextResponse.json({ error: 'Error generando carousel' }, { status: 500 })
     const allCopy = carousel.slides.map(s => `${s.headline}. ${s.body}`).join(' ')
     aiScore = await checkAiScore(allCopy)
+    // Generar imagen hero del slide 1 con nano-banana-2 (4:5 para feed de Instagram)
+    const imgPrompt = buildCarouselImagePrompt(idea, trend, carousel.slides[0])
+    const heroImageUrl = await generateImage(imgPrompt, '4:5')
     const { data } = await supabase
       .from('creatives')
-      .insert({ type: 'carrusel', content: { idea, trend, carousel, availableAssets, aiScore }, status: 'borrador' })
+      .insert({ type: 'carrusel', content: { idea, trend, carousel, availableAssets, aiScore, heroImageUrl }, status: 'borrador' })
       .select().single()
     creative = data
   }
 
-  await notifyAdmin({ carousel, reelBrief, idea, trend, availableAssets, upcomingEvents, format, creativeId: creative?.id, aiScore })
+  const creativeContent = (creative as unknown as { content?: { heroImageUrl?: string; videoUrl?: string } } | null)?.content
+  const heroImageUrl = creativeContent?.heroImageUrl ?? null
+  const videoUrl = creativeContent?.videoUrl ?? null
+  await notifyAdmin({ carousel, reelBrief, idea, trend, availableAssets, upcomingEvents, format, creativeId: creative?.id, aiScore, heroImageUrl, videoUrl })
 
   return NextResponse.json({ creativeId: creative?.id, format, carousel, reelBrief, aiScore })
 }
@@ -257,6 +267,29 @@ Escribe el brief como si se lo dijeras en persona. Directo, sin relleno, que lo 
   )
 }
 
+// ─── Prompts visuales para muapi ─────────────────────────────────────────────
+
+function buildCarouselImagePrompt(
+  idea: ContentIdea | null,
+  trend: { topic: string; angle: string } | null,
+  hookSlide: Slide,
+): string {
+  const instalacion = idea?.instalacion ?? 'instalaciones premium'
+  const topic = idea?.title ?? trend?.topic ?? 'Bahía Social Sports Club'
+  return `Premium sports club lifestyle photography. ${topic}. ${instalacion} in Nuevo Vallarta, Riviera Nayarit, Mexico. Tropical natural light, lush greenery visible. Active lifestyle, modern upscale facilities. The scene conveys: "${hookSlide.headline}". Golden hour warm lighting, shallow depth of field f/2.0. People in athletic wear enjoying the space. Clean composition, single focal point. Social media photography, 4:5 vertical format, Instagram aesthetic. Photorealistic, high production value. No text overlays.`
+}
+
+function buildVideoPrompt(
+  idea: ContentIdea | null,
+  trend: { topic: string; angle: string } | null,
+  events: ClubEvent[],
+): string {
+  const instalacion = idea?.instalacion ?? 'canchas de pádel y pickleball'
+  const hook = idea?.hook?.text ?? trend?.topic ?? 'Bahía Social Sports Club'
+  const eventNote = events[0] ? ` Event happening: ${events[0].name}.` : ''
+  return `[SCENE] Premium sports club exterior and courts at golden hour, Nuevo Vallarta Mexico, tropical vegetation background, lagoon visible. [SUBJECT] Athletic players on ${instalacion}, modern high-end facilities, people enjoying active lifestyle. [ACTION] Dynamic gameplay footage transitioning to relaxed social moments by the pool. Camera reveals the full club experience in 10 seconds. [CAMERA] Drone aerial establishing shot descending into ground-level tracking shot of courts, smooth gimbal stabilization, 24mm wide angle. [STYLE] Warm golden hour grade, high contrast, cinematic slow motion at peaks, luxury lifestyle aesthetic.${eventNote} [SOUND] Upbeat acoustic-electronic fusion, court sounds ambient, ends with subtle logo sting. Opening text overlay: "${hook}"`
+}
+
 // ─── Quality check: detect AI patterns ───────────────────────────────────────
 
 async function checkAiScore(text: string): Promise<number | null> {
@@ -279,7 +312,7 @@ async function checkAiScore(text: string): Promise<number | null> {
 // ─── Notificación al admin ────────────────────────────────────────────────────
 
 async function notifyAdmin({
-  carousel, reelBrief, idea, trend, availableAssets, upcomingEvents, format, creativeId, aiScore,
+  carousel, reelBrief, idea, trend, availableAssets, upcomingEvents, format, creativeId, aiScore, heroImageUrl, videoUrl,
 }: {
   carousel: Carousel | null
   reelBrief: string | null
@@ -290,6 +323,8 @@ async function notifyAdmin({
   format: string
   creativeId: string | undefined
   aiScore: number | null
+  heroImageUrl?: string | null
+  videoUrl?: string | null
 }) {
   const titulo = idea?.title ?? trend?.topic ?? 'Nuevo contenido'
   const segmento = idea?.targetSegment ?? '—'
@@ -340,6 +375,13 @@ async function notifyAdmin({
       })
       lines.push(`¿Usamos estas o tienes algo más reciente?`)
     }
+  }
+
+  if (heroImageUrl) {
+    lines.push(``, `🖼️ *Imagen generada (slide 1):* ${heroImageUrl}`)
+  }
+  if (videoUrl) {
+    lines.push(``, `🎬 *Video generado (Reel):* ${videoUrl}`)
   }
 
   if (aiScore !== null) {
