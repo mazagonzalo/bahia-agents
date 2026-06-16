@@ -1,10 +1,14 @@
 export const dynamic = 'force-dynamic'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { ask } from '@/lib/claude'
 import { sendText } from '@/lib/whatsapp'
+import { requireCron } from '@/lib/cron-auth'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const unauthorized = requireCron(req)
+  if (unauthorized) return unauthorized
+
   const now = new Date()
   const hace24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()
   const hace7d  = new Date(now.getTime() - 7  * 24 * 60 * 60 * 1000).toISOString()

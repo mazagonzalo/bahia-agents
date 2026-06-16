@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bahía Club — Propuesta v3 + Investigación de mercado</title>
+<style>
+  :root{
+    --cream:#f6f6f6; --sage:#7a8a79; --blue:#37519f; --gold:#8e8055;
+    --ink:#1d2433; --muted:#5b6472; --line:#dcdfe5;
+    --green-bg:#eef4ee; --green-bd:#7a8a79;
+    --yellow-bg:#f7f3e8; --yellow-bd:#8e8055;
+    --red-bg:#eef1f8;  --red-bd:#37519f;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-print-color-adjust:exact; print-color-adjust:exact}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink); background:#fff; line-height:1.55; max-width:980px; margin:0 auto; padding:48px 40px 80px; font-size:14.5px}
+  header.doc{border-bottom:3px solid var(--blue); padding-bottom:20px; margin-bottom:8px}
+  .kicker{font-size:11px; letter-spacing:.32em; text-transform:uppercase; color:var(--gold); font-weight:700; margin:0 0 6px}
+  h1{font-size:29px; line-height:1.1; margin:0 0 6px; color:var(--blue)}
+  .sub{color:var(--muted); font-size:14px; margin:0}
+  .meta{font-size:12px; color:var(--muted); margin-top:14px; display:flex; gap:22px; flex-wrap:wrap}
+  .meta b{color:var(--ink)}
+  h2{font-size:20px; color:var(--blue); margin:36px 0 10px; padding-bottom:7px; border-bottom:1px solid var(--line)}
+  h3{font-size:15px; margin:20px 0 8px; color:var(--ink)}
+  p{margin:8px 0}
+  .lead{font-size:15.5px}
+  strong{color:var(--ink)}
+  code{background:var(--cream); padding:1px 5px; border-radius:4px; font-size:.86em; font-family:"SF Mono",Menlo,Consolas,monospace; color:var(--gold)}
+  ul,ol{margin:8px 0 8px 4px; padding-left:22px} li{margin:4px 0}
+  .callout{background:var(--cream); border-left:4px solid var(--gold); padding:14px 18px; border-radius:0 8px 8px 0; margin:18px 0}
+  .callout .t{font-weight:700; color:var(--gold); font-size:12px; letter-spacing:.06em; text-transform:uppercase; margin-bottom:4px}
+  .callout.blue{border-left-color:var(--blue)} .callout.blue .t{color:var(--blue)}
+  .thesis{background:var(--blue); color:#fff; border-radius:12px; padding:22px 26px; margin:18px 0; font-size:17px; line-height:1.5; font-weight:500}
+  .thesis small{display:block; font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:#aebbe0; font-weight:700; margin-bottom:8px}
+  .twocol{display:grid; grid-template-columns:1fr 1fr; gap:18px; margin:14px 0}
+  .threecol{display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin:14px 0}
+  .card{border:1px solid var(--line); border-radius:10px; padding:16px 18px}
+  .card h3{margin-top:0}
+  .card.blue{border-top:4px solid var(--blue)} .card.sage{border-top:4px solid var(--sage)} .card.gold{border-top:4px solid var(--gold)}
+  table{width:100%; border-collapse:collapse; margin:12px 0 6px; font-size:13px}
+  th,td{text-align:left; padding:9px 11px; vertical-align:top; border-bottom:1px solid var(--line)}
+  th{background:var(--blue); color:#fff; font-weight:600; font-size:12px}
+  tr:nth-child(even) td{background:#fafbfc}
+  td.c{text-align:center; font-weight:700; white-space:nowrap; color:var(--blue)}
+  .statgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:14px 0}
+  .stat{border:1px solid var(--line); border-radius:10px; padding:14px; text-align:center}
+  .stat .n{font-size:24px; font-weight:800; color:var(--blue); line-height:1.1}
+  .stat .l{font-size:11px; color:var(--muted); margin-top:4px; line-height:1.3}
+  .bucket{margin:16px 0 6px; padding:10px 16px; border-radius:8px; font-weight:700; font-size:15px; display:flex; align-items:center; gap:10px}
+  .bucket.g{background:var(--green-bg); border:1px solid var(--green-bd); color:#3c4a3c}
+  .bucket.y{background:var(--yellow-bg); border:1px solid var(--yellow-bd); color:#5f5630}
+  .bucket.r{background:var(--red-bg); border:1px solid var(--red-bd); color:#2b3c73}
+  .dot{width:12px;height:12px;border-radius:50%;display:inline-block}
+  .dot.g{background:var(--sage)} .dot.y{background:var(--gold)} .dot.r{background:var(--blue)}
+  .phase-row{display:flex; gap:14px; margin:10px 0; align-items:flex-start}
+  .phase-num{flex-shrink:0; width:88px; text-align:center; background:var(--blue); color:#fff; border-radius:8px; padding:8px 6px; font-size:11px; font-weight:700; line-height:1.3}
+  .phase-num .n{display:block; font-size:18px}
+  .phase-body{flex:1} .phase-body h3{margin:0 0 4px}
+  .verdict{background:var(--blue); color:#fff; border-radius:12px; padding:20px 24px; margin:28px 0 0}
+  .verdict h2{color:#fff; border:none; margin:0 0 8px; font-size:18px}
+  .verdict p{color:#e7ebf6; margin:6px 0} .verdict .big{font-size:15px; color:#fff}
+  .tag{font-size:10px; font-weight:700; padding:1px 6px; border-radius:4px; vertical-align:middle; margin-left:4px}
+  .tag.v{background:var(--green-bg); color:#2a7a48; border:1px solid var(--green-bd)}
+  .tag.p{background:var(--yellow-bg); color:#7a5a10; border:1px solid var(--yellow-bd)}
+  .qlist li{margin:7px 0} .qlist b{color:var(--blue)}
+  footer.doc{margin-top:40px; padding-top:14px; border-top:1px solid var(--line); font-size:11px; color:var(--muted); display:flex; justify-content:space-between}
+  .src{font-size:11px; color:var(--muted)}
+  @media print{
+    body{padding:0 6px; font-size:11px; max-width:none}
+    h2{margin-top:20px} .twocol,.threecol{gap:10px} table{font-size:10px} th,td{padding:5px 6px}
+    .statgrid{gap:8px} .stat .n{font-size:19px}
+    .pb{page-break-before:always}
+    tr,.card,.callout,.phase-row,.stat{page-break-inside:avoid} a{color:inherit; text-decoration:none}
+  }
+</style>
+</head>
+<body>
+
+<header class="doc">
+  <p class="kicker">Bahía Social Sports Club · Documento interno · v3</p>
+  <h1>Propuesta "Socio de operación e inteligencia" + Investigación de mercado</h1>
+  <p class="sub">Aprovechar Trainingym al 100%, ser el copiloto de IA del club, y crecer la membresía — con el mercado de Bahía de Banderas / Riviera Nayarit validado y verificado.</p>
+  <div class="meta">
+    <span><b>Fecha:</b> 13 jun 2026</span>
+    <span><b>Ubicación:</b> Bahía de Banderas, Nayarit (metro Vallarta–Riviera Nayarit)</span>
+    <span><b>Método:</b> 10 agentes IA, búsqueda web, verificación adversarial de cifras</span>
+  </div>
+</header>
+
+<h2>TL;DR</h2>
+<p class="lead"><strong>En toda la bahía no existe un club deportivo-social premium e independiente como Bahía.</strong> La competencia es o canchas mono-deporte de pago por hora (vía Playtomic) o amenidades cerradas de resort. Bahía es único en su categoría — y entra montado en dos booms verificados: el pádel mexicano (USD $392M → $517M a 2027) y el pickleball de los expats/snowbirds (la mayor comunidad extranjera del Pacífico mexicano). Capturar <strong>solo 1–1.5%</strong> de los 35-40 mil expats residentes llena los 200-500 socios.</p>
+<p class="lead">Nuestra jugada <strong>no es reemplazar Trainingym — es exprimirlo al 100% y ser la capa de inteligencia + crecimiento que le falta</strong>. Entramos por (A) aprovechamiento de Trainingym + copiloto interno del staff, (B) inteligencia y administración (dashboard del consejo + CFO IA), y (C) crecimiento (marketing IG/FB + concierge WhatsApp + Day Pass). Cobramos <strong>retainer + 8% del ingreso nuevo</strong>, en un piloto de 2-3 meses con criterio numérico. Y a largo plazo, esta capa es un <strong>producto replicable</strong> para los cientos de clubes que ya usan Trainingym/Playtomic — Bahía es el caso de éxito #1.</p>
+
+<div class="thesis">
+  <small>El pitch en una frase</small>
+  "Trainingym corre tu gimnasio; nosotros hacemos crecer y rentabilizar TODO el club — exprimimos lo que ya pagaste, te damos los números que el consejo te exige, y convertimos tu marca de fauna en socios."
+</div>
+
+<h2 class="pb">Parte 1 · Investigación de mercado</h2>
+
+<h3>Los números que importan <span class="src">(✓ verificado · ~ modelado/plausible)</span></h3>
+<div class="statgrid">
+  <div class="stat"><div class="n">+1 M</div><div class="l">practicantes de pádel en México ✓ (FIP 2025)</div></div>
+  <div class="stat"><div class="n">$392M→$517M</div><div class="l">USD, mercado pádel MX a 2027, ~10%/año ✓</div></div>
+  <div class="stat"><div class="n">630+</div><div class="l">clubes de pádel / 2,300 pistas en MX ✓ (FIP)</div></div>
+  <div class="stat"><div class="n">19.8 M</div><div class="l">jugadores de pickleball en EUA 2024, +45.8% ✓</div></div>
+  <div class="stat"><div class="n">35–40 mil</div><div class="l">expats EUA/CA residentes en la bahía ~</div></div>
+  <div class="stat"><div class="n">~96%</div><div class="l">del turismo extranjero de PV es EUA+CA ✓ (H1-24)</div></div>
+  <div class="stat"><div class="n">26%</div><div class="l">de ventas inmob. ya &gt;$500k USD (era 11% en 2017) ✓</div></div>
+  <div class="stat"><div class="n">1–1.5%</div><div class="l">de los expats = los 200-500 socios objetivo ~</div></div>
+</div>
+
+<div class="callout blue">
+  <div class="t">El hueco estructural (nuestro mejor argumento)</div>
+  <p style="margin:0">No existe en la bahía un club multideporte premium <strong>independiente</strong> (pádel + tenis + pickleball + gym + alberca + social bajo membresía). El segmento que quiere instalaciones tipo resort pero vive en la bahía —no en Punta Mita ni hospedado en Vidanta— <strong>no tiene un club al cual pertenecer</strong>. Ese es el mercado nuclear de Bahía.</p>
+</div>
+
+<h3>Panorama competitivo</h3>
+<table>
+  <thead><tr><th style="width:24%">Competidor</th><th style="width:14%">Tipo</th><th>Qué es / precio</th></tr></thead>
+  <tbody>
+    <tr><td><b>El Tigre Sport &amp; Racquet Club</b></td><td>Resort (cerrado)</td><td>+200,000 ft² multideporte (tenis, gym, alberca, golf) en Paradise Village. El más cercano estructuralmente, pero atado a desarrollo/fraccionamiento. Day pass ref. US $17.40</td></tr>
+    <tr><td><b>Punta Mita Tennis Club</b></td><td>Resort (cerrado)</td><td>10 canchas, gestión Peter Burwash Int'l (top-25 mundial). Solo socios/huéspedes</td></tr>
+    <tr><td><b>Vidanta Nuevo Vallarta</b></td><td>Resort (cerrado)</td><td>8 canchas de pickleball dedicadas + tenis. Solo huéspedes</td></tr>
+    <tr><td><b>Tropical Padel</b></td><td>Mono-deporte / hora</td><td>7 canchas nivel WPT (4 techadas), restaurante, ligas. Reserva vía Playtomic</td></tr>
+    <tr><td><b>Pik N Pad</b></td><td>Mono-deporte / hora</td><td>3 pádel + 6 pickleball en Nuevo Vallarta. Playtomic</td></tr>
+    <tr><td><b>Padel233 · Cumarú · Doopla · Punto Rojo</b></td><td>Mono-deporte / hora</td><td>2-5 canchas c/u, pago por hora vía Playtomic. Sin tejido social ni membresía premium</td></tr>
+    <tr><td><b>⚠ Pickleball Magico</b> (futuro)</td><td>Amenaza ~2027</td><td>15-18 canchas indoor climatizadas anunciadas; resolvería el juego en temporada de calor (may-oct). Asegurar comunidad de pickleball ANTES de que abra</td></tr>
+  </tbody>
+</table>
+<p class="src"><strong>Dato clave para nuestra capa:</strong> casi todos corren en <strong>Playtomic</strong> (estándar de facto de reservas + ELO + ligas + matchmaking). Los socios YA esperan esa experiencia — y Trainingym no la da. Decisión a futuro: integrar/coexistir con Playtomic o construir reservas propias (Fase 3, gated por datos).</p>
+
+<h3>Dimensionamiento del mercado</h3>
+<div class="twocol">
+  <div class="card blue">
+    <h3>Mercado local (el club)</h3>
+    <ul>
+      <li><b>200-500 socios</b> = ingreso recurrente <b>~MXN $0.75M–$1.87M/mes</b> (ARR ~$9M–$22M MXN)</li>
+      <li>Mix supuesto 40% Individual / 35% Pareja / 15% Familiar / 10% Solo Gym</li>
+      <li>Pool de captación: 35-40k expats + locales de alto poder + 548k pasajeros de crucero/año (embudo Day Pass)</li>
+    </ul>
+  </div>
+  <div class="card gold">
+    <h3>Producto companion replicable (visión interna)</h3>
+    <ul>
+      <li><b>TAM MX:</b> ~USD $13M (estrecho: clubes de raqueta) a ~$99M (amplio: +gyms premium)</li>
+      <li><b>SAM:</b> ~USD $18M (cuentas que ya usan Trainingym/Playtomic, es-MX)</li>
+      <li><b>SOM 24-36 meses:</b> 10-25 cuentas (~USD $0.26M–$0.65M) por venta consultiva post caso-éxito Bahía</li>
+    </ul>
+  </div>
+</div>
+
+<div class="callout">
+  <div class="t">⚠ Honestidad de datos (para blindarte si el dueño cuestiona)</div>
+  <p style="margin:0">El verificador adversarial <strong>descartó</strong> cifras que circulan pero no se pudieron confirmar (p. ej. "6.2M visitantes/año" y "$40,791 MDP de derrama" de PV). Las cifras de turismo EUA/CA son de <strong>1er semestre 2024</strong>. El mercado de pádel ($392M) descansa en un solo proveedor reproducido por medios. Confiabilidad general: <strong>media-alta</strong>. Usamos rangos y etiquetas, no números inflados.</p>
+</div>
+
+<h2 class="pb">Parte 2 · La propuesta — "Socio de operación e inteligencia"</h2>
+<p class="lead">No reemplazamos Trainingym. Somos su <strong>acompañante</strong>: lo exprimimos al 100% y le ponemos encima la inteligencia, la administración y el crecimiento que estructuralmente no hace. Tres pilares:</p>
+
+<div class="threecol">
+  <div class="card sage">
+    <h3>A · Aprovechamiento Trainingym</h3>
+    <ul>
+      <li>Configuración de sus módulos al 100% (NPS, retención, cobros, acceso)</li>
+      <li>SOPs documentados + capacitación del staff</li>
+      <li><b>Copiloto interno</b> (chatbot) que responde dudas del software + del club (precios, políticas, procesos)</li>
+    </ul>
+    <p class="src">"Lo que ya pagaste, por fin usado al máximo."</p>
+  </div>
+  <div class="card blue">
+    <h3>B · Inteligencia &amp; administración</h3>
+    <ul>
+      <li>Dashboard consolidado (exports Trainingym + datos propios + Meta)</li>
+      <li><b>CFO IA</b> + reporte mensual para el consejo + P&amp;L</li>
+      <li>Análisis de datos para empleados y dirección</li>
+    </ul>
+    <p class="src">Los números que Trainingym no le da al consejo.</p>
+  </div>
+  <div class="card gold">
+    <h3>C · Crecimiento</h3>
+    <ul>
+      <li>Marketing IG/FB AI-nativo (narrativa de fauna 🐊)</li>
+      <li>Concierge WhatsApp bilingüe, respuesta &lt;5 min</li>
+      <li>Day Pass bilingüe (ingreso nuevo, alto margen)</li>
+    </ul>
+    <p class="src">Dinero nuevo, atribuible.</p>
+  </div>
+</div>
+
+<h3>Por qué este enfoque y no otro</h3>
+<ul>
+  <li><b>Cero fricción:</b> "no reemplazamos tu software, lo exprimimos" elimina el mayor freno (migración) y el miedo a "doble pago".</li>
+  <li><b>Foco donde Trainingym es débil:</b> reservas multi-recurso, competición social, BI profundo y marketing Meta — todo fuera de su alcance.</li>
+  <li><b>Foso defendible para equipo pequeño:</b> la relación de operación + los datos transaccionales que acumulamos + ser el sistema de acción. No competir en el CRUD de reservas (commodity con 8+ players).</li>
+  <li><b>No clonar Trainingym:</b> replicarlo cuesta $150-400k USD/año y es un commodity maduro (incluye hardware). El activo replicable es <b>nuestra capa</b>, no la suya.</li>
+</ul>
+
+<h3>Qué soltamos explícitamente (refuerza "acompañante, no reemplazo")</h3>
+<div class="pillchips" style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0">
+  <span style="background:var(--cream);border:1px solid var(--line);border-radius:20px;padding:3px 12px;font-size:12px">Cobros recurrentes de gym</span>
+  <span style="background:var(--cream);border:1px solid var(--line);border-radius:20px;padding:3px 12px;font-size:12px">Control de acceso / torniquetes</span>
+  <span style="background:var(--cream);border:1px solid var(--line);border-radius:20px;padding:3px 12px;font-size:12px">Rutinas / nutrición</span>
+  <span style="background:var(--cream);border:1px solid var(--line);border-radius:20px;padding:3px 12px;font-size:12px">App / CRM base del gym</span>
+  <span style="background:var(--cream);border:1px solid var(--line);border-radius:20px;padding:3px 12px;font-size:12px">NPS base</span>
+</div>
+
+<h2 class="pb">Parte 3 · Modelo de negocio y pricing</h2>
+<p>Pricing aterrizado con benchmarks reales de mercado (MX/LATAM):</p>
+
+<table>
+  <thead><tr><th style="width:22%">Concepto</th><th style="width:40%">Benchmark verificado</th><th>Nuestra recomendación</th></tr></thead>
+  <tbody>
+    <tr><td><b>Ancla de valor</b></td><td>CFO de planta en MX: <b>$131k-162k MXN/mes</b>. Fractional CMO: $85-255k. Fractional CFO: $85-128k</td><td>"CFO + CMO + ops de IA por una fracción del costo de un solo directivo"</td></tr>
+    <tr><td><b>Setup (one-time)</b></td><td>Agencia: 1-1.5× el retainer</td><td class="c">$15k–25k MXN</td></tr>
+    <tr><td><b>Retainer A+B</b></td><td>Agencia boutique MX $9.5-35k; mid-360° $30-70k/mes</td><td class="c">$35-40k piloto<br>→ $40-55k steady</td></tr>
+    <tr><td><b>Rev-share C</b></td><td>Estándar 5-10% del ingreso nuevo (negocios establecidos)</td><td class="c">8%</td></tr>
+    <tr><td><b>Pauta Meta</b></td><td>Separada del fee (estándar MX); mínimo efectivo $8k+/mes</td><td class="c">$15-30k/mes<br>(a cargo del club)</td></tr>
+  </tbody>
+</table>
+<p class="src">El retainer representa <strong>&lt;2-5% del ingreso recurrente por membresías del club</strong> ($0.75M-1.87M/mes) — un costo marginal por una capa de inteligencia y crecimiento que hoy no existe. El rev-share alinea nuestro upside con el del dueño: solo pagamos más si le generamos más.</p>
+
+<div class="callout blue">
+  <div class="t">Estructura del piloto (la primera venta)</div>
+  <p style="margin:0">Setup <b>$15-25k</b> + retainer <b>$35-40k/mes × 2-3 meses</b> + 8% del ingreso nuevo, con <strong>criterio de éxito numérico</strong> acordado (ej. X Day Passes vendidos + Y socios nuevos + dashboard del consejo entregado). Si se cumple → se renueva y escala. Riesgo chico para el dueño, prueba medible para nosotros.</p>
+</div>
+
+<h2 class="pb">Parte 4 · Plan de marketing IG/FB (resumen)</h2>
+<p><strong>Posicionamiento:</strong> "El único club de la bahía donde juegas pádel, tenis y pickleball rodeado de ríos con cocodrilos, tortugas y garzas." La fauna es el activo viral irreplicable.</p>
+<div class="twocol">
+  <div class="card">
+    <h3>Jugadas de mayor ROI</h3>
+    <ul>
+      <li><b>Grupos de Facebook de expats</b> = canal orgánico #1 (presencia auténtica + embajadores)</li>
+      <li>Serie viral <b>"El Croco Residente"</b> 🐊 (costo ~cero)</li>
+      <li><b>8 canchas de pickleball dedicadas</b> como gancho para la comunidad expat que hoy juega en canchas prestadas</li>
+      <li>Micro-influencers locales (5-10/temporada) por trueque</li>
+      <li><b>Regla de los &lt;5 min</b> vía concierge WhatsApp IA (hasta 9× conversión)</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>Números de pauta (MX, verificados)</h3>
+    <ul>
+      <li>CPM Meta MX: ~$4.50 USD · CPC ~$0.45 USD</li>
+      <li>CPL generalista: $80-220 MXN</li>
+      <li>Cargar <b>60-70% de la pauta pre-temporada (sep-nov)</b> para cosechar el pico dic-abr</li>
+      <li>Membresías estacionales "snowbird" (nov-may) + Day Pass para monetizar el pico sin canibalizar la anual</li>
+      <li>Base de <b>locales de alto poder</b> (residentes todo el año) = antídoto contra la estacionalidad</li>
+    </ul>
+  </div>
+</div>
+
+<h2 class="pb">Parte 5 · Roadmap (gated — cada fase habilita la siguiente)</h2>
+<div class="phase-row"><div class="phase-num"><span class="n">0</span>Sem 1-2</div><div class="phase-body">
+  <h3>Auditoría + diseño del piloto</h3>
+  <ul><li>Auditoría real del Trainingym del dueño (con login): matriz hace/no-hace</li><li>Medir el peso de Playtomic como canal de demanda</li><li>TCO de 1 página + criterio de éxito numérico + inscripción al partner program de Trainingym</li></ul>
+</div></div>
+<div class="phase-row"><div class="phase-num"><span class="n">1</span>Mes 1-3</div><div class="phase-body">
+  <h3>Piloto pagado — ingreso + marketing + copiloto</h3>
+  <ul><li>Day Pass / guest fee con pago online bilingüe</li><li>Marketing IG/FB (fauna) + concierge WhatsApp &lt;5 min</li><li>Copiloto interno del staff + dashboard inicial (sobre ingesta automatizada de exports Excel de Trainingym)</li><li><b>Gate:</b> criterio numérico cumplido → Fase 2</li></ul>
+</div></div>
+<div class="phase-row"><div class="phase-num"><span class="n">2</span>Mes 3-6</div><div class="phase-body">
+  <h3>Inteligencia para el consejo — el foso sobre datos propios</h3>
+  <ul><li>Dashboard del consejo + CFO IA (MRR, ocupación, mix de deporte, no-shows)</li><li>Reputación digital con capa de IA</li><li><b>Gate:</b> decidir con datos si construir reservas propias o integrar Playtomic</li></ul>
+</div></div>
+<div class="phase-row"><div class="phase-num"><span class="n">3</span>Mes 6-12</div><div class="phase-body">
+  <h3>Núcleo de raqueta + comunidad (si los gates aprueban)</h3>
+  <ul><li>Reservas multi-recurso de 22 canchas + concierge en lenguaje natural</li><li>Ligas/torneos organizados + buscar-pareja (ELO solo con densidad de partidos)</li><li>Empaquetar el caso Bahía → vender la capa companion a otros clubes</li></ul>
+</div></div>
+
+<h2 class="pb">Parte 6 · Riesgos y preguntas para el dueño</h2>
+<div class="twocol">
+  <div class="card">
+    <h3>Riesgos clave</h3>
+    <ul>
+      <li><b>Estacionalidad:</b> demanda expat cae fuerte may-oct → inclinar mix a locales todo el año</li>
+      <li><b>Playtomic:</b> el usuario esporádico puede preferir pagar por hora → vender pertenencia/comunidad, no canchas</li>
+      <li><b>Pickleball Magico (~2027):</b> asegurar comunidad antes</li>
+      <li><b>Dependencia de Trainingym:</b> su API es caso-por-caso → construir sobre exports + datos propios</li>
+      <li><b>Cambiario:</b> membresías en MXN, ingreso del target en USD</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>Preguntas para confirmar</h3>
+    <ol class="qlist" style="padding-left:18px">
+      <li>Auditoría con login: ¿qué hace/no hace su Trainingym en reservas, ligas, API?</li>
+      <li>¿Usa Playtomic hoy? ¿Cuánta demanda le trae?</li>
+      <li>¿Costo real de Trainingym (cuota por socio + comisión)?</li>
+      <li>¿Admin de Meta (IG/FB) y WhatsApp Business API?</li>
+      <li>Day Pass: ¿precio alta/baja temporada y qué incluye?</li>
+      <li>¿Nuestra app como cara al socio y Trainingym de back-office?</li>
+    </ol>
+  </div>
+</div>
+
+<div class="verdict">
+  <h2>Conclusión</h2>
+  <p class="big">El mercado confirma la tesis: Bahía es el único club multideporte premium independiente en una bahía con dos booms (pádel + pickleball) y la mayor base de expats del Pacífico. Y nuestra capa "companion" llena exactamente el hueco que Trainingym deja, sin fricción de reemplazo.</p>
+  <p>Entramos por ingreso y marketing (lo que el dueño más necesita y 0% traslapado con Trainingym), cobrando retainer + 8% del dinero nuevo, en un piloto medible de 2-3 meses. Bahía paga su propia inteligencia con una fracción de lo que cuesta un solo directivo — y se convierte en nuestro caso de éxito para un producto replicable a cientos de clubes más.</p>
+</div>
+
+<footer class="doc">
+  <span>Bahía Social Sports Club — Documento interno v3 · Propuesta + Mercado</span>
+  <span>13 jun 2026 · 10 agentes IA + verificación adversarial de cifras</span>
+</footer>
+
+</body>
+</html>

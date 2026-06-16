@@ -1,7 +1,20 @@
 export const dynamic = 'force-dynamic'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
+import crypto from 'crypto'
 import { supabase } from '@/lib/supabase'
 import { sendText } from '@/lib/whatsapp'
+
+// Verifica que el POST venga realmente de Meta usando el App Secret (HMAC SHA-256
+// del cuerpo crudo contra el header X-Hub-Signature-256). Sin esto, cualquiera
+// puede disparar el webhook y quemar llamadas a Claude/WhatsApp.
+function verifySignature(rawBody: string, signature: string | null): boolean {
+  const secret = process.env.META_APP_SECRET
+  if (!secret || !signature) return false
+  const expected = 'sha256=' + crypto.createHmac('sha256', secret).update(rawBody).digest('hex')
+  const a = Buffer.from(signature)
+  const b = Buffer.from(expected)
+  return a.length === b.length && crypto.timingSafeEqual(a, b)
+}
 
 // Verificación del webhook (Meta lo llama una vez al configurar)
 export async function GET(req: NextRequest) {
@@ -18,15 +31,21 @@ export async function GET(req: NextRequest) {
 
 // Recepción de mensajes entrantes
 export async function POST(req: NextRequest) {
-  const body = await req.json()
+  const raw = await req.text()
 
-  // Responde 200 inmediatamente — Meta requiere < 5 segundos
-  const response = new NextResponse('OK', { status: 200 })
+  // Verifica la firma de Meta ANTES de procesar nada
+  if (!verifySignature(raw, req.headers.get('x-hub-signature-256'))) {
+    return new NextResponse('Forbidden', { status: 403 })
+  }
 
-  // Procesa en background (sin await para no bloquear la respuesta)
-  processMessage(body).catch(console.error)
+  const body = JSON.parse(raw)
 
-  return response
+  // Procesa en background con after() (Meta requiere responder en <5s; after()
+  // mantiene viva la función serverless hasta terminar, a diferencia de un
+  // fire-and-forget que Vercel puede matar al enviar la respuesta).
+  after(() => processMessage(body).catch(console.error))
+
+  return new NextResponse('OK', { status: 200 })
 }
 
 async function processMessage(body: Record<string, unknown>) {

@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bahía Club — Pivote estratégico: capa de crecimiento e inteligencia</title>
+<style>
+  :root{
+    --cream:#f6f6f6; --sage:#7a8a79; --blue:#37519f; --gold:#8e8055;
+    --ink:#1d2433; --muted:#5b6472; --line:#dcdfe5;
+    --green-bg:#eef4ee; --green-bd:#7a8a79;
+    --yellow-bg:#f7f3e8; --yellow-bd:#8e8055;
+    --red-bg:#eef1f8;  --red-bd:#37519f;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-print-color-adjust:exact; print-color-adjust:exact}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink); background:#fff; line-height:1.55;
+    max-width:980px; margin:0 auto; padding:48px 40px 80px;
+    font-size:14.5px;
+  }
+  header.doc{border-bottom:3px solid var(--blue); padding-bottom:20px; margin-bottom:8px}
+  .kicker{font-size:11px; letter-spacing:.32em; text-transform:uppercase; color:var(--gold); font-weight:700; margin:0 0 6px}
+  h1{font-size:30px; line-height:1.1; margin:0 0 6px; color:var(--blue); letter-spacing:.01em}
+  .sub{color:var(--muted); font-size:14px; margin:0}
+  .meta{font-size:12px; color:var(--muted); margin-top:14px; display:flex; gap:22px; flex-wrap:wrap}
+  .meta b{color:var(--ink)}
+
+  h2{font-size:20px; color:var(--blue); margin:38px 0 10px; padding-bottom:7px; border-bottom:1px solid var(--line)}
+  h3{font-size:15px; margin:22px 0 8px; color:var(--ink)}
+  p{margin:8px 0}
+  .lead{font-size:15.5px}
+  strong{color:var(--ink)}
+  code{background:var(--cream); padding:1px 5px; border-radius:4px; font-size:.86em; font-family:"SF Mono",Menlo,Consolas,monospace; color:var(--gold)}
+  ul,ol{margin:8px 0 8px 4px; padding-left:22px}
+  li{margin:4px 0}
+
+  .callout{background:var(--cream); border-left:4px solid var(--gold); padding:14px 18px; border-radius:0 8px 8px 0; margin:18px 0}
+  .callout .t{font-weight:700; color:var(--gold); font-size:12px; letter-spacing:.06em; text-transform:uppercase; margin-bottom:4px}
+  .callout.blue{border-left-color:var(--blue)}
+  .callout.blue .t{color:var(--blue)}
+
+  .thesis{
+    background:var(--blue); color:#fff; border-radius:12px; padding:22px 26px; margin:18px 0;
+    font-size:17px; line-height:1.5; font-weight:500;
+  }
+  .thesis small{display:block; font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:#aebbe0; font-weight:700; margin-bottom:8px}
+
+  .twocol{display:grid; grid-template-columns:1fr 1fr; gap:18px; margin:14px 0}
+  .card{border:1px solid var(--line); border-radius:10px; padding:16px 18px}
+  .card h3{margin-top:0}
+  .card.blue{border-top:4px solid var(--blue)}
+  .card.sage{border-top:4px solid var(--sage)}
+  .card.gold{border-top:4px solid var(--gold)}
+
+  table{width:100%; border-collapse:collapse; margin:12px 0 6px; font-size:13px}
+  th,td{text-align:left; padding:9px 11px; vertical-align:top; border-bottom:1px solid var(--line)}
+  th{background:var(--blue); color:#fff; font-weight:600; font-size:12px; letter-spacing:.02em}
+  tr:nth-child(even) td{background:#fafbfc}
+  td.c{text-align:center; font-weight:700; white-space:nowrap; color:var(--blue)}
+
+  .bucket{margin:16px 0 6px; padding:10px 16px; border-radius:8px; font-weight:700; font-size:15px; display:flex; align-items:center; gap:10px}
+  .bucket.g{background:var(--green-bg); border:1px solid var(--green-bd); color:#3c4a3c}
+  .bucket.y{background:var(--yellow-bg); border:1px solid var(--yellow-bd); color:#5f5630}
+  .bucket.r{background:var(--red-bg); border:1px solid var(--red-bd); color:#2b3c73}
+  .dot{width:12px;height:12px;border-radius:50%;display:inline-block}
+  .dot.g{background:var(--sage)} .dot.y{background:var(--gold)} .dot.r{background:var(--blue)}
+
+  .pillchips{display:flex; flex-wrap:wrap; gap:6px; margin:8px 0}
+  .chip{background:var(--cream); border:1px solid var(--line); border-radius:20px; padding:3px 12px; font-size:12px; color:var(--ink)}
+  .chip.k{background:var(--red-bg); border-color:var(--red-bd); color:var(--blue); font-weight:600}
+
+  .adjust{border:1px solid var(--line); border-left:4px solid var(--gold); border-radius:0 8px 8px 0; padding:11px 15px; margin:9px 0}
+  .adjust b{color:var(--gold)}
+
+  .phase-row{display:flex; gap:14px; margin:10px 0; align-items:flex-start}
+  .phase-num{flex-shrink:0; width:84px; text-align:center; background:var(--blue); color:#fff; border-radius:8px; padding:8px 6px; font-size:11px; font-weight:700; line-height:1.3}
+  .phase-num .n{display:block; font-size:18px}
+  .phase-body{flex:1}
+  .phase-body h3{margin:0 0 4px}
+  .phase-body ul{margin:4px 0}
+
+  .verdict{background:var(--blue); color:#fff; border-radius:12px; padding:20px 24px; margin:28px 0 0}
+  .verdict h2{color:#fff; border:none; margin:0 0 8px; font-size:18px}
+  .verdict p{color:#e7ebf6; margin:6px 0}
+  .verdict .big{font-size:15px; color:#fff}
+
+  .qlist li{margin:7px 0}
+  .qlist b{color:var(--blue)}
+
+  footer.doc{margin-top:40px; padding-top:14px; border-top:1px solid var(--line); font-size:11px; color:var(--muted); display:flex; justify-content:space-between}
+
+  @media print{
+    body{padding:0 6px; font-size:11.5px; max-width:none}
+    h2{margin-top:22px}
+    .twocol{gap:12px}
+    table{font-size:10.5px}
+    th,td{padding:5px 7px}
+    .pb{page-break-before:always}
+    tr,.adjust,.card,.callout,.phase-row{page-break-inside:avoid}
+    a{color:inherit; text-decoration:none}
+  }
+</style>
+</head>
+<body>
+
+<header class="doc">
+  <p class="kicker">Bahía Social Sports Club · Documento interno</p>
+  <h1>Pivote estratégico: de "sistema completo" a capa de crecimiento e inteligencia</h1>
+  <p class="sub">Qué hacer ahora que el dueño ya tiene Trainingym — investigación, estrategia revisada, oferta pivoteada y plan de marketing IG/FB.</p>
+  <div class="meta">
+    <span><b>Fecha:</b> 11 jun 2026</span>
+    <span><b>Método:</b> 10 agentes de IA en 3 fases (investigar → planear → proponer) con búsqueda web y revisión adversarial</span>
+  </div>
+</header>
+
+<h2>TL;DR</h2>
+<p class="lead"><strong>No competimos contra Trainingym — nos montamos encima.</strong> Trainingym cubre bien el gimnasio (socios, cobros, acceso, rutinas), pero <strong>estructuralmente no hace</strong> lo que es el corazón de Bahía: reserva de 22 canchas por recurso, torneos/ligas/ranking, visitante internacional, marketing y los números que el consejo necesita. De nuestra propuesta original, <strong>solo 2 piezas de 25 resultaron redundantes</strong>; 14 son territorio único-defendible.</p>
+<p class="lead">El pivote: entrar por <strong>ingreso, no por software</strong> — un piloto pagado de 60-90 días con (1) <strong>Day Pass/guest fee con pago online bilingüe</strong> (dinero nuevo y atribuible), (2) <strong>marketing IG/FB AI-nativo</strong> con la fauna como motor viral, y (3) <strong>concierge WhatsApp IA</strong> con la regla de los 5 minutos. Si el piloto cumple su número, escalamos a dashboard del consejo + CFO IA, y solo entonces (con datos) decidimos construir el motor de reservas propio. Cobramos <strong>setup + % del ingreso nuevo que generamos</strong> — el dueño solo paga más si gana más.</p>
+
+<div class="thesis">
+  <small>Tesis de producto — el pitch en una frase</small>
+  "Trainingym corre tu gimnasio; nosotros hacemos crecer y rentabilizar TODO el club — convertimos tu marca en socios, tu temporada alta en ingreso medible, y tus datos dispersos en los números que el consejo te exige."
+</div>
+
+<h2>1 · Qué encontramos de Trainingym</h2>
+<div class="twocol">
+  <div class="card sage">
+    <h3>✓ Lo que SÍ cubre bien (no pelear ahí)</h3>
+    <ul>
+      <li>Gestión de socios y membresías + CRM</li>
+      <li>Cobros recurrentes (Stripe/domiciliación) y morosidad</li>
+      <li>Control de acceso: QR, pulseras, facial, torniquetes</li>
+      <li>App de socio, rutinas/entrenos (su módulo estrella), nutrición</li>
+      <li>NPS/encuestas, push, comunicación, retención básica</li>
+    </ul>
+    <p style="font-size:12.5px;color:var(--muted)">Es el software #1 de gimnasios en España (1 de cada 5). Maduro en lo suyo.</p>
+  </div>
+  <div class="card blue">
+    <h3>✗ Lo que NO hace (el corazón de Bahía)</h3>
+    <ul>
+      <li><b>Reservas de canchas por recurso:</b> su módulo es de clases/actividades, no maneja 22 canchas slot por slot ni precio por franja</li>
+      <li><b>Cero competición social:</b> ni torneos, ni ligas, ni ELO, ni "busca pareja"</li>
+      <li><b>Visitante internacional:</b> sin day pass / guest fees / bilingüe estacional</li>
+      <li><b>Analítica profunda:</b> BI superficial, datos difíciles de extraer (queja #1 de usuarios)</li>
+      <li><b>Marketing Meta nativo</b> con IA</li>
+    </ul>
+  </div>
+</div>
+<div class="callout">
+  <div class="t">⚠ Riesgo de integración</div>
+  <p style="margin:0">Su <strong>API no es self-serve</strong>: la documentación pública está vacía y las integraciones reales se negocian con su equipo/partners. La vía garantizada hoy es <strong>export/import Excel</strong> (batch, no tiempo real). Regla: <strong>no prometer "dashboard unificado" hasta tener confirmación escrita de acceso API</strong>. Su precio escala por socio activo + comisión de pasarela (modelar el costo total del dueño).</p>
+</div>
+
+<h2>2 · Mapa de traslape — nuestra propuesta original vs Trainingym</h2>
+<p>Clasificamos los 15 agentes + 12 funciones + plataforma contra lo que Trainingym ya cubre:</p>
+
+<div class="bucket r"><span class="dot r"></span>ÚNICO-DEFENDIBLE (14) — donde está nuestro negocio</div>
+<div class="pillchips">
+  <span class="chip k">Plataforma de reservas 22 canchas</span><span class="chip k">Concierge de reservas en lenguaje natural</span><span class="chip k">Ranking ELO</span><span class="chip k">Ligas permanentes</span><span class="chip k">Torneos/brackets</span><span class="chip k">Buscar pareja</span><span class="chip k">Logros/badges</span><span class="chip k">Contabilidad P&amp;L</span><span class="chip k">CFO IA</span><span class="chip k">Reputación digital</span><span class="chip k">Event Intelligence</span><span class="chip k">Clima para canchas</span><span class="chip k">Casilleros</span><span class="chip k">Mantenimiento</span>
+</div>
+
+<div class="bucket y"><span class="dot y"></span>COMPLEMENTARIO (9) — Trainingym lo hace a medias; nosotros ponemos la capa de IA encima</div>
+<div class="pillchips">
+  <span class="chip">Prospección/ventas WhatsApp+DMs</span><span class="chip">Marketing Intelligence</span><span class="chip">NPS inteligente</span><span class="chip">Check-in/inactividad</span><span class="chip">Comunicaciones segmentadas</span><span class="chip">Staff y horarios</span><span class="chip">Clases</span><span class="chip">Lealtad/puntos</span><span class="chip">Day Pass</span>
+</div>
+
+<div class="bucket g"><span class="dot g"></span>REDUNDANTE (solo 2) — soltar, Trainingym lo hace bien</div>
+<div class="pillchips">
+  <span class="chip">Cobranza recurrente (Agente 3)</span><span class="chip">Control de acceso/torniquete (Función G)</span>
+</div>
+
+<h2 class="pb">3 · Lo que corrigieron los revisores adversariales</h2>
+<p>Dos revisores independientes (lente comercial y lente de foso competitivo/ejecución) estresaron la estrategia. Ambos: <b>"sólida pero ajustar"</b>. Sus 6 correcciones — esto nos salvó de varios errores:</p>
+
+<div class="adjust"><b>1 · Auditar el Trainingym real del dueño ANTES de pitchear.</b> Con login, no el marketing del sitio: qué configura su instancia en reservas de cancha, guest fees, ligas, qué expone su API. Sin esta matriz, no presentar la propuesta.</div>
+<div class="adjust"><b>2 · Matar el ancla de "ahorro de $50k de Playtomic".</b> Probable autogol: Playtomic es un marketplace que puede estar <em>trayendo</em> demanda de visitantes. Medir primero cuántas reservas/ingresos llegan por ahí; si trae demanda real, coexistir e integrarse, no matar.</div>
+<div class="adjust"><b>3 · El gancho de entrada es INGRESO, no leads.</b> Liderar con el SKU de Day Pass/guest fee con pago online bilingüe: dinero nuevo, atribuible, que ni Trainingym ni Playtomic monetizan bien. Payback en una línea: "se paga solo con N day-passes/mes".</div>
+<div class="adjust"><b>4 · NO construir el motor de reservas en Fase 1.</b> Gatearlo: solo se construye si el piloto prueba ROI y la auditoría confirma el gap real. El foso de un equipo pequeño no es el CRUD de reservas (commodity con 8+ players) — es la relación con el club + los datos transaccionales acumulados.</div>
+<div class="adjust"><b>5 · Acotar ELO al lanzamiento</b> (cold-start: con 200-500 socios y temporada baja se vería vacío). Empezar con torneos y ligas <em>organizados</em> (eventos, no matchmaking automático); activar ranking cuando haya densidad de partidos.</div>
+<div class="adjust"><b>6 · Piloto pagado de 60-90 días con criterio de éxito numérico</b> en vez de un proyecto de 14 semanas. Convertir el riesgo del dueño en una decisión chica y medible.</div>
+
+<h2>4 · La oferta pivoteada</h2>
+
+<h3>Construimos (por prioridad)</h3>
+<table>
+  <thead><tr><th style="width:9%">Prioridad</th><th style="width:36%">Módulo</th><th>Por qué</th></tr></thead>
+  <tbody>
+    <tr><td class="c">ALTA</td><td><b>SKU Day Pass / Guest Fee</b> con pago online bilingüe (es/en)</td><td>Primer entregable de PAGO, no de leads. Ingreso nuevo, atribuible, de alto margen — sobre todo en temporada alta dic–abr</td></tr>
+    <tr><td class="c">ALTA</td><td><b>Motor de marketing IG/FB AI-nativo + Concierge WhatsApp</b> (regla de los 5 minutos)</td><td>El dolor más reconocido por el dueño, 0% traslapado con Trainingym, ROI rápido y visible</td></tr>
+    <tr><td class="c">ALTA</td><td><b>Dashboard del Consejo + CFO IA</b> sobre datos transaccionales propios</td><td>El mayor valor político: MRR, ocupación por cancha/deporte, estacionalidad, conversión day-pass→socio. Trainingym no se lo da</td></tr>
+    <tr><td class="c">MEDIA</td><td><b>Plataforma de reservas de 22 canchas</b></td><td>Núcleo defendible #1 — pero <b>gated</b>: se construye después del piloto, con datos y auditoría que confirmen el gap</td></tr>
+    <tr><td class="c">MEDIA</td><td><b>Comunidad competitiva acotada</b>: ligas y torneos organizados + brackets + buscar-pareja básico</td><td>Núcleo defendible #2, re-escopado para evitar el cold-start de ELO</td></tr>
+    <tr><td class="c">BAJA</td><td><b>Reputación digital + Event Intelligence</b></td><td>Encajan con el posicionamiento premium-social; fuera de Trainingym</td></tr>
+  </tbody>
+</table>
+
+<h3>Soltamos (y por qué decirlo abiertamente nos da credibilidad)</h3>
+<ul>
+  <li><b>Cobros recurrentes de gym, morosidad y bloqueo de acceso</b> — core maduro de Trainingym; reconstruirlo = "doble pago" a ojos del dueño.</li>
+  <li><b>Control de acceso (QR/facial/torniquetes)</b> — hardware ya instalado; integrarse, jamás reconstruir.</li>
+  <li><b>Rutinas, nutrición y check-in de gym</b> — cederlo explícitamente ES el mensaje: "capa complementaria, no reemplazo".</li>
+  <li><b>Otro CRM/app de membresías de gym</b> — el socio no debe ver dos apps de membresía. Trainingym = back-office del gym; nuestra app = canchas, comunidad y eventos.</li>
+  <li><b>NPS/encuestas base y marketing automatizado base</b> — Trainingym ya los trae; solo aportamos la capa de IA encima.</li>
+  <li><b>"Reemplazar Playtomic" como argumento de venta</b> — primero medir si trae demanda.</li>
+</ul>
+
+<h3>Integramos</h3>
+<table>
+  <thead><tr><th style="width:30%">Con qué</th><th>Cómo</th></tr></thead>
+  <tbody>
+    <tr><td><b>Trainingym</b> (sistema del gym)</td><td>Auditoría con login primero. Sincronizar socios/estado de pago vía CSV al inicio (regla "moroso no reserva cancha"); migrar a API/webhooks solo con confirmación escrita de su equipo</td></tr>
+    <tr><td><b>Playtomic / marketplaces</b></td><td>Medir su peso real como canal de demanda internacional. Si trae reservas: coexistir/integrar, no matar</td></tr>
+    <tr><td><b>Pasarela de pago propia</b> (Stripe MXN)</td><td>Un solo riel para day-pass, guest fees, reservas y clases — separado del cobro recurrente de Trainingym (regla de no-doble-cobro)</td></tr>
+    <tr><td><b>Meta Ads + WhatsApp Business API</b></td><td>Lead Ads → CRM propio → WhatsApp en &lt;5 min → cobro. Cierra el loop atribución→ingreso</td></tr>
+  </tbody>
+</table>
+
+<h2 class="pb">5 · Roadmap por fases (gated — cada fase habilita la siguiente)</h2>
+
+<div class="phase-row">
+  <div class="phase-num"><span class="n">0</span>Sem 1–2</div>
+  <div class="phase-body">
+    <h3>Auditoría + diseño del piloto ("verificar antes de construir")</h3>
+    <ul>
+      <li>Auditoría real del Trainingym del dueño (con login): matriz hace/no-hace</li>
+      <li>Medir el peso real de Playtomic como canal de demanda</li>
+      <li>Modelo de TCO de 1 página: "$X/mes total, payback en N day-passes/mes"</li>
+      <li>Acordar modelo de cobro (setup + % transaccional) y criterio de éxito numérico a 60-90 días</li>
+    </ul>
+  </div>
+</div>
+<div class="phase-row">
+  <div class="phase-num"><span class="n">1</span>Mes 1–3</div>
+  <div class="phase-body">
+    <h3>Piloto pagado acotado — ingreso + marketing + concierge</h3>
+    <ul>
+      <li>Day Pass / Guest Fee con pago online bilingüe en producción</li>
+      <li>Marketing IG/FB AI-nativo (narrativa de fauna) + Meta Lead Ads a visita</li>
+      <li>Concierge WhatsApp es/en con regla de los 5 minutos</li>
+      <li>Reportes de conversión lead→visita→day-pass→socio</li>
+      <li><b>Gate:</b> criterio numérico cumplido habilita Fase 2</li>
+    </ul>
+  </div>
+</div>
+<div class="phase-row">
+  <div class="phase-num"><span class="n">2</span>Mes 3–6</div>
+  <div class="phase-body">
+    <h3>Inteligencia para el consejo — el foso sobre datos propios</h3>
+    <ul>
+      <li>Dashboard del Consejo + CFO IA (MRR, ocupación, mix de deporte, no-shows)</li>
+      <li>Integración Trainingym como fuente (CSV → API si se negocia por escrito)</li>
+      <li>Reputación digital con capa de IA</li>
+      <li><b>Gate:</b> decidir con datos si construimos el motor de reservas propio</li>
+    </ul>
+  </div>
+</div>
+<div class="phase-row">
+  <div class="phase-num"><span class="n">3</span>Mes 6–12</div>
+  <div class="phase-body">
+    <h3>Núcleo de raqueta + comunidad (si los gates lo aprueban)</h3>
+    <ul>
+      <li>Plataforma de reservas de 22 canchas + concierge en lenguaje natural</li>
+      <li>Ligas/torneos organizados + brackets + buscar-pareja</li>
+      <li>ELO/ranking solo cuando haya densidad de partidos suficiente</li>
+    </ul>
+  </div>
+</div>
+
+<h2 class="pb">6 · Plan de marketing IG/FB — 90 días</h2>
+
+<div class="callout blue">
+  <div class="t">Posicionamiento</div>
+  <p style="margin:0">"El único club deportivo-social de la Riviera Nayarit donde juegas pádel, tenis y pickleball rodeado de ríos naturales con cocodrilos, tortugas y garzas." No vendemos canchas: vendemos <strong>pertenencia + naturaleza + un estilo de vida que nadie puede copiar</strong>. La fauna es el activo de marca irreplicable y el motor viral de costo casi cero.</p>
+</div>
+
+<h3>Segmentos objetivo</h3>
+<table>
+  <thead><tr><th style="width:30%">Segmento</th><th style="width:32%">Canal</th><th>Ángulo</th></tr></thead>
+  <tbody>
+    <tr><td><b>Locales premium</b> (familias/parejas BdB, Nuevo Vallarta, Bucerías)</td><td>IG Reels + FB Feed (es-MX), Lead Ads geo</td><td>"Tu club de toda la familia — la única cancha con ríos y cocodrilos a un lado"</td></tr>
+    <tr><td><b>Expats y residentes internacionales</b> (snowbirds, jubilados activos)</td><td>FB Groups de expats (orgánico $0) + Lead Ads en-US</td><td>"Your social club and community the moment you arrive"</td></tr>
+    <tr><td><b>Turistas temporada alta</b> (dic–abr)</td><td>IG Reels descubrimiento + ads geo "recently in"</td><td>"No dejes de jugar en vacaciones — Day Pass $500 en el club más fotogénico de la bahía"</td></tr>
+    <tr><td><b>Comunidad de raqueta local</b> (jugadores serios)</td><td>Reels de partidos/ligas, FB Groups deportivos</td><td>"La comunidad competitiva más seria de la bahía: ligas, torneos, busca-pareja"</td></tr>
+    <tr><td><b>Solo Gym / bienestar</b></td><td>Reels de gym + Lead Ads es-MX</td><td>"Gym premium con alberca y vista a la naturaleza desde $1.8k/mes"</td></tr>
+  </tbody>
+</table>
+
+<h3>Pilares de contenido</h3>
+<table>
+  <thead><tr><th style="width:34%">Pilar</th><th>Ejemplos concretos</th></tr></thead>
+  <tbody>
+    <tr><td><b>1 · Fauna y naturaleza</b> 🐊<br><span style="font-size:11.5px;color:var(--muted)">motor viral, costo ~cero</span></td><td>Serie semanal <b>"El Croco Residente"</b> (el cocodrilo del río con nombre propio, ej. "Don Tito") · "Amanecer en Bahía": garzas y tortugas al alba mientras alguien calienta — "Tu lunes podría empezar así"</td></tr>
+    <tr><td><b>2 · Experiencia y tour</b></td><td>Reel walkthrough de las 22 canchas y 4 superficies · carrusel "Un día perfecto en Bahía" (pádel + alberca + atardecer junto al río)</td></tr>
+    <tr><td><b>3 · Comunidad y pertenencia</b></td><td>UGC por trueque con 3-5 micro-creadores locales (clases/créditos a cambio de contenido) · testimonio snowbird: "Llegué sin conocer a nadie; hoy Bahía es mi comunidad"</td></tr>
+    <tr><td><b>4 · Bienestar y salud</b></td><td>"3 razones por las que el pádel es el mejor deporte después de los 40" · "Pickleball: por qué todos en Vallarta están obsesionados"</td></tr>
+    <tr><td><b>5 · Oferta y conversión</b><br><span style="font-size:11.5px;color:var(--muted)">solo retargeting</span></td><td>Carrusel comparador de membresías (ROI lifestyle, no solo precio) · "Prueba 7 días" con Instant Form + WhatsApp en &lt;5 min</td></tr>
+  </tbody>
+</table>
+
+<h3>Campañas de Meta Ads</h3>
+<table>
+  <thead><tr><th style="width:26%">Campaña</th><th style="width:22%">Objetivo</th><th style="width:22%">Presupuesto</th><th>KPI</th></tr></thead>
+  <tbody>
+    <tr><td><b>Fauna Boost</b></td><td>Alcance + alimentar retargeting</td><td>$3–6 USD/día (solo Reels ganadores)</td><td>CPM &lt;$10–15, video-views 50%+</td></tr>
+    <tr><td><b>Leads Locales</b> (es-MX)</td><td>Lead Ads → visita agendada</td><td>$15–25 USD/día (núcleo)</td><td>CPL $25–40 USD</td></tr>
+    <tr><td><b>Expat &amp; Snowbird</b> (en-US)</td><td>Lead Ads → visita/clase de prueba</td><td>$12–20 USD/día (escala oct–dic)</td><td>CPL $30–50 USD</td></tr>
+    <tr><td><b>Retargeting Conversión</b></td><td>Cierre de audiencia tibia</td><td>$8–15 USD/día</td><td>Costo/visita menor que frías</td></tr>
+    <tr><td><b>Day Pass Temporada Alta</b></td><td>Venta directa $500 + lead</td><td>$8–15 USD/día (solo dic–abr)</td><td>Costo por Day Pass, % → membresía</td></tr>
+    <tr><td><b>Eventos Ancla</b></td><td>Torneos y temporada de fauna</td><td>$5–10 USD/día (ventanas)</td><td>Inscritos, % asistente → lead</td></tr>
+  </tbody>
+</table>
+
+<h3>Calendario 90 días</h3>
+<ul>
+  <li><b>Fase 0 (sem 1–2):</b> cimientos + instalar la <b>regla de los 5 minutos</b> (todo lead dispara WhatsApp en &lt;5 min — la mejora de mayor ROI sobre la operación actual). Orgánico: 4-5 posts/sem (3 de fauna).</li>
+  <li><b>Fase 1 (sem 3–8):</b> captura barata anti-estacional — construir lista de leads en ventana de CPL bajo para cosechar en dic–abr. Escalar Leads Locales + arrancar UGC.</li>
+  <li><b>Fase 1.5 (sem 8–12):</b> activar contenido de comunidad competitiva (primer torneo interno) + retargeting de comparador.</li>
+  <li><b>Fase 2 (dic–abr):</b> cosecha de temporada alta — campaña Day Pass bilingüe + eventos ancla; 6 posts/sem.</li>
+</ul>
+
+<h3>El rol del agente de IA (nuestro gancho de venta)</h3>
+<ul>
+  <li><b>Concierge WhatsApp 24/7 bilingüe</b> que ejecuta la regla de los 5 minutos: responde, califica, agenda visita, cobra day pass.</li>
+  <li>Califica y enruta leads del Instant Form (local vs expat vs turista, deporte, ventana de compra).</li>
+  <li>Analiza creativos a diario: detecta Reels de fauna con tracción y recomienda amplificar/pausar.</li>
+  <li>Genera guiones y captions bilingües ("El Croco Residente", tours, comparadores) con el tono premium-relajado.</li>
+  <li>Nurtures automáticos: agendó-pero-no-fue, post-visita, prueba de 7 días.</li>
+  <li>Clasifica DMs/comentarios/reviews por sentimiento y detecta objeciones recurrentes.</li>
+  <li>Dashboard consolidado: CPL, CAC, conversión por etapa, MRR atribuido al marketing.</li>
+</ul>
+
+<h3>KPIs y metas</h3>
+<table>
+  <thead><tr><th style="width:46%">KPI</th><th>Meta / benchmark</th></tr></thead>
+  <tbody>
+    <tr><td>Tiempo de respuesta a lead</td><td><b>&lt;5 min en el 100%</b> (hasta 9× más conversión)</td></tr>
+    <tr><td>CPL</td><td>$25–40 USD locales · $30–50 USD expats</td></tr>
+    <tr><td>Lead → visita agendada</td><td>35–50%</td></tr>
+    <tr><td>Visita/prueba → membresía</td><td>de ~19% base a <b>~38%</b> con seguimiento estructurado</td></tr>
+    <tr><td>CPM (audiencias amplias)</td><td>&lt;$10–15 USD (la fauna baja el costo de atención)</td></tr>
+    <tr><td>Day Pass (dic–abr)</td><td># vendidos + % conversión a membresía</td></tr>
+    <tr><td>CAC por tier</td><td>siempre &lt;&lt; LTV (inscripción $3.6k–13k + mens. $1.8k–6.5k MXN)</td></tr>
+  </tbody>
+</table>
+
+<h2 class="pb">7 · Modelo de cobro propuesto</h2>
+<div class="twocol">
+  <div class="card gold">
+    <h3>1 · Setup fee único</h3>
+    <p>Implementación de marca + integración inicial. Cubre el arranque del piloto.</p>
+  </div>
+  <div class="card gold">
+    <h3>2 · % del ingreso NUEVO (~5–10%)</h3>
+    <p>Sobre day-pass, guest fees, clases y reservas con cobro <b>que nosotros originamos</b>. Con ~$120k MXN/mes de transaccional en alta ≈ $6–12k/mes — y el dueño solo lo paga si nosotros le generamos el ingreso.</p>
+  </div>
+</div>
+<div class="card gold" style="margin-top:0">
+  <h3>3 · Cuota baja opcional por el Dashboard del Consejo + CFO IA</h3>
+  <p>La pieza de mayor valor político (~1–2% del MRR de membresías). <b>Regla de oro: nunca vender "ahorro de Playtomic" — vender ingreso incremental atribuible y números que Trainingym no le da al consejo.</b></p>
+</div>
+
+<h2>8 · Preguntas para el dueño (antes de la propuesta formal)</h2>
+<ol class="qlist">
+  <li><b>Trainingym real:</b> sesión de auditoría con login — ¿qué configura su instancia en reservas de cancha, guest fees, ligas? ¿Qué API/export expone?</li>
+  <li><b>Playtomic:</b> ¿lo usa hoy? ¿cuántas reservas/ingresos de visitantes le trae el marketplace?</li>
+  <li><b>Costo actual:</b> ¿cuánto paga de Trainingym (cuota por socio activo + comisión de pasarela)? — para el modelo de TCO.</li>
+  <li><b>Accesos:</b> ¿admin de Meta (IG @bahiaclub.mx + FB) y WhatsApp Business API disponibles para arrancar Fase 0?</li>
+  <li><b>Day Pass:</b> ¿precio alta vs baja temporada? ¿qué incluye (canchas, gym, alberca)? ¿guest fees para invitados de socios?</li>
+  <li><b>La app del socio:</b> ¿de acuerdo en que nuestra app sea la cara al socio (canchas/comunidad/eventos) y Trainingym el back-office del gym?</li>
+  <li><b>Membresías de raqueta</b> (Familiar/Pareja/Individual): ¿quién las cobra — Trainingym o nuestro riel transaccional?</li>
+  <li><b>Datos históricos:</b> ¿hay Excel exportables (socios, ocupación, pagos) para sembrar el sistema?</li>
+</ol>
+
+<div class="verdict">
+  <h2>Conclusión para decidir</h2>
+  <p class="big">El hallazgo de Trainingym no mata el proyecto — lo enfoca. Solo 2 de 25 piezas de nuestra propuesta eran redundantes; el corazón (canchas, comunidad competitiva, visitante internacional, marketing, números del consejo) sigue siendo nuestro y Trainingym estructuralmente no lo va a cubrir.</p>
+  <p>La jugada: <b>piloto pagado de 60-90 días</b> que entra por ingreso (Day Pass + marketing de fauna + concierge de 5 minutos), cobrando % del dinero nuevo que generamos. Riesgo chico para el dueño, prueba medible para nosotros, y cada fase desbloquea la siguiente con datos — no con promesas.</p>
+</div>
+
+<footer class="doc">
+  <span>Bahía Social Sports Club — Documento interno · Pivote estratégico</span>
+  <span>Generado 11 jun 2026 · 10 agentes IA + revisión adversarial</span>
+</footer>
+
+</body>
+</html>

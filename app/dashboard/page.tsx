@@ -153,7 +153,7 @@ function StrategySection({ seasonality: s, strategy: st }: { seasonality: Report
         </div>
         <div style={{ marginBottom: 14 }}>
           <div style={{ fontSize: 11, color: C.muted, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Mensaje clave</div>
-          <div style={{ color: C.accent, fontStyle: 'italic', fontSize: 14 }}>"{st.message}"</div>
+          <div style={{ color: C.accent, fontStyle: 'italic', fontSize: 14 }}>{`"${st.message}"`}</div>
         </div>
         <div>
           <div style={{ fontSize: 11, color: C.muted, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Evitar</div>
@@ -189,7 +189,7 @@ function ContentIdeasSection({ ideas }: { ideas: ContentIdea[] }) {
                   <div style={{ fontSize: 11, color: C.muted, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>
                     Hook · {idea.hook.pattern}
                   </div>
-                  <div style={{ color: C.accent, fontWeight: 600, fontSize: 14 }}>"{idea.hook.text}"</div>
+                  <div style={{ color: C.accent, fontWeight: 600, fontSize: 14 }}>{`"${idea.hook.text}"`}</div>
                   <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                     {idea.hook.triggerWords?.map(w => <Tag key={w}>{w}</Tag>)}
                   </div>
@@ -325,6 +325,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [timeAgo, setTimeAgo] = useState<string | null>(null)
 
   const fetchReport = useCallback(async () => {
     try {
@@ -344,6 +345,9 @@ export default function Dashboard() {
     }
   }, [])
 
+  // Carga inicial del reporte (el setState ocurre tras un fetch async, no en el
+  // cuerpo síncrono del efecto; la regla lo marca de forma conservadora).
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchReport() }, [fetchReport])
 
   async function generate() {
@@ -377,12 +381,21 @@ export default function Dashboard() {
     }, 10000)
   }
 
-  const timeAgo = generatedAt
-    ? (() => {
-        const mins = Math.floor((Date.now() - new Date(generatedAt).getTime()) / 60000)
-        return mins < 1 ? 'hace menos de 1 min' : mins < 60 ? `hace ${mins} min` : `hace ${Math.floor(mins / 60)}h`
-      })()
-    : null
+  // Tiempo relativo en un efecto (NO en render, para no llamar Date.now() durante
+  // el render — regla de pureza de React 19); se auto-actualiza cada minuto.
+  useEffect(() => {
+    const compute = () => {
+      if (!generatedAt) {
+        setTimeAgo(null)
+        return
+      }
+      const mins = Math.floor((Date.now() - new Date(generatedAt).getTime()) / 60000)
+      setTimeAgo(mins < 1 ? 'hace menos de 1 min' : mins < 60 ? `hace ${mins} min` : `hace ${Math.floor(mins / 60)}h`)
+    }
+    compute()
+    const id = setInterval(compute, 60000)
+    return () => clearInterval(id)
+  }, [generatedAt])
 
   return (
     <div style={{ background: C.bg, minHeight: '100vh', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', color: C.text }}>

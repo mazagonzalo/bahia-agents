@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '=== STATUS BAHÍA (docs/STATUS.md) ==='; cat docs/STATUS.md 2>/dev/null; echo; echo '=== ÚLTIMO HANDOFF DEL EQUIPO ==='; ls -t docs/handoffs/2*.md 2>/dev/null | head -1 | xargs cat 2>/dev/null; echo; echo '(Lee también docs/handoffs/ recientes. Corre /catchup para sincronizar con git.)'"
+          }
+        ]
+      }
+    ]
+  }
+}

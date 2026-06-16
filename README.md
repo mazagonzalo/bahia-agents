@@ -59,7 +59,7 @@ Cada 4h (Vercel Cron):
 ```
 
 ## Stack
-- Next.js 15 (App Router) en Vercel
+- Next.js 16 (App Router) en Vercel
 - Supabase (PostgreSQL + pgvector)
 - Claude API (claude-sonnet-4-6)
 - WhatsApp Business Cloud API
