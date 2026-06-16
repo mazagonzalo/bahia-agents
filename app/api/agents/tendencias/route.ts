@@ -220,9 +220,16 @@ async function runTendencias(notifyAdmin: boolean) {
   // ─── Claude genera el briefing ────────────────────────────────────────────────
 
   const generatedAt = now.toISOString()
-  const prompt = `Eres el estratega de marketing de Bahía Social Sports Club (club deportivo premium en Nuevo Vallarta, Nayarit).
+  const prompt = `Eres el estratega de marketing de Bahía Social Sports Club, club deportivo premium en Paseo de los Flamingos, Nuevo Vallarta, Nayarit.
 
-INSTALACIONES: pádel, pickleball, tenis, alberca, gym, restaurante panorámico. DIFERENCIADOR: ríos con cocodrilos, tortugas y garzas dentro del predio.
+INSTALACIONES (layout confirmado):
+- CANCHAS DE RAQUETA: 8 canchas de pádel techadas + 8 de pickleball (zona norte, área grande), canchas de tenis de concreto, canchas de tenis de arcilla — todas en la zona norte/central del predio, separadas del lago
+- AGUA Y DESCANSO: albercas exteriores con asoleadero, palapa y baños junto a las albercas
+- FITNESS: gym funcional, salón de spinning, área de yoga y terraza con vistas (planta alta)
+- AMENIDADES: vestidores premium con regaderas (hombres y mujeres), salón de belleza, cocina/cafetería, múltiples salones para eventos (SUM)
+- NATURALEZA: lago natural en la zona baja del predio, rodeado de vegetación tropical — área de descanso y paisaje, NO junto a las canchas
+- ACCESO: entrada principal sobre Paseo de los Flamingos con puente, estacionamiento
+
 MEMBRESÍAS: Familiar $6,500 · Pareja $4,500 · Individual $2,500 · Solo Gym $1,800 (mensual).
 
 ${HOOK_PATTERNS_CONTEXT}
