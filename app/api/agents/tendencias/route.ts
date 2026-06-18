@@ -169,6 +169,30 @@ PLATAFORMAS: Reel (hook 1-3s, 30-60s, subtítulos) · TikTok (texto primeros 2s,
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
+async function getPreviousReport(): Promise<string> {
+  const { data } = await supabase
+    .from('agent_memory')
+    .select('content, created_at')
+    .eq('agent', 'tendencias')
+    .eq('type', 'briefing')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single()
+
+  if (!data) return ''
+
+  try {
+    const prev = JSON.parse(data.content)
+    const fecha = new Date(data.created_at).toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })
+    const trends = (prev.trends ?? []).map((t: { topic: string; score: number }) => `${t.topic} (${t.score})`).join(', ')
+    const gtrends = (prev.googleTrends ?? []).map((g: { keyword: string; avgScore: number; trend: string }) => `${g.keyword}: ${g.avgScore} (${g.trend})`).join(', ')
+    const topIdeas = (prev.contentIdeas ?? []).slice(0, 2).map((i: { title: string }) => i.title).join(', ')
+    return `REPORTE ANTERIOR (${fecha}):\n- Tendencias: ${trends}\n- Google Trends: ${gtrends || 'sin datos'}\n- Ideas top: ${topIdeas}\n- Estrategia: ${prev.strategy?.message ?? ''}`
+  } catch {
+    return ''
+  }
+}
+
 async function runTendencias(notifyAdmin: boolean) {
   const region = 'Riviera Nayarit Bahía de Banderas Puerto Vallarta México'
   const now = new Date()
@@ -176,6 +200,8 @@ async function runTendencias(notifyAdmin: boolean) {
 
   const keywords = ['padel', 'pickleball', 'gym', 'tenis', 'club deportivo']
   const adsTerms = ['pádel Vallarta', 'club deportivo Puerto Vallarta', 'pickleball México', 'gym membresía Nayarit']
+
+  const previousReport = await getPreviousReport()
 
   const [marketRaw, contentRaw, audienceRaw, metaAdsRaw, ...trendsData] = await Promise.all([
     perplexityAsk(
@@ -237,6 +263,7 @@ ${COPYWRITING_CONTEXT}
 ${REPURPOSING_CONTEXT}
 
 REGLA: Todo deriva de los datos de investigación. Sin reglas fijas de horarios.
+${previousReport ? `\nEVOLUCIÓN — compara con el reporte anterior y nota qué subió, qué bajó, qué es nuevo:\n${previousReport}` : ''}
 
 LÍMITES CRÍTICOS — el JSON DEBE caber en 3000 tokens:
 - Máximo 3 trends, 3 googleTrends, 3 contentOpportunities, 2 viralPatterns, 3 contentIdeas
