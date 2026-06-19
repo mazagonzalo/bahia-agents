@@ -628,7 +628,7 @@ export default function Dashboard() {
         {/* ── Agente Crítico ───────────────────────────────────────────── */}
         <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 40, marginTop: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-            <SectionTitle label="Evaluación del sistema" />
+            <SectionTitle>Evaluación del sistema</SectionTitle>
             <button
               onClick={fetchCritico}
               disabled={criticoLoading}
