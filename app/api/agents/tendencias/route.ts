@@ -318,8 +318,10 @@ FILTRO DE CALIDAD — CRÍTICO:
 - Las tendencias deben ser reales y verificables, no suposiciones.
 
 REGLAS:
-- Máximo 3 trends, 3 googleTrends, 3 contentOpportunities, 2 viralPatterns, 4 contentIdeas
+- Máximo 3 trends, 3 googleTrends, 3 contentOpportunities, 2 viralPatterns, 3 contentIdeas
 - hashtags por idea: máximo 5 tags · triggerWords: máximo 3 elementos
+- music: exactamente 4 opciones por idea (no más, para que el JSON quepa completo)
+- Sé rico en las descripciones pero conciso: cada campo de texto máximo 2-3 oraciones
 
 Devuelve ÚNICAMENTE el JSON, sin markdown:
 {"generatedAt":"${generatedAt}","period":"${mes}","trends":[{"topic":"string","score":0,"angle":"string","evidence":"string"}],"googleTrends":[{"keyword":"string","avgScore":0,"trend":"string","insight":"string"}],"seasonality":{"touristFlow":"string","dominantProfile":"string","peakWindow":"string","localMarket":"string","insight":"string"},"strategy":{"primarySegment":"string","secondarySegment":"string","message":"string","avoid":"string"},"competitive":{"topCompetitors":["string"],"theirAngle":"string","gap":"string","counterPositioning":"string"},"audienceWhere":{"accounts":["string"],"contentTypes":["string"],"ownHashtags":["#tag"],"insight":"string"},"hashtags":{"masivos":["#tag"],"nicho":["#tag"],"locales":["#tag"],"mixRecomendado":"string"},"contentOpportunities":[{"instalacion":"string","oportunidad":"string","momento":"string","formatoIdeal":"string","urgencia":0}],"viralPatterns":[{"pattern":"string","description":"string","whyItWorks":"string","adaptForBahia":"string","differentiator":"string"}],"contentIdeas":[{"title":"string","format":"Reel","hook":{"text":"string","pattern":"string","triggerWords":["string"]},"copyStructure":{"framework":"PAS","step1":"string","step2":"string","step3":"string","cta":"string"},"platforms":{"reel":"string","tiktok":"string","stories":"string","carrusel":"string"},"music":[{"title":"string","artist":"string","bpm":0,"mood":"string","why":"string"}],"instalacion":"string","targetSegment":"string","hashtags":["#tag"],"trendConnection":"string","urgency":0}]}`
@@ -339,7 +341,7 @@ Devuelve ÚNICAMENTE el JSON, sin markdown:
         ? `GOOGLE TRENDS MX:\n${googleTrendsResults.map(t => `${t.keyword}: ${t.avgScore}/100 (${t.trend})`).join(', ')}`
         : '',
     ].filter(Boolean).join('\n\n---\n\n'),
-  }], 6000)
+  }], 8000)
 
   type Trend = { topic: string; score: number; angle: string; evidence: string }
   type GTrend = { keyword: string; avgScore: number; trend: string; insight: string }
@@ -377,21 +379,57 @@ Devuelve ÚNICAMENTE el JSON, sin markdown:
     }
   }
 
+  // El JSON está completo solo si parsea Y trae las ideas de contenido (el campo
+  // más pesado y el último del schema — si Claude se truncó, es lo primero que falta).
+  const isComplete = (a: Analysis | null): a is Analysis =>
+    !!a && Array.isArray(a.contentIdeas) && a.contentIdeas.length > 0
+
   let analysis = parseAnalysis(consolidated)
 
-  // Retry con instrucción explícita si el JSON llegó malformado
-  if (!analysis) {
+  // Retry si el JSON llegó malformado O incompleto (truncado sin contentIdeas)
+  if (!isComplete(analysis)) {
     const retry = await ask(
-      'El JSON que generaste estaba malformado. Devuelve ÚNICAMENTE el JSON válido y completo, sin texto adicional, sin markdown.',
-      [{ role: 'user', content: `JSON inválido recibido:\n${consolidated.slice(0, 2000)}` }],
-      6000
+      'El JSON anterior llegó incompleto o malformado (probablemente truncado). Devuelve ÚNICAMENTE el JSON completo y válido, con TODOS los campos incluyendo contentIdeas. Sin markdown, sin texto adicional. Si es necesario, sé más conciso en las descripciones para que quepa completo.',
+      [{ role: 'user', content: `JSON incompleto recibido:\n${consolidated.slice(0, 3000)}` }],
+      8000,
     )
-    analysis = parseAnalysis(retry)
+    const retried = parseAnalysis(retry)
+    if (isComplete(retried)) analysis = retried
+    else if (retried) analysis = retried // usa lo que haya, el blindaje de abajo evita crashes
   }
 
   if (!analysis) {
     return NextResponse.json({ error: 'Error parsing Claude response after retry', raw: consolidated.slice(0, 1000) }, { status: 500 })
   }
+
+  // Blindaje — nunca crashear por un campo faltante si Claude devolvió JSON parcial.
+  analysis.trends ??= []
+  analysis.googleTrends ??= []
+  analysis.contentOpportunities ??= []
+  analysis.viralPatterns ??= []
+  analysis.contentIdeas ??= []
+  analysis.hashtags ??= { masivos: [], nicho: [], locales: [], mixRecomendado: '' }
+  analysis.hashtags.masivos ??= []
+  analysis.hashtags.nicho ??= []
+  analysis.hashtags.locales ??= []
+  analysis.seasonality ??= { touristFlow: '', dominantProfile: '—', peakWindow: '—', localMarket: '', insight: '—' }
+  analysis.strategy ??= { primarySegment: '—', secondarySegment: '', message: '—', avoid: '—' }
+  analysis.competitive ??= { topCompetitors: [], theirAngle: '—', gap: '', counterPositioning: '—' }
+  analysis.audienceWhere ??= { accounts: [], contentTypes: [], ownHashtags: [], insight: '' }
+
+  // Descarta ideas incompletas (si Claude truncó la respuesta, la última idea
+  // puede quedar a medias sin copyStructure/hook/platforms). Nos quedamos solo
+  // con las ideas completas en lugar de crashear o mostrar datos rotos.
+  analysis.contentIdeas = analysis.contentIdeas.filter(i =>
+    i && typeof i.title === 'string'
+    && i.hook && typeof i.hook.text === 'string'
+    && i.copyStructure && typeof i.copyStructure.framework === 'string'
+    && i.platforms,
+  )
+  analysis.contentOpportunities = analysis.contentOpportunities.filter(o =>
+    o && typeof o.instalacion === 'string' && typeof o.oportunidad === 'string',
+  )
+  analysis.trends = analysis.trends.filter(t => t && typeof t.topic === 'string')
 
   if (!analysis) return NextResponse.json({ error: 'Análisis vacío' }, { status: 500 })
 
@@ -416,13 +454,15 @@ Devuelve ÚNICAMENTE el JSON, sin markdown:
     analysis.trends.map(t => ({ topic: t.topic, score: t.score, source: 'perplexity+claude', region }))
   )
 
-  // Disparar Agente de Contenido con la idea de mayor urgency
+  // Disparar Agente de Contenido con la idea de mayor urgency (solo si hay ideas)
   const topIdea = [...analysis.contentIdeas].sort((a, b) => b.urgency - a.urgency)[0]
-  await fetch(`${process.env.NEXT_PUBLIC_URL}/api/agents/contenido`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ idea: topIdea, strategy: analysis.strategy, report: analysis }),
-  }).catch(() => {})
+  if (topIdea) {
+    await fetch(`${process.env.NEXT_PUBLIC_URL}/api/agents/contenido`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idea: topIdea, strategy: analysis.strategy, report: analysis }),
+    }).catch(() => {})
+  }
 
   // Notificar al admin
   if (notifyAdmin) {
