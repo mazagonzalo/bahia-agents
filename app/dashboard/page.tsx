@@ -11,6 +11,7 @@ type ContentIdea = {
   hook: { text: string; pattern: string; triggerWords: string[] }
   copyStructure: { framework: string; step1: string; step2: string; step3: string; cta: string }
   platforms: { reel: string; tiktok: string; stories: string; carrusel: string }
+  music?: { title: string; artist: string; bpm: number; mood: string; why: string }
   instalacion: string; targetSegment: string; hashtags: string[]
   trendConnection: string; urgency: number
 }
@@ -288,6 +289,23 @@ function ContentIdeasSection({ ideas }: { ideas: ContentIdea[] }) {
                     <div style={{ fontSize: 11, color: C.sage, fontFamily: 'DM Sans', marginTop: 6, fontStyle: 'italic' }}>↗ {idea.trendConnection}</div>
                   )}
                 </div>
+
+                {/* Música en tendencia */}
+                {idea.music && (
+                  <div style={{ background: C.goldFaint, border: `1px solid ${C.gold}25`, borderRadius: 10, padding: '14px 16px', gridColumn: '1 / -1', display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                    <div style={{ fontSize: 20, lineHeight: 1 }}>♪</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 10, color: C.gold, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 6, fontFamily: 'DM Sans', fontWeight: 600 }}>Música recomendada · Trending esta semana</div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: C.text, fontFamily: 'DM Sans' }}>{idea.music.title}</span>
+                        <span style={{ fontSize: 12, color: C.textSoft, fontFamily: 'DM Sans' }}>— {idea.music.artist}</span>
+                        {idea.music.bpm > 0 && <span style={{ fontSize: 11, color: C.muted, background: C.border, padding: '1px 7px', borderRadius: 10, fontFamily: 'DM Sans' }}>{idea.music.bpm} BPM</span>}
+                        <span style={{ fontSize: 11, color: C.gold, fontStyle: 'italic', fontFamily: 'DM Sans' }}>{idea.music.mood}</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: C.textSoft, fontFamily: 'DM Sans', lineHeight: 1.5 }}>{idea.music.why}</div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

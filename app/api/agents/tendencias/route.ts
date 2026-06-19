@@ -213,27 +213,55 @@ async function runTendencias(notifyAdmin: boolean) {
   const keywords = ['padel', 'pickleball', 'natacion', 'wellness mexico', 'vida activa']
   const adsTerms = ['club deportivo Vallarta', 'membresía gym Nayarit', 'pádel Puerto Vallarta', 'deporte familia México']
 
-  const [marketRaw, viralRaw, audienceRaw, metaAdsRaw, ...trendsData] = await Promise.all([
+  // PERFIL DEL SOCIO — para filtrar relevancia en todos los prompts
+  const audienceProfile = `AUDIENCIA OBJETIVO DE BAHÍA (filtra TODO por este perfil):
+- Familias premium con hijos (ingreso familiar >$80k MXN/mes), residentes Nuevo Vallarta/Bucerías/La Cruz
+- Parejas jóvenes profesionales 28-45 años con lifestyle activo
+- Turistas norteamericanos y canadienses de alto poder adquisitivo (snowbirds + vacaciones premium)
+- Expats viviendo en la zona Vallarta/Riviera Nayarit
+- Empresarios de Tepic/Guadalajara con segunda residencia en la costa
+DESCARTA cualquier tendencia de: gym low-cost (Smartfit, Sport City masivo), home workouts gratuitos, apps fitness sin costo, rutinas sin equipo, noticias de deporte profesional sin impacto local, tendencias de masa sin conexión a lifestyle premium o comunidad real.`
+
+  const [marketRaw, viralRaw, musicRaw, audienceRaw, metaAdsRaw, ...trendsData] = await Promise.all([
     perplexityAsk(
-      `Eres un analista de tendencias para un club deportivo premium en ${region}. Responde estas 3 preguntas separadas con ---. Fecha: ${semana} 2026.
+      `${audienceProfile}
 
-1. TENDENCIAS REALES ESTA SEMANA: Qué temas de deportes, wellness, lifestyle o cultura están generando conversación AHORA en redes sociales mexicanas y en la zona. NO menciones solo pádel o pickleball a menos que haya un evento o ángulo concreto nuevo. Busca: torneos locales, eventos deportivos, tendencias de salud mental + deporte, recuperación activa, familias activas en verano, temporada de vacaciones escolares México, turismo deportivo, tendencias fitness que llegaron a México en los últimos 30 días. Da 3-5 temas con señales concretas (hashtags, cuentas, noticias).
+Eres analista de tendencias para Bahía Social Sports Club, club deportivo premium en ${region}. Fecha: ${semana} 2026. Responde estas 3 preguntas separadas con ---.
 
-2. ESTACIONALIDAD ${mes.toUpperCase()}: Tipo de turista que llega a Riviera Nayarit en esta fecha, origen (MX local, norteamericano, expats), comportamiento de consumo en clubes deportivos. ¿Qué busca el mercado local en vacaciones escolares?
+1. TENDENCIAS CON IMPACTO REAL EN BAHÍA: Qué temas están generando conversación ESTA SEMANA en redes sociales entre el perfil de audiencia descrito. Busca señales concretas en: torneos o eventos locales en Riviera Nayarit/Vallarta, tendencias wellness premium (cold plunge, recovery, nutrición deportiva, mindfulness activo), familia activa en vacaciones de verano MX, turismo deportivo en la zona, tendencias de comunidad/pertenencia vs individualismo del gym, lifestyle de expats en la costa. Para cada tendencia: por qué importa específicamente a Bahía, qué conversación está generando, señales en redes (hashtags, cuentas, noticias reales).
 
-3. COMPETENCIA: 2-3 clubes o instalaciones que compitan con un club premium de raqueta + alberca + gym en Vallarta/Nayarit. ¿Qué mensajes usan en redes? ¿Qué no están haciendo?`,
+2. ESTACIONALIDAD ${mes.toUpperCase()} en Riviera Nayarit: Volumen y perfil del visitante esta semana. Comportamiento real del mercado local en vacaciones escolares de verano. Qué tipo de membresía o actividad busca cada segmento.
+
+3. COMPETENCIA DIRECTA: 2-3 clubes en Vallarta/Nayarit que compitan directamente con Bahía en el segmento premium (no gyms masivos). Qué mensajes usan en Instagram/TikTok. Qué gap evidente tienen que Bahía puede llenar.`,
       'sonar-pro'
     ),
     perplexityAsk(
-      `Responde estas 2 preguntas sobre contenido en redes sociales para un club deportivo premium en México. Separa con ---. Fecha: ${semana} 2026.
+      `${audienceProfile}
 
-1. VIDEOS VIRALES AHORA: 2-3 formatos de Reel o TikTok que están funcionando ESTA SEMANA para cuentas de deportes/wellness/lifestyle en México con menos de 20k seguidores. Para cada formato describe: los primeros 3 segundos exactos (qué se ve, qué dice el texto en pantalla), la emoción que activa, el tipo de corte/edición, la duración ideal, y por qué está funcionando ahora.
+Responde estas 2 preguntas sobre contenido en redes para un club deportivo premium. Separa con ---. Fecha: ${semana} 2026.
 
-2. HASHTAGS: Los más efectivos ahora en Instagram y TikTok para deportes, wellness y vida activa en México. Incluye: 4 masivos (>500k posts), 4 de nicho (10k-200k), 3 locales de Vallarta/Nayarit/Riviera Nayarit. Indica cuáles tienen más engagement en este momento.`,
+1. FORMATOS VIRALES ESTA SEMANA: 2-3 tipos de Reel/TikTok que están funcionando AHORA para cuentas de deportes premium, wellness de alto nivel o lifestyle en México (<30k seguidores). Para cada formato: qué aparece exactamente en los primeros 3 segundos (plano visual + texto en pantalla), qué emoción activa en el espectador, estructura de edición (cortes, ritmo, duración), y por qué está funcionando en este momento cultural específico.
+
+2. HASHTAGS DE ALTO RENDIMIENTO: Los más efectivos ahora en IG y TikTok para lifestyle deportivo premium en México. 4 masivos (>500k posts), 4 de nicho premium (10k-150k), 3 de Riviera Nayarit/Vallarta/Nayarit. Cuáles tienen mejor engagement-to-reach ratio esta semana.`,
       'sonar-pro'
     ),
     perplexityAsk(
-      `¿Qué tipo de contenido consumen en redes sociales los socios de clubes deportivos premium en México (Guadalajara, CDMX, Monterrey, turistas norteamericanos en Vallarta)? Ejemplos de cuentas que siguen, formatos que más guardan o comparten, y qué los hace decidir unirse a un club. Respuesta específica y concreta.`,
+      `¿Qué canciones o audios están en tendencia ESTA SEMANA en TikTok e Instagram Reels en México para contenido de deportes, wellness, lifestyle premium y familias activas? Dame 4-5 opciones reales.
+
+Para cada canción incluye: nombre, artista, BPM aproximado, mood/energía, por qué está viral ahora, y en qué tipo de Reel funciona mejor (clip de cancha, amanecer en club, celebración, lifestyle aspiracional, familia).
+
+FILTRO OBLIGATORIO — evalúa cada canción antes de reportarla:
+✅ Recomienda: instrumental o letra que evoque energía positiva, superación, alegría, naturaleza, amor, unidad. Beats sin letra, pop melódico, acústico, ambient positivo, phonk sin agresión, electrónica limpia.
+❌ Descarta automáticamente: letras con contenido sexual explícito, referencias a violencia/alcohol/drogas/apuestas, mensajes nihilistas u ofensivos. Reggaeton/trap con letra explícita.
+⚠️ Indica advertencia si: la canción es neutral pero el artista tiene controversia pública, o el audio se usa en contextos inapropiados aunque el track sea instrumental.
+
+Contexto del club: ambiente familiar premium, valores de comunidad y excelencia deportiva. Tono aspiracional y positivo — nunca agresivo ni provocador.
+
+Fecha: ${semana} 2026.`,
+      'sonar-pro'
+    ),
+    perplexityAsk(
+      `¿Qué consume en redes sociales el segmento premium en México y zona Vallarta? Perfil: familias con ingreso alto, expats norteamericanos en Riviera Nayarit, parejas profesionales 28-45 años que van a un club deportivo premium. Qué cuentas siguen, qué formatos guardan o comparten, qué los hace tomar acción (registrarse, compartir, visitar). Sé específico y concreto.`,
       'sonar'
     ),
     metaAdsLibrary(adsTerms),
@@ -251,6 +279,7 @@ async function runTendencias(notifyAdmin: boolean) {
   const competitiveRaw = trunc(marketQ3 ?? '')
   const viralPatternsRaw = trunc(viralQ1 ?? viralRaw)
   const hashtagsRaw = trunc(viralQ2 ?? '')
+  const musicTrendsRaw = trunc(musicRaw, 1200)
 
   // ─── Claude genera el briefing ────────────────────────────────────────────────
 
@@ -275,20 +304,24 @@ ANTI-REPETICIÓN — CRÍTICO:${avoidInstruction}
 ${previousReport ? `\nREPORTE ANTERIOR:\n${previousReport}\n\nComenta qué cambió, qué subió, qué es nuevo esta semana.` : ''}
 
 INSTRUCCIONES PARA CONTENT IDEAS — LOS REELS DEBEN SER EJECUTABLES:
-- hook.text: La primera oración exacta que dice o aparece en pantalla. Debe ser impactante y completa. Sin límite de palabras.
-- platforms.reel: Describe el video como un director: qué se ve en el plano de apertura, qué texto aparece en pantalla en los primeros 3s, ritmo de edición, duración, qué emoción busca. Mínimo 2 oraciones.
-- platforms.tiktok: Cómo adaptar el hook y tono para TikTok (más casual, texto directo desde segundo 0).
-- step1/step2/step3: Notas de guión reales. Qué dice, qué muestra, qué siente el espectador en cada momento.
-- trendConnection: Por qué esta idea conecta con la tendencia detectada esta semana. Específico.
+- hook.text: La primera oración exacta que aparece en pantalla o dice el creador. Impactante, completa, en presente. Sin límite de palabras.
+- platforms.reel: Descríbelo como director de cine: plano de apertura (qué se ve exactamente), texto en pantalla en los primeros 3s, ritmo de cortes, duración total, cierre/CTA visual, qué emoción debe sentir el espectador al terminar. Mínimo 3 oraciones.
+- platforms.tiktok: Adaptación de tono y hook para TikTok — más casual, texto desde segundo 0, energía diferente.
+- step1/step2/step3: Guión real por momento. Qué dice el audio/texto en pantalla, qué se muestra, qué construye emocionalmente. No resúmenes, notas de producción reales.
+- music: Selecciona UNA canción de las que reportó Perplexity esta semana. SOLO canciones marcadas ✅ o sin advertencia. Nunca recomiendes una canción con letra explícita, violencia, alcohol o contenido sexual — el club tiene valores familiares y ambiente premium. Elige la que mejor corresponda al mood del reel. Incluye: title, artist, bpm, mood y why (por qué esta canción para este reel específico).
+- trendConnection: Conexión directa con la tendencia real detectada esta semana. Por qué ahora, por qué Bahía.
 
-REGLAS GENERALES:
+FILTRO DE CALIDAD — CRÍTICO:
+- Cada idea debe pasar este test: "¿Un socio potencial de Bahía que paga $6,500/mes vería este reel y pensaría 'esto es para mí'?" Si no, descártala.
+- Evita ideas genéricas de gym o deporte sin ángulo específico de Bahía.
+- Las tendencias deben ser reales y verificables, no suposiciones.
+
+REGLAS:
 - Máximo 3 trends, 3 googleTrends, 3 contentOpportunities, 2 viralPatterns, 4 contentIdeas
-- Las ideas de contenido deben conectar con las tendencias reales de esta semana, no con los deportes del club en general
-- hashtags por idea: máximo 5 tags
-- triggerWords: máximo 3 elementos
+- hashtags por idea: máximo 5 tags · triggerWords: máximo 3 elementos
 
 Devuelve ÚNICAMENTE el JSON, sin markdown:
-{"generatedAt":"${generatedAt}","period":"${mes}","trends":[{"topic":"string","score":0,"angle":"string","evidence":"string"}],"googleTrends":[{"keyword":"string","avgScore":0,"trend":"string","insight":"string"}],"seasonality":{"touristFlow":"string","dominantProfile":"string","peakWindow":"string","localMarket":"string","insight":"string"},"strategy":{"primarySegment":"string","secondarySegment":"string","message":"string","avoid":"string"},"competitive":{"topCompetitors":["string"],"theirAngle":"string","gap":"string","counterPositioning":"string"},"audienceWhere":{"accounts":["string"],"contentTypes":["string"],"ownHashtags":["#tag"],"insight":"string"},"hashtags":{"masivos":["#tag"],"nicho":["#tag"],"locales":["#tag"],"mixRecomendado":"string"},"contentOpportunities":[{"instalacion":"string","oportunidad":"string","momento":"string","formatoIdeal":"string","urgencia":0}],"viralPatterns":[{"pattern":"string","description":"string","whyItWorks":"string","adaptForBahia":"string","differentiator":"string"}],"contentIdeas":[{"title":"string","format":"Reel","hook":{"text":"string","pattern":"string","triggerWords":["string"]},"copyStructure":{"framework":"PAS","step1":"string","step2":"string","step3":"string","cta":"string"},"platforms":{"reel":"string","tiktok":"string","stories":"string","carrusel":"string"},"instalacion":"string","targetSegment":"string","hashtags":["#tag"],"trendConnection":"string","urgency":0}]}`
+{"generatedAt":"${generatedAt}","period":"${mes}","trends":[{"topic":"string","score":0,"angle":"string","evidence":"string"}],"googleTrends":[{"keyword":"string","avgScore":0,"trend":"string","insight":"string"}],"seasonality":{"touristFlow":"string","dominantProfile":"string","peakWindow":"string","localMarket":"string","insight":"string"},"strategy":{"primarySegment":"string","secondarySegment":"string","message":"string","avoid":"string"},"competitive":{"topCompetitors":["string"],"theirAngle":"string","gap":"string","counterPositioning":"string"},"audienceWhere":{"accounts":["string"],"contentTypes":["string"],"ownHashtags":["#tag"],"insight":"string"},"hashtags":{"masivos":["#tag"],"nicho":["#tag"],"locales":["#tag"],"mixRecomendado":"string"},"contentOpportunities":[{"instalacion":"string","oportunidad":"string","momento":"string","formatoIdeal":"string","urgencia":0}],"viralPatterns":[{"pattern":"string","description":"string","whyItWorks":"string","adaptForBahia":"string","differentiator":"string"}],"contentIdeas":[{"title":"string","format":"Reel","hook":{"text":"string","pattern":"string","triggerWords":["string"]},"copyStructure":{"framework":"PAS","step1":"string","step2":"string","step3":"string","cta":"string"},"platforms":{"reel":"string","tiktok":"string","stories":"string","carrusel":"string"},"music":{"title":"string","artist":"string","bpm":0,"mood":"string","why":"string"},"instalacion":"string","targetSegment":"string","hashtags":["#tag"],"trendConnection":"string","urgency":0}]}`
 
   const consolidated = await ask(prompt, [{
     role: 'user',
@@ -298,8 +331,9 @@ Devuelve ÚNICAMENTE el JSON, sin markdown:
       `FORMATOS VIRALES QUE FUNCIONAN AHORA:\n${viralPatternsRaw}`,
       `HASHTAGS EFECTIVOS:\n${hashtagsRaw}`,
       `COMPETENCIA LOCAL:\n${competitiveRaw}`,
+      musicTrendsRaw ? `MÚSICA EN TENDENCIA ESTA SEMANA (TikTok/Reels MX):\n${musicTrendsRaw}` : '',
       metaAdsRaw ? `META ADS COMPETIDORES:\n${metaAdsRaw}` : '',
-      `AUDIENCIA ONLINE (qué consume, qué comparte):\n${trunc(audienceRaw, 1000)}`,
+      `AUDIENCIA PREMIUM (qué consume, qué comparte):\n${trunc(audienceRaw, 1000)}`,
       googleTrendsResults.length
         ? `GOOGLE TRENDS MX:\n${googleTrendsResults.map(t => `${t.keyword}: ${t.avgScore}/100 (${t.trend})`).join(', ')}`
         : '',
@@ -315,6 +349,7 @@ Devuelve ÚNICAMENTE el JSON, sin markdown:
     hook: { text: string; pattern: string; triggerWords: string[] }
     copyStructure: { framework: string; step1: string; step2: string; step3: string; cta: string }
     platforms: { reel: string; tiktok: string; stories: string; carrusel: string }
+    music?: { title: string; artist: string; bpm: number; mood: string; why: string }
     instalacion: string; targetSegment: string; hashtags: string[]; trendConnection: string; urgency: number
   }
   type Analysis = {
