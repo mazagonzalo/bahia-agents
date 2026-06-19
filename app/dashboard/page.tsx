@@ -456,20 +456,24 @@ function CompetitiveSection({ competitive: c }: { competitive: Report['competiti
 
 // ─── Página principal ─────────────────────────────────────────────────────────
 
-type CriticoEmbudo = { label: string; valor: number; tasa?: number; tendencia?: string; comentario: string }
 type CriticoReport = {
   verdict: string; score: number
-  fortalezas: string[]
+  campañasDestacadas: { id: string; veredicto: string; calificacion: 'A'|'B'|'C'|'D'|'F'; razon: string; mejorar: string }[]
+  patronesDetectados: string[]
   problemas: { problema: string; impacto: 'alto' | 'medio' | 'bajo'; evidencia: string }[]
   accionesInmediatas: string[]
-  embudo: { captacion: CriticoEmbudo; calificacion: CriticoEmbudo; cita: CriticoEmbudo; cierre: CriticoEmbudo }
   alertas: { nivel: 'rojo' | 'amarillo' | 'verde'; mensaje: string }[]
 }
+type CampañaCalificada = {
+  id: string; tipo: string; titulo: string; instalacion: string; hook: string
+  status: string; hasCampaign: boolean; aiScore: number | null
+  leadsAtribuidos: number; leadsCitados: number; leadsCerrados: number; leadsFrios: number
+  tasaConversion: number; tasaFrio: number; interaccionPromedio: number
+  calidad: 'alta' | 'media' | 'baja' | 'sin-datos'; createdAt: string
+}
 type CriticoData = {
-  metricas: {
-    leads: { total: number; nuevos: number; calificados: number; citados: number; cerrados: number; frios: number; tasaConversion: number; tasaCita: number; tasaFrio: number; leadsConInteraccionReal: number; scorePromedio: number }
-    creativos: { total: number; borradores: number; aprobados: number; publicados: number; rechazados: number; tasaAprobacion: number }
-  }
+  campañas: CampañaCalificada[]
+  resumen: { totalLeads: number; totalCerrados: number; totalCitados: number; totalFrios: number; leadsOrganicos: number; totalCreativos: number }
   report: CriticoReport | null
   generatedAt: string
 }
@@ -640,85 +644,111 @@ export default function Dashboard() {
               {critico.report && (
                 <div style={{ background: C.surface, borderRadius: 12, padding: '20px 24px', border: `1px solid ${C.border}`, display: 'flex', alignItems: 'flex-start', gap: 20 }}>
                   <div style={{ textAlign: 'center', minWidth: 72 }}>
-                    <div style={{ fontSize: 36, fontWeight: 800, fontFamily: 'Cormorant Garamond', color: critico.report.score >= 7 ? C.sage : critico.report.score >= 4 ? C.gold : C.red, lineHeight: 1 }}>{critico.report.score}</div>
+                    <div style={{ fontSize: 40, fontWeight: 800, fontFamily: 'Cormorant Garamond', color: critico.report.score >= 7 ? C.sage : critico.report.score >= 4 ? C.gold : C.red, lineHeight: 1 }}>{critico.report.score}</div>
                     <div style={{ fontSize: 10, color: C.muted, fontFamily: 'DM Sans', marginTop: 2 }}>/10</div>
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, color: C.text, fontWeight: 600, fontFamily: 'DM Sans', lineHeight: 1.5, marginBottom: 8 }}>{critico.report.verdict}</div>
-                    {critico.report.alertas?.map((a, i) => (
-                      <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: a.nivel === 'rojo' ? C.redFaint : a.nivel === 'amarillo' ? C.goldFaint : C.sageFaint, borderRadius: 6, padding: '3px 10px', marginRight: 6, marginTop: 4 }}>
-                        <span style={{ fontSize: 8 }}>{a.nivel === 'rojo' ? '●' : a.nivel === 'amarillo' ? '●' : '●'}</span>
-                        <span style={{ fontSize: 11, color: C.textSoft, fontFamily: 'DM Sans' }}>{a.mensaje}</span>
-                      </div>
-                    ))}
+                    <div style={{ fontSize: 14, color: C.text, fontWeight: 600, fontFamily: 'DM Sans', lineHeight: 1.5, marginBottom: 10 }}>{critico.report.verdict}</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {critico.report.alertas?.map((a, i) => (
+                        <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: a.nivel === 'rojo' ? C.redFaint : a.nivel === 'amarillo' ? C.goldFaint : C.sageFaint, borderRadius: 6, padding: '3px 10px' }}>
+                          <span style={{ fontSize: 7, color: a.nivel === 'rojo' ? C.red : a.nivel === 'amarillo' ? C.gold : C.sage }}>●</span>
+                          <span style={{ fontSize: 11, color: C.textSoft, fontFamily: 'DM Sans' }}>{a.mensaje}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* Embudo */}
-              {critico.report?.embudo && (
-                <Card>
-                  <div style={{ fontSize: 10, color: C.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 16, fontFamily: 'DM Sans', fontWeight: 600 }}>Embudo de conversión</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-                    {Object.values(critico.report.embudo).map((e, i) => (
-                      <div key={i} style={{ background: C.bg, borderRadius: 10, padding: '14px 16px' }}>
-                        <div style={{ fontSize: 10, color: C.muted, fontFamily: 'DM Sans', marginBottom: 6 }}>{e.label}</div>
-                        <div style={{ fontSize: 24, fontWeight: 700, color: C.text, fontFamily: 'Cormorant Garamond', lineHeight: 1 }}>{e.valor}</div>
-                        {e.tasa !== undefined && <div style={{ fontSize: 11, color: C.gold, fontFamily: 'DM Sans', marginTop: 2 }}>{e.tasa}%</div>}
-                        <div style={{ fontSize: 11, color: C.textSoft, fontFamily: 'DM Sans', marginTop: 6, lineHeight: 1.4 }}>{e.comentario}</div>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              )}
-
-              {/* Métricas rápidas */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+              {/* Métricas globales */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
                 {[
-                  { label: 'Leads 30d', value: critico.metricas.leads.total },
-                  { label: 'Interacción real', value: `${critico.metricas.leads.leadsConInteraccionReal}/${critico.metricas.leads.total}` },
-                  { label: 'Creativos aprobados', value: `${critico.metricas.creativos.tasaAprobacion}%` },
-                  { label: 'Score prom. lead', value: critico.metricas.leads.scorePromedio },
-                ].map((s, i) => (
-                  <StatCard key={i} label={s.label} value={String(s.value)} />
-                ))}
+                  { label: 'Campañas', value: critico.resumen.totalCreativos },
+                  { label: 'Leads totales', value: critico.resumen.totalLeads },
+                  { label: 'Citados', value: critico.resumen.totalCitados },
+                  { label: 'Cerrados', value: critico.resumen.totalCerrados },
+                  { label: 'Orgánicos', value: critico.resumen.leadsOrganicos },
+                ].map((s, i) => <StatCard key={i} label={s.label} value={String(s.value)} />)}
               </div>
 
-              {/* Problemas + fortalezas */}
+              {/* Tabla de campañas */}
+              <Card>
+                <div style={{ fontSize: 10, color: C.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 16, fontFamily: 'DM Sans', fontWeight: 600 }}>Rendimiento por campaña</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {critico.campañas.length === 0 && (
+                    <div style={{ fontSize: 13, color: C.muted, fontFamily: 'DM Sans', padding: '20px 0' }}>Sin campañas en los últimos 30 días.</div>
+                  )}
+                  {critico.campañas.map((c) => {
+                    const gradeBg = { A: C.sageFaint, B: C.blueFaint, C: C.goldFaint, D: C.redFaint, F: C.redFaint }
+                    const gradeColor = { A: C.sage, B: C.blue, C: C.gold, D: C.red, F: C.red }
+                    const highlight = critico.report?.campañasDestacadas?.find(d => d.id === c.id)
+                    const grade = highlight?.calificacion ?? (c.calidad === 'alta' ? 'B' : c.calidad === 'baja' ? 'D' : c.calidad === 'sin-datos' ? '—' : 'C')
+                    return (
+                      <div key={c.id} style={{ background: C.bg, borderRadius: 10, padding: '12px 16px', display: 'grid', gridTemplateColumns: 'auto 1fr auto auto auto auto auto', alignItems: 'center', gap: 16 }}>
+                        {/* Grade */}
+                        <div style={{ width: 32, height: 32, borderRadius: 8, background: grade !== '—' ? gradeBg[grade as keyof typeof gradeBg] : C.border, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, fontFamily: 'Cormorant Garamond', color: grade !== '—' ? gradeColor[grade as keyof typeof gradeColor] : C.muted }}>
+                          {grade}
+                        </div>
+                        {/* Título + hook */}
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: C.text, fontFamily: 'DM Sans', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.titulo}</div>
+                          <div style={{ fontSize: 11, color: C.muted, fontFamily: 'DM Sans', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.hook}</div>
+                          {highlight?.veredicto && <div style={{ fontSize: 11, color: C.textSoft, fontFamily: 'DM Sans', marginTop: 4, lineHeight: 1.4 }}>{highlight.veredicto}</div>}
+                        </div>
+                        {/* Stats */}
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: C.text, fontFamily: 'Cormorant Garamond' }}>{c.leadsAtribuidos}</div>
+                          <div style={{ fontSize: 9, color: C.muted, fontFamily: 'DM Sans' }}>leads</div>
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: C.blue, fontFamily: 'Cormorant Garamond' }}>{c.leadsCitados}</div>
+                          <div style={{ fontSize: 9, color: C.muted, fontFamily: 'DM Sans' }}>citas</div>
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: C.sage, fontFamily: 'Cormorant Garamond' }}>{c.leadsCerrados}</div>
+                          <div style={{ fontSize: 9, color: C.muted, fontFamily: 'DM Sans' }}>cerrados</div>
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: c.tasaFrio > 50 ? C.red : C.muted, fontFamily: 'Cormorant Garamond' }}>{c.tasaFrio}%</div>
+                          <div style={{ fontSize: 9, color: C.muted, fontFamily: 'DM Sans' }}>fríos</div>
+                        </div>
+                        {/* Tipo badge */}
+                        <div style={{ fontSize: 10, padding: '2px 8px', borderRadius: 6, background: C.blueFaint, color: C.blue, fontFamily: 'DM Sans', fontWeight: 600, whiteSpace: 'nowrap' }}>{c.tipo}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </Card>
+
+              {/* Patrones + acciones */}
               {critico.report && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <Card>
-                    <div style={{ fontSize: 10, color: C.red, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14, fontFamily: 'DM Sans', fontWeight: 600 }}>Problemas detectados</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {critico.report.problemas.map((p, i) => (
-                        <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                          <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 4, background: p.impacto === 'alto' ? C.redFaint : p.impacto === 'medio' ? C.goldFaint : C.sageFaint, color: p.impacto === 'alto' ? C.red : p.impacto === 'medio' ? C.gold : C.sage, fontFamily: 'DM Sans', fontWeight: 600, whiteSpace: 'nowrap', marginTop: 1 }}>{p.impacto}</span>
-                          <div>
-                            <div style={{ fontSize: 12, fontWeight: 600, color: C.text, fontFamily: 'DM Sans' }}>{p.problema}</div>
-                            <div style={{ fontSize: 11, color: C.muted, fontFamily: 'DM Sans', marginTop: 2 }}>{p.evidencia}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
-
-                  <Card>
-                    <div style={{ fontSize: 10, color: C.sage, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14, fontFamily: 'DM Sans', fontWeight: 600 }}>Qué está funcionando</div>
+                    <div style={{ fontSize: 10, color: C.blue, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 12, fontFamily: 'DM Sans', fontWeight: 600 }}>Patrones detectados</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
-                      {critico.report.fortalezas.map((f, i) => (
-                        <div key={i} style={{ display: 'flex', gap: 8, fontSize: 12, color: C.text, fontFamily: 'DM Sans', lineHeight: 1.5 }}>
-                          <span style={{ color: C.sage, marginTop: 1 }}>✓</span>{f}
+                      {critico.report.patronesDetectados?.map((p, i) => (
+                        <div key={i} style={{ fontSize: 12, color: C.text, fontFamily: 'DM Sans', lineHeight: 1.5, display: 'flex', gap: 8 }}>
+                          <span style={{ color: C.blue }}>→</span>{p}
                         </div>
                       ))}
                     </div>
-                    <div style={{ fontSize: 10, color: C.blue, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10, fontFamily: 'DM Sans', fontWeight: 600 }}>Acciones esta semana</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {critico.report.accionesInmediatas.map((a, i) => (
-                        <div key={i} style={{ display: 'flex', gap: 8, fontSize: 12, color: C.text, fontFamily: 'DM Sans', lineHeight: 1.5 }}>
-                          <span style={{ color: C.blue, fontWeight: 700 }}>{i + 1}.</span>{a}
-                        </div>
-                      ))}
-                    </div>
+                    <div style={{ fontSize: 10, color: C.red, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10, fontFamily: 'DM Sans', fontWeight: 600 }}>Problemas</div>
+                    {critico.report.problemas?.map((p, i) => (
+                      <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'flex-start' }}>
+                        <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: p.impacto === 'alto' ? C.redFaint : p.impacto === 'medio' ? C.goldFaint : C.sageFaint, color: p.impacto === 'alto' ? C.red : p.impacto === 'medio' ? C.gold : C.sage, fontFamily: 'DM Sans', fontWeight: 600, whiteSpace: 'nowrap' }}>{p.impacto}</span>
+                        <div style={{ fontSize: 12, color: C.text, fontFamily: 'DM Sans', lineHeight: 1.4 }}>{p.problema}<span style={{ color: C.muted, fontStyle: 'italic' }}> — {p.evidencia}</span></div>
+                      </div>
+                    ))}
+                  </Card>
+                  <Card>
+                    <div style={{ fontSize: 10, color: C.gold, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 12, fontFamily: 'DM Sans', fontWeight: 600 }}>Acciones esta semana</div>
+                    {critico.report.accionesInmediatas?.map((a, i) => (
+                      <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 10, alignItems: 'flex-start' }}>
+                        <span style={{ fontSize: 12, fontWeight: 800, color: C.gold, fontFamily: 'Cormorant Garamond', minWidth: 18 }}>{i + 1}.</span>
+                        <div style={{ fontSize: 12, color: C.text, fontFamily: 'DM Sans', lineHeight: 1.5 }}>{a}</div>
+                      </div>
+                    ))}
                   </Card>
                 </div>
               )}

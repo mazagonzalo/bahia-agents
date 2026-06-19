@@ -3,135 +3,193 @@ import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { ask } from '@/lib/claude'
 
-// GET /api/agents/critico — evalúa honestamente el rendimiento del sistema
+// GET /api/agents/critico — califica campañas publicitarias con datos reales
+
+type Creative = {
+  id: string
+  type: string
+  status: string
+  meta_campaign_id: string | null
+  created_at: string
+  content: {
+    idea?: { title?: string; instalacion?: string; targetSegment?: string; hook?: { text?: string } }
+    trend?: { topic?: string; angle?: string }
+    carousel?: { caption?: string; slides?: { headline: string }[] }
+    reelBrief?: string
+    aiScore?: number | null
+  }
+}
+
+type Lead = {
+  id: string
+  status: string
+  score: number | null
+  source: string | null
+  created_at: string
+}
 
 export async function GET() {
   const since30d = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()
   const since7d  = new Date(Date.now() -  7 * 24 * 3600 * 1000).toISOString()
 
-  // Cargar todos los datos relevantes en paralelo
-  const [
-    leadsAll,
-    conversations,
-    creatives,
-    agentMemory,
-    trends,
-  ] = await Promise.all([
-    supabase.from('leads').select('id, status, score, source, created_at, last_contact').gte('created_at', since30d),
-    supabase.from('conversations').select('lead_id, role, content, created_at').gte('created_at', since30d).eq('role', 'user'),
-    supabase.from('creatives').select('id, type, status, content, meta_campaign_id, created_at').gte('created_at', since30d),
-    supabase.from('agent_memory').select('agent, type, outcome, created_at').gte('created_at', since30d),
-    supabase.from('trends').select('topic, score, created_at').gte('created_at', since7d).order('score', { ascending: false }).limit(5),
+  const [creativesRes, leadsRes, convsRes, trendsRes] = await Promise.all([
+    supabase.from('creatives').select('id, type, status, meta_campaign_id, created_at, content').gte('created_at', since30d).order('created_at', { ascending: false }),
+    supabase.from('leads').select('id, status, score, source, created_at').gte('created_at', since30d),
+    supabase.from('conversations').select('lead_id, role, created_at').gte('created_at', since30d),
+    supabase.from('trends').select('topic, score').gte('created_at', since7d).order('score', { ascending: false }).limit(5),
   ])
 
-  const leads = leadsAll.data ?? []
-  const convs = conversations.data ?? []
-  const creativos = creatives.data ?? []
-  const memories = agentMemory.data ?? []
+  const creativos = (creativesRes.data ?? []) as Creative[]
+  const leads = (leadsRes.data ?? []) as Lead[]
+  const convs = convsRes.data ?? []
 
-  // ── Métricas de leads ──────────────────────────────────────────────────────
-  const total = leads.length
-  const porStatus = leads.reduce<Record<string, number>>((acc, l) => {
-    acc[l.status ?? 'desconocido'] = (acc[l.status ?? 'desconocido'] ?? 0) + 1
-    return acc
-  }, {})
-
-  const citados = porStatus['citado'] ?? 0
-  const cerrados = porStatus['cerrado'] ?? 0
-  const frios = porStatus['frio'] ?? 0
-  const nuevos = porStatus['nuevo'] ?? 0
-  const calificados = porStatus['calificado'] ?? 0
-
-  const tasaConversion = total > 0 ? Math.round((cerrados / total) * 100) : 0
-  const tasaCita = total > 0 ? Math.round((citados / total) * 100) : 0
-  const tasaFrio = total > 0 ? Math.round((frios / total) * 100) : 0
-
-  // Leads con al menos 3 mensajes = interacción real
-  const leadConvCount = convs.reduce<Record<string, number>>((acc, c) => {
+  // ── Mensajes por lead ─────────────────────────────────────────────────────
+  const msgsPorLead = convs.reduce<Record<string, number>>((acc, c) => {
     acc[c.lead_id] = (acc[c.lead_id] ?? 0) + 1
     return acc
   }, {})
-  const leadsConInteraccionReal = Object.values(leadConvCount).filter(n => n >= 3).length
 
-  // Tiempo promedio hasta primer contacto (lead creado → primer mensaje de vuelta)
-  // (aproximación: usando score como proxy de interacción)
-  const scorePromedio = leads.length > 0
-    ? Math.round(leads.reduce((s, l) => s + (l.score ?? 0), 0) / leads.length)
-    : 0
-
-  // ── Métricas de creativos ──────────────────────────────────────────────────
-  const totalCreativos = creativos.length
-  const borradores = creativos.filter(c => c.status === 'borrador').length
-  const aprobados  = creativos.filter(c => c.status === 'aprobado').length
-  const publicados = creativos.filter(c => c.status === 'publicado').length
-  const rechazados = creativos.filter(c => c.status === 'rechazado').length
-  const tasaAprobacion = totalCreativos > 0 ? Math.round((aprobados + publicados) / totalCreativos * 100) : 0
-
-  // ── Actividad por agente ───────────────────────────────────────────────────
-  const actividadAgente = memories.reduce<Record<string, { total: number; buenos: number; malos: number }>>((acc, m) => {
-    if (!acc[m.agent]) acc[m.agent] = { total: 0, buenos: 0, malos: 0 }
-    acc[m.agent].total++
-    if (m.outcome === 'bueno') acc[m.agent].buenos++
-    if (m.outcome === 'malo')  acc[m.agent].malos++
+  // ── Atribuir leads a campañas por source ──────────────────────────────────
+  // source puede ser: "creative:<id>", "meta:<campaign_id>", "whatsapp", "instagram", etc.
+  const leadsPorCampaña = leads.reduce<Record<string, Lead[]>>((acc, l) => {
+    const src = l.source ?? 'organico'
+    if (!acc[src]) acc[src] = []
+    acc[src].push(l)
     return acc
   }, {})
 
-  // ── Input para Claude: evaluación crítica ──────────────────────────────────
-  const datosParaEvaluar = `
-MÉTRICAS REALES DEL SISTEMA (últimos 30 días):
+  // ── Calificar cada creativo ───────────────────────────────────────────────
+  type CampañaCalificada = {
+    id: string
+    tipo: string
+    titulo: string
+    instalacion: string
+    hook: string
+    status: string
+    hasCampaign: boolean
+    aiScore: number | null
+    leadsAtribuidos: number
+    leadsCalificados: number
+    leadsCitados: number
+    leadsCerrados: number
+    leadsFrios: number
+    interaccionPromedio: number
+    tasaConversion: number
+    tasaFrio: number
+    calidad: 'alta' | 'media' | 'baja' | 'sin-datos'
+    createdAt: string
+  }
 
-LEADS:
-- Total leads captados: ${total}
-- Nuevos (sin calificar): ${nuevos}
-- Calificados: ${calificados}
-- Citados (visitaron o visitarán): ${citados}
-- Cerrados (se inscribieron): ${cerrados}
-- Fríos (perdidos): ${frios}
-- Tasa de conversión lead→inscripción: ${tasaConversion}%
-- Tasa de leads que llegaron a cita: ${tasaCita}%
-- Tasa de abandono (fríos): ${tasaFrio}%
-- Leads con interacción real (≥3 mensajes): ${leadsConInteraccionReal}/${total}
-- Score promedio de leads: ${scorePromedio}/10
+  const campañasCalificadas: CampañaCalificada[] = creativos.map(c => {
+    const titulo = c.content?.idea?.title ?? c.content?.trend?.topic ?? c.content?.carousel?.slides?.[0]?.headline ?? `${c.type} sin título`
+    const instalacion = c.content?.idea?.instalacion ?? '—'
+    const hook = c.content?.idea?.hook?.text ?? c.content?.carousel?.slides?.[0]?.headline ?? '—'
 
-CREATIVOS:
-- Total generados: ${totalCreativos}
-- En borrador (sin aprobar): ${borradores}
-- Aprobados/publicados: ${aprobados + publicados}
-- Rechazados: ${rechazados}
-- Tasa de aprobación: ${tasaAprobacion}%
+    // Leads atribuidos directamente a este creativo
+    const directKey = `creative:${c.id}`
+    const metaKey = c.meta_campaign_id ? `meta:${c.meta_campaign_id}` : null
+    const leadsDirectos = leadsPorCampaña[directKey] ?? []
+    const leadsMeta = metaKey ? (leadsPorCampaña[metaKey] ?? []) : []
+    const leadsCreativo = [...leadsDirectos, ...leadsMeta]
 
-ACTIVIDAD POR AGENTE:
-${Object.entries(actividadAgente).map(([ag, d]) => `- ${ag}: ${d.total} acciones | ${d.buenos} buenas | ${d.malos} malas`).join('\n') || '- Sin datos aún'}
+    const calificados = leadsCreativo.filter(l => l.status === 'calificado').length
+    const citados     = leadsCreativo.filter(l => l.status === 'citado').length
+    const cerrados    = leadsCreativo.filter(l => l.status === 'cerrado').length
+    const frios       = leadsCreativo.filter(l => l.status === 'frio').length
+    const total       = leadsCreativo.length
 
-TENDENCIAS DETECTADAS ESTA SEMANA:
-${(trends.data ?? []).map(t => `- ${t.topic} (score: ${t.score})`).join('\n') || '- Sin datos'}
-`
+    const interaccionProm = leadsCreativo.length > 0
+      ? Math.round(leadsCreativo.reduce((s, l) => s + (msgsPorLead[l.id] ?? 0), 0) / leadsCreativo.length)
+      : 0
 
-  // ── Evaluación honesta con Claude ──────────────────────────────────────────
+    const tasaConv  = total > 0 ? Math.round(cerrados / total * 100) : 0
+    const tasaFrio  = total > 0 ? Math.round(frios / total * 100) : 0
+
+    let calidad: CampañaCalificada['calidad'] = 'sin-datos'
+    if (total > 0) {
+      if (tasaConv >= 20 || (citados + cerrados) / total >= 0.3) calidad = 'alta'
+      else if (tasaFrio >= 60) calidad = 'baja'
+      else calidad = 'media'
+    }
+
+    return {
+      id: c.id,
+      tipo: c.type,
+      titulo,
+      instalacion,
+      hook: hook.length > 80 ? hook.slice(0, 80) + '…' : hook,
+      status: c.status,
+      hasCampaign: !!c.meta_campaign_id,
+      aiScore: c.content?.aiScore ?? null,
+      leadsAtribuidos: total,
+      leadsCalificados: calificados,
+      leadsCitados: citados,
+      leadsCerrados: cerrados,
+      leadsFrios: frios,
+      interaccionPromedio: interaccionProm,
+      tasaConversion: tasaConv,
+      tasaFrio,
+      calidad,
+      createdAt: c.created_at,
+    }
+  })
+
+  // ── Resumen global de campañas ────────────────────────────────────────────
+  const totalLeads     = leads.length
+  const totalCerrados  = leads.filter(l => l.status === 'cerrado').length
+  const totalCitados   = leads.filter(l => l.status === 'citado').length
+  const totalFrios     = leads.filter(l => l.status === 'frio').length
+  const leadsOrganicos = (leadsPorCampaña['organico'] ?? []).length + (leadsPorCampaña['whatsapp'] ?? []).length + (leadsPorCampaña['instagram'] ?? []).length
+
+  const conDatos   = campañasCalificadas.filter(c => c.leadsAtribuidos > 0)
+  const mejorCamp  = conDatos.sort((a, b) => b.tasaConversion - a.tasaConversion)[0]
+  const peorCamp   = conDatos.sort((a, b) => a.tasaConversion - b.tasaConversion)[0]
+
+  // ── Texto de campañas para Claude ────────────────────────────────────────
+  const campañasTexto = campañasCalificadas.slice(0, 12).map((c, i) =>
+    `${i + 1}. [${c.tipo}] "${c.titulo}" (${c.instalacion}) | status: ${c.status} | leads: ${c.leadsAtribuidos} | citas: ${c.leadsCitados} | cerrados: ${c.leadsCerrados} | fríos: ${c.leadsFrios} | conversión: ${c.tasaConversion}% | abandono: ${c.tasaFrio}% | interacción prom: ${c.interaccionPromedio} msgs | copy AI score: ${c.aiScore ?? 'N/A'} | hook: "${c.hook}"`
+  ).join('\n')
+
+  const tendenciasTexto = (trendsRes.data ?? []).map(t => `${t.topic} (${t.score})`).join(', ')
+
+  // ── Evaluación Claude — centrada en campañas ──────────────────────────────
   const evaluacion = await ask(
-    `Eres un consultor externo y crítico que evalúa el sistema de marketing de Bahía Social Sports Club.
-Tu trabajo es decir la verdad sin suavizarla. Si algo no está funcionando, lo dices directamente.
-No eres un cheerleader — eres alguien que quiere que el negocio mejore.
+    `Eres un consultor de paid media y marketing digital especializado en clubes deportivos premium.
+Tu trabajo: calificar honestamente cada campaña publicitaria de Bahía Social Sports Club con los datos reales.
+Habla con precisión. Si una campaña no generó leads, dilo. Si el copy suena a IA y eso puede estar afectando la conversión, dilo.
+No suavices. El admin necesita saber qué funciona y qué está tirando presupuesto.
 
-Evalúa estos datos y produce un análisis en JSON con este formato exacto:
+Devuelve SOLO este JSON sin markdown:
 {
-  "verdict": "string — una sola oración que resume el estado real del sistema ahora mismo",
-  "score": number — del 1 al 10, qué tan bien está funcionando el sistema de marketing,
-  "fortalezas": ["string"] — máx 3, qué está funcionando bien con evidencia en los datos,
-  "problemas": [{"problema": "string", "impacto": "alto|medio|bajo", "evidencia": "string"}] — máx 5 problemas reales,
-  "accionesInmediatas": ["string"] — máx 3 cosas concretas a hacer esta semana,
-  "embudo": {
-    "captacion": {"label": "Leads captados", "valor": ${total}, "tendencia": "subiendo|estable|bajando", "comentario": "string"},
-    "calificacion": {"label": "Calificados", "valor": ${calificados}, "tasa": ${total > 0 ? Math.round(calificados/total*100) : 0}, "comentario": "string"},
-    "cita": {"label": "Citados", "valor": ${citados}, "tasa": ${tasaCita}, "comentario": "string"},
-    "cierre": {"label": "Cerrados", "valor": ${cerrados}, "tasa": ${tasaConversion}, "comentario": "string"}
-  },
+  "verdict": "string — estado real de las campañas en una oración",
+  "score": número 1-10 (rendimiento general de las campañas),
+  "campañasDestacadas": [
+    {
+      "id": "string — id del creativo",
+      "veredicto": "string — evaluación directa de esta campaña en 1-2 oraciones",
+      "calificacion": "A|B|C|D|F",
+      "razon": "string — por qué esa calificación, con evidencia",
+      "mejorar": "string — qué cambiarías específicamente en el copy, hook o audiencia"
+    }
+  ],
+  "patronesDetectados": ["string"] — máx 3 patrones entre todas las campañas (ej: "los reels convierten mejor que carruseles"),
+  "problemas": [{"problema": "string", "impacto": "alto|medio|bajo", "evidencia": "string"}],
+  "accionesInmediatas": ["string"] — máx 3 acciones concretas para mejorar campañas esta semana,
   "alertas": [{"nivel": "rojo|amarillo|verde", "mensaje": "string"}]
-}
+}`,
+    [{
+      role: 'user',
+      content: `CAMPAÑAS (últimos 30 días):
+${campañasTexto || 'Sin campañas creadas aún.'}
 
-Devuelve SOLO el JSON sin markdown.`,
-    [{ role: 'user', content: datosParaEvaluar }],
-    2000,
+RESUMEN GLOBAL:
+- Total leads captados: ${totalLeads} | Cerrados: ${totalCerrados} | Citados: ${totalCitados} | Fríos: ${totalFrios}
+- Leads orgánicos (sin atribuir a campaña): ${leadsOrganicos}
+- Mejor campaña por conversión: ${mejorCamp ? `"${mejorCamp.titulo}" (${mejorCamp.tasaConversion}%)` : 'N/A'}
+- Peor campaña: ${peorCamp ? `"${peorCamp.titulo}" (${peorCamp.tasaFrio}% fríos)` : 'N/A'}
+- Tendencias activas esta semana: ${tendenciasTexto || 'sin datos'}`,
+    }],
+    2500,
   )
 
   let report = null
@@ -139,22 +197,18 @@ Devuelve SOLO el JSON sin markdown.`,
     const s = evaluacion.indexOf('{')
     const e = evaluacion.lastIndexOf('}')
     if (s !== -1 && e !== -1) report = JSON.parse(evaluacion.slice(s, e + 1))
-  } catch { /* devuelve raw si falla */ }
+  } catch { /* continúa sin report estructurado */ }
 
-  // Guardar en agent_memory
   await supabase.from('agent_memory').insert({
     agent: 'critico',
-    type: 'evaluacion',
-    content: JSON.stringify({ metricas: { total, citados, cerrados, frios, tasaConversion, tasaCita, tasaAprobacion, leadsConInteraccionReal, scorePromedio }, report }),
-    outcome: report?.score >= 7 ? 'bueno' : report?.score >= 4 ? 'neutro' : 'malo',
+    type: 'evaluacion_campañas',
+    content: JSON.stringify({ campañas: campañasCalificadas.length, report }),
+    outcome: (report?.score ?? 0) >= 7 ? 'bueno' : (report?.score ?? 0) >= 4 ? 'neutro' : 'malo',
   })
 
   return NextResponse.json({
-    metricas: {
-      leads: { total, nuevos, calificados, citados, cerrados, frios, tasaConversion, tasaCita, tasaFrio, leadsConInteraccionReal, scorePromedio },
-      creativos: { total: totalCreativos, borradores, aprobados, publicados, rechazados, tasaAprobacion },
-      agentes: actividadAgente,
-    },
+    campañas: campañasCalificadas,
+    resumen: { totalLeads, totalCerrados, totalCitados, totalFrios, leadsOrganicos, totalCreativos: creativos.length },
     report,
     generatedAt: new Date().toISOString(),
   })
