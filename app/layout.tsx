@@ -1,33 +1,36 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import { ClerkProvider } from "@clerk/nextjs";
-import "./globals.css";
+import type { Metadata } from 'next'
+import { Inter, Sora } from 'next/font/google'
+import { ClerkProvider } from '@clerk/nextjs'
+import './globals.css'
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+})
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const sora = Sora({
+  subsets: ['latin'],
+  variable: '--font-sora',
+  weight: ['600', '700'],
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
-  title: "Bahía · Social Sports Club",
-  description: "Club deportivo y social premium en Nuevo Vallarta, Nayarit.",
-};
+  title: 'Bahía · Agentes de Marketing IA',
+  description: 'Panel de control de los agentes de marketing IA del Bahía Social Sports Club.',
+}
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <ClerkProvider>
-      <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-        <body>{children}</body>
+      <html lang="es" className={`${inter.variable} ${sora.variable}`}>
+        <body style={{ fontFamily: 'var(--font-inter, sans-serif)' }}>
+          {children}
+        </body>
       </html>
     </ClerkProvider>
-  );
+  )
 }
