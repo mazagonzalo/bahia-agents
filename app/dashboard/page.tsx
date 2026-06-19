@@ -222,7 +222,7 @@ function ContentIdeasSection({ ideas }: { ideas: ContentIdea[] }) {
               <div style={{ padding: '0 16px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div style={{ background: C.bg, borderRadius: 8, padding: '12px 14px', gridColumn: '1 / -1' }}>
                   <div style={{ fontSize: 10, color: C.muted, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>Hook · {idea.hook.pattern}</div>
-                  <div style={{ color: C.accentBright, fontWeight: 600, fontSize: 14 }}>"{idea.hook.text}"</div>
+                  <div style={{ color: C.accentBright, fontWeight: 600, fontSize: 14 }}>&ldquo;{idea.hook.text}&rdquo;</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
                     {idea.hook.triggerWords?.map(w => <span key={w} style={{ background: C.accentGlow, color: C.accentBright, fontSize: 11, padding: '1px 8px', borderRadius: 4 }}>{w}</span>)}
                   </div>
@@ -263,7 +263,7 @@ function StrategyAndSeason({ seasonality: s, strategy: st }: { seasonality: Repo
         </div>
         <div style={{ background: C.accentGlow, border: `1px solid ${C.accentBright}30`, borderRadius: 10, padding: '12px 14px', marginBottom: 12 }}>
           <div style={{ fontSize: 10, color: C.accentBright, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Mensaje</div>
-          <div style={{ color: C.text, fontStyle: 'italic', fontSize: 13 }}>"{st?.message}"</div>
+          <div style={{ color: C.text, fontStyle: 'italic', fontSize: 13 }}>&ldquo;{st?.message}&rdquo;</div>
         </div>
         <div style={{ background: C.redGlow, border: `1px solid ${C.red}30`, borderRadius: 10, padding: '10px 14px' }}>
           <div style={{ fontSize: 10, color: C.red, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Evitar</div>
@@ -410,6 +410,7 @@ export default function Dashboard() {
     }
   }, [])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchReport() }, [fetchReport])
 
   async function generate() {

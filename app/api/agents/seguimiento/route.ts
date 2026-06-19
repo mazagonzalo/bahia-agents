@@ -106,7 +106,6 @@ async function runSeguimiento(dryRun = false) {
   const now = new Date()
   const hace24h = new Date(now.getTime() - 24 * 3600 * 1000).toISOString()
   const hace48h = new Date(now.getTime() - 48 * 3600 * 1000).toISOString()
-  const hace3d  = new Date(now.getTime() - 3  * 24 * 3600 * 1000).toISOString()
   const hace7d  = new Date(now.getTime() - 7  * 24 * 3600 * 1000).toISOString()
   const hace14d = new Date(now.getTime() - 14 * 24 * 3600 * 1000).toISOString()
 
