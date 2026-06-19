@@ -212,14 +212,15 @@ async function runTendencias(notifyAdmin: boolean) {
   // Keywords dinámicos: fijos de alto volumen + wellness/lifestyle para no ser repetitivos
   const keywords = ['padel', 'pickleball', 'natacion', 'wellness mexico', 'vida activa']
   const adsTerms = [
+    // Mercado general — lifestyle, wellness, turismo deportivo MX
+    'wellness México', 'vida activa familia', 'vacaciones activas México',
+    'resort deportivo', 'actividades Riviera Nayarit', 'membresía fitness premium',
+    // Mercado específico — clubes deportivos sin importar ubicación
+    'club deportivo membresía', 'club pádel', 'club pickleball',
+    'club deportivo familia', 'padel club México', 'social sports club',
+    'club tenis México', 'club raqueta membresía',
     // Competencia directa zona
     'club deportivo Vallarta', 'membresía gym Nayarit', 'pádel Puerto Vallarta',
-    // Categoría amplia — deporte y familia
-    'deporte familia México', 'clases pádel México', 'club pickleball',
-    // Wellness y lifestyle premium
-    'wellness México', 'vida activa familia', 'membresía fitness premium',
-    // Turismo deportivo y vacaciones activas
-    'vacaciones activas México', 'resort deportivo', 'actividades Riviera Nayarit',
   ]
 
   // PERFIL DEL SOCIO — para filtrar relevancia en todos los prompts
@@ -341,7 +342,7 @@ Devuelve ÚNICAMENTE el JSON, sin markdown:
       `HASHTAGS EFECTIVOS:\n${hashtagsRaw}`,
       `COMPETENCIA LOCAL:\n${competitiveRaw}`,
       musicTrendsRaw ? `MÚSICA EN TENDENCIA ESTA SEMANA (TikTok/Reels MX):\n${musicTrendsRaw}` : '',
-      metaAdsRaw ? `META ADS — QUÉ ESTÁ CORRIENDO EN EL MERCADO (competencia, categoría, lifestyle, wellness, turismo deportivo):\n${metaAdsRaw}` : '',
+      metaAdsRaw ? `META ADS — DOS NIVELES: (1) mercado general: lifestyle, wellness, turismo deportivo MX; (2) mercado específico de clubes deportivos en México y LATAM sin importar ubicación — qué mensajes, ángulos y formatos están funcionando en clubes ahora:\n${metaAdsRaw}` : '',
       `AUDIENCIA PREMIUM (qué consume, qué comparte):\n${trunc(audienceRaw, 1000)}`,
       googleTrendsResults.length
         ? `GOOGLE TRENDS MX:\n${googleTrendsResults.map(t => `${t.keyword}: ${t.avgScore}/100 (${t.trend})`).join(', ')}`
