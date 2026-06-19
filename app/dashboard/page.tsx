@@ -521,25 +521,30 @@ export default function Dashboard() {
 
   async function generate() {
     setGenerating(true)
-    const startedAt = new Date().toISOString()
-    fetch('/api/agents/tendencias').catch(() => {})
-    let attempts = 0
-    const poll = setInterval(async () => {
-      attempts++
-      try {
-        const r = await fetch('/api/agents/tendencias/report')
-        if (r.ok) {
-          const d = await r.json()
-          if (d.generatedAt > startedAt) {
-            setReport(d.report)
-            setGeneratedAt(d.generatedAt)
-            setGenerating(false)
-            clearInterval(poll)
-          }
+    try {
+      // Espera la respuesta directamente — la función tarda 1-3 min pero regresa cuando termina
+      const r = await fetch('/api/agents/tendencias', { signal: AbortSignal.timeout(290_000) })
+      if (r.ok) {
+        const d = await r.json()
+        // La ruta devuelve el análisis directamente con campos: contentIdeas, trends, etc.
+        if (d.contentIdeas || d.trends || d.period) {
+          setReport(d)
+          setGeneratedAt(new Date().toISOString())
+          setGenerating(false)
+          return
         }
-      } catch { /* sigue */ }
-      if (attempts >= 60) { setGenerating(false); clearInterval(poll) } // 10 min máx
-    }, 10000)
+      }
+    } catch { /* timeout o error de red — intenta leer el reporte guardado */ }
+    // Fallback: leer el reporte más reciente de Supabase
+    try {
+      const r2 = await fetch('/api/agents/tendencias/report')
+      if (r2.ok) {
+        const d2 = await r2.json()
+        setReport(d2.report)
+        setGeneratedAt(d2.generatedAt)
+      }
+    } catch { /* sin reporte disponible */ }
+    setGenerating(false)
   }
 
   useEffect(() => {

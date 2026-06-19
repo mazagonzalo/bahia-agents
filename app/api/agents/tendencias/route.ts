@@ -9,21 +9,11 @@ const isDev = process.env.NODE_ENV === 'development'
 
 export async function POST(req: NextRequest) {
   const { notifyAdmin = true } = await req.json().catch(() => ({}))
-  if (isDev) {
-    return runTendencias(notifyAdmin)
-  }
-  const { after } = await import('next/server')
-  after(() => runTendencias(notifyAdmin))
-  return NextResponse.json({ status: 'processing', readAt: '/api/agents/tendencias/report' })
+  return runTendencias(notifyAdmin)
 }
 
 export async function GET() {
-  if (isDev) {
-    return runTendencias(true)
-  }
-  const { after } = await import('next/server')
-  after(() => runTendencias(true))
-  return NextResponse.json({ status: 'processing', readAt: '/api/agents/tendencias/report' })
+  return runTendencias(true)
 }
 
 // ─── Perplexity ──────────────────────────────────────────────────────────────
