@@ -1,0 +1,196 @@
+// Bahía Agents — Prisma Schema
+// Database: el MISMO Postgres de Supabase (no una segunda DB).
+//
+// Esta es la capa de GOBIERNO de datos (Fase 1 del re-plataformado). Modela los
+// objetos NUEVOS y aditivos del harness (Agent*) + auditoría. Las tablas LEGACY
+// de Gonzalo (leads, conversations, agent_memory con pgvector, creatives, trends,
+// club_events, club_assets, reviews) se capturan con `prisma db pull` cuando haya
+// tokens de Supabase — ver docs/PRISMA_SETUP.md. NO las hardcodees aquí: el .sql
+// ya está desfasado del código y la fuente de verdad es la DB viva.
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // pooled (pgbouncer, puerto 6543) — runtime
+  directUrl = env("DIRECT_URL")   // directo (puerto 5432) — migraciones
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// =============================================================================
+// Harness de agentes — núcleo gobernado (Fase 1/2)
+// Espejo de commerce-os-template (src/lib/agents/*). AgentType = los 9 agentes
+// de Bahía + META (auto-mejora). Ver docs/PRISMA_SETUP.md para el ciclo de vida.
+// =============================================================================
+
+enum AgentType {
+  TENDENCIAS
+  CONTENIDO
+  EVENTOS
+  META_ADS
+  VENTAS
+  SEGUIMIENTO
+  CRITICO
+  REPUTACION
+  SECRETARIA
+  META
+}
+
+enum AgentContextKind {
+  LEARNING
+  FACT
+  FAILURE
+  PATTERN
+}
+
+enum AgentContextScope {
+  GLOBAL
+  AGENT
+  TASK
+}
+
+enum AgentRunStatus {
+  SUCCESS
+  FAILED
+  ABSTAINED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXECUTED
+}
+
+/// Propuesta de un agente que requiere aprobación humana antes de ejecutarse
+/// (p.ej. secretaria aprueba creativos, meta-ads publica). Sustituye el patrón
+/// fire-and-forget actual por un gate auditable PENDING→APPROVED/EXECUTED.
+model AgentApproval {
+  id           String         @id @default(cuid())
+  agentType    AgentType
+  proposalData Json
+  status       ApprovalStatus @default(PENDING)
+
+  proposedAt String? // resumen/origen de la propuesta
+  approvedBy String? // clerkId de quien aprobó (sin FK aún; User llega en Fase 4)
+  approvedAt DateTime?
+
+  coordinatedWith String[]  @default([])
+  executedAt      DateTime?
+  result          Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([agentType, status])
+  @@index([createdAt])
+}
+
+/// Historial de resultados de propuestas ejecutadas (para el loop de aprendizaje).
+model AgentProposalHistory {
+  id              String    @id @default(cuid())
+  approvalId      String
+  agentType       AgentType
+  proposalSummary String
+  executionStatus String // "success" | "failed"
+  metrics         Json
+  result          Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([agentType])
+  @@index([createdAt])
+}
+
+/// Memoria persistente de los agentes: aprendizajes, hechos, fallas, patrones.
+/// `recall()` lee antes de cada corrida; `remember()` escribe después. Reemplaza
+/// los dumps de texto sueltos de la tabla legacy `agent_memory`.
+model AgentContext {
+  id        String            @id @default(cuid())
+  agentType AgentType
+  kind      AgentContextKind
+  scope     AgentContextScope @default(AGENT)
+  content   String
+  tags      String[]          @default([])
+  embedding Bytes? // reservado para kNN (pgvector vive en la tabla legacy vía supabase-js)
+
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+  useCount   Int      @default(0)
+
+  @@index([agentType, scope])
+  @@index([lastUsedAt])
+  @@index([tags])
+}
+
+/// Prompts de sistema versionados por agente. Exactamente una fila isActive por
+/// agentType. La auto-mejora (flujo META) crea versiones; la propuesta APPROVED
+/// cambia el puntero activo. Nunca se edita un .ts para cambiar el prompt vivo.
+model AgentPromptVersion {
+  id           String  @id @default(cuid())
+  agentType    AgentType
+  version      Int
+  systemPrompt String
+  toolsConfig  Json    @default("{}")
+  isActive     Boolean @default(false)
+
+  createdBy  String? // clerkId del autor o "system" (seed) o "meta-agent"
+  createdAt  DateTime @default(now())
+  approvalId String?
+
+  @@unique([agentType, version])
+  @@index([agentType, isActive])
+}
+
+/// Log de observabilidad por corrida. Una fila por `runAgent()` — el ledger de
+/// costo/tokens/latencia que la app hoy NO tiene. Alimenta el dashboard de métricas.
+model AgentRunLog {
+  id              String  @id @default(cuid())
+  agentType       AgentType
+  approvalId      String?
+  promptVersionId String?
+
+  status   AgentRunStatus
+  errorMsg String?
+
+  latencyMs    Int
+  inputTokens  Int     @default(0)
+  outputTokens Int     @default(0)
+  costUsd      Decimal @default(0) @db.Decimal(12, 6)
+
+  contextIdsUsed String[] @default([])
+
+  createdAt DateTime @default(now())
+
+  @@index([agentType, createdAt])
+  @@index([status])
+  @@index([approvalId])
+}
+
+// =============================================================================
+// Auditoría (append-only) — quién/qué/cuándo de acciones con efecto
+// =============================================================================
+
+/// Registro inmutable de acciones gobernadas (aprobar/rechazar/publicar, cambios
+/// de estado de leads). Append-only: nunca se actualiza ni borra.
+model AuditLog {
+  id       String  @id @default(cuid())
+  action   String // p.ej. "creative.approved", "lead.status_changed"
+  entity   String // p.ej. "AgentApproval", "Lead"
+  entityId String?
+  actorId  String? // clerkId, "system", o "cron"
+  changes  Json    @default("{}")
+
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
+
+// =============================================================================
+// ⚠️ TABLAS LEGACY (de Gonzalo) — NO modeladas aquí a propósito.
+// Cuando haya DATABASE_URL/DIRECT_URL, `prisma db pull` las agrega al introspectar
+// la DB VIVA (leads, conversations, agent_memory[embedding vector(1536)→Unsupported],
+// creatives, trends, club_events, club_assets, reviews). Ver docs/PRISMA_SETUP.md.
+// =============================================================================
