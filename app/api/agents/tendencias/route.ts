@@ -308,7 +308,7 @@ INSTRUCCIONES PARA CONTENT IDEAS — LOS REELS DEBEN SER EJECUTABLES:
 - platforms.reel: Descríbelo como director de cine: plano de apertura (qué se ve exactamente), texto en pantalla en los primeros 3s, ritmo de cortes, duración total, cierre/CTA visual, qué emoción debe sentir el espectador al terminar. Mínimo 3 oraciones.
 - platforms.tiktok: Adaptación de tono y hook para TikTok — más casual, texto desde segundo 0, energía diferente.
 - step1/step2/step3: Guión real por momento. Qué dice el audio/texto en pantalla, qué se muestra, qué construye emocionalmente. No resúmenes, notas de producción reales.
-- music: Selecciona UNA canción de las que reportó Perplexity esta semana. SOLO canciones marcadas ✅ o sin advertencia. Nunca recomiendes una canción con letra explícita, violencia, alcohol o contenido sexual — el club tiene valores familiares y ambiente premium. Elige la que mejor corresponda al mood del reel. Incluye: title, artist, bpm, mood y why (por qué esta canción para este reel específico).
+- music: Propón 4-5 opciones de canciones para que el admin elija. SOLO canciones ✅ (sin letra explícita, violencia, alcohol ni contenido sexual). Para cada opción: title, artist, bpm, mood y why (por qué esta canción encaja con este reel específico). El admin decide cuál usar.
 - trendConnection: Conexión directa con la tendencia real detectada esta semana. Por qué ahora, por qué Bahía.
 
 FILTRO DE CALIDAD — CRÍTICO:
@@ -321,7 +321,7 @@ REGLAS:
 - hashtags por idea: máximo 5 tags · triggerWords: máximo 3 elementos
 
 Devuelve ÚNICAMENTE el JSON, sin markdown:
-{"generatedAt":"${generatedAt}","period":"${mes}","trends":[{"topic":"string","score":0,"angle":"string","evidence":"string"}],"googleTrends":[{"keyword":"string","avgScore":0,"trend":"string","insight":"string"}],"seasonality":{"touristFlow":"string","dominantProfile":"string","peakWindow":"string","localMarket":"string","insight":"string"},"strategy":{"primarySegment":"string","secondarySegment":"string","message":"string","avoid":"string"},"competitive":{"topCompetitors":["string"],"theirAngle":"string","gap":"string","counterPositioning":"string"},"audienceWhere":{"accounts":["string"],"contentTypes":["string"],"ownHashtags":["#tag"],"insight":"string"},"hashtags":{"masivos":["#tag"],"nicho":["#tag"],"locales":["#tag"],"mixRecomendado":"string"},"contentOpportunities":[{"instalacion":"string","oportunidad":"string","momento":"string","formatoIdeal":"string","urgencia":0}],"viralPatterns":[{"pattern":"string","description":"string","whyItWorks":"string","adaptForBahia":"string","differentiator":"string"}],"contentIdeas":[{"title":"string","format":"Reel","hook":{"text":"string","pattern":"string","triggerWords":["string"]},"copyStructure":{"framework":"PAS","step1":"string","step2":"string","step3":"string","cta":"string"},"platforms":{"reel":"string","tiktok":"string","stories":"string","carrusel":"string"},"music":{"title":"string","artist":"string","bpm":0,"mood":"string","why":"string"},"instalacion":"string","targetSegment":"string","hashtags":["#tag"],"trendConnection":"string","urgency":0}]}`
+{"generatedAt":"${generatedAt}","period":"${mes}","trends":[{"topic":"string","score":0,"angle":"string","evidence":"string"}],"googleTrends":[{"keyword":"string","avgScore":0,"trend":"string","insight":"string"}],"seasonality":{"touristFlow":"string","dominantProfile":"string","peakWindow":"string","localMarket":"string","insight":"string"},"strategy":{"primarySegment":"string","secondarySegment":"string","message":"string","avoid":"string"},"competitive":{"topCompetitors":["string"],"theirAngle":"string","gap":"string","counterPositioning":"string"},"audienceWhere":{"accounts":["string"],"contentTypes":["string"],"ownHashtags":["#tag"],"insight":"string"},"hashtags":{"masivos":["#tag"],"nicho":["#tag"],"locales":["#tag"],"mixRecomendado":"string"},"contentOpportunities":[{"instalacion":"string","oportunidad":"string","momento":"string","formatoIdeal":"string","urgencia":0}],"viralPatterns":[{"pattern":"string","description":"string","whyItWorks":"string","adaptForBahia":"string","differentiator":"string"}],"contentIdeas":[{"title":"string","format":"Reel","hook":{"text":"string","pattern":"string","triggerWords":["string"]},"copyStructure":{"framework":"PAS","step1":"string","step2":"string","step3":"string","cta":"string"},"platforms":{"reel":"string","tiktok":"string","stories":"string","carrusel":"string"},"music":[{"title":"string","artist":"string","bpm":0,"mood":"string","why":"string"}],"instalacion":"string","targetSegment":"string","hashtags":["#tag"],"trendConnection":"string","urgency":0}]}`
 
   const consolidated = await ask(prompt, [{
     role: 'user',
@@ -349,7 +349,7 @@ Devuelve ÚNICAMENTE el JSON, sin markdown:
     hook: { text: string; pattern: string; triggerWords: string[] }
     copyStructure: { framework: string; step1: string; step2: string; step3: string; cta: string }
     platforms: { reel: string; tiktok: string; stories: string; carrusel: string }
-    music?: { title: string; artist: string; bpm: number; mood: string; why: string }
+    music?: { title: string; artist: string; bpm: number; mood: string; why: string }[]
     instalacion: string; targetSegment: string; hashtags: string[]; trendConnection: string; urgency: number
   }
   type Analysis = {

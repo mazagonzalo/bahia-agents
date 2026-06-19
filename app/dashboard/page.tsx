@@ -6,12 +6,13 @@ import { UserButton } from '@clerk/nextjs'
 
 type Trend = { topic: string; score: number; angle: string; evidence: string }
 type GTrend = { keyword: string; avgScore: number; trend: string; insight: string }
+type MusicOption = { title: string; artist: string; bpm: number; mood: string; why: string }
 type ContentIdea = {
   title: string; format: string
   hook: { text: string; pattern: string; triggerWords: string[] }
   copyStructure: { framework: string; step1: string; step2: string; step3: string; cta: string }
   platforms: { reel: string; tiktok: string; stories: string; carrusel: string }
-  music?: { title: string; artist: string; bpm: number; mood: string; why: string }
+  music?: MusicOption[]
   instalacion: string; targetSegment: string; hashtags: string[]
   trendConnection: string; urgency: number
 }
@@ -290,19 +291,25 @@ function ContentIdeasSection({ ideas }: { ideas: ContentIdea[] }) {
                   )}
                 </div>
 
-                {/* Música en tendencia */}
-                {idea.music && (
-                  <div style={{ background: C.goldFaint, border: `1px solid ${C.gold}25`, borderRadius: 10, padding: '14px 16px', gridColumn: '1 / -1', display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-                    <div style={{ fontSize: 20, lineHeight: 1 }}>♪</div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 10, color: C.gold, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 6, fontFamily: 'DM Sans', fontWeight: 600 }}>Música recomendada · Trending esta semana</div>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: C.text, fontFamily: 'DM Sans' }}>{idea.music.title}</span>
-                        <span style={{ fontSize: 12, color: C.textSoft, fontFamily: 'DM Sans' }}>— {idea.music.artist}</span>
-                        {idea.music.bpm > 0 && <span style={{ fontSize: 11, color: C.muted, background: C.border, padding: '1px 7px', borderRadius: 10, fontFamily: 'DM Sans' }}>{idea.music.bpm} BPM</span>}
-                        <span style={{ fontSize: 11, color: C.gold, fontStyle: 'italic', fontFamily: 'DM Sans' }}>{idea.music.mood}</span>
-                      </div>
-                      <div style={{ fontSize: 12, color: C.textSoft, fontFamily: 'DM Sans', lineHeight: 1.5 }}>{idea.music.why}</div>
+                {/* Música en tendencia — opciones para el admin */}
+                {idea.music && idea.music.length > 0 && (
+                  <div style={{ background: C.goldFaint, border: `1px solid ${C.gold}25`, borderRadius: 10, padding: '16px 18px', gridColumn: '1 / -1' }}>
+                    <div style={{ fontSize: 10, color: C.gold, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 12, fontFamily: 'DM Sans', fontWeight: 600 }}>♪ Música trending — elige una opción</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {idea.music.map((m, mi) => (
+                        <div key={mi} style={{ background: C.surface, borderRadius: 8, padding: '10px 14px', display: 'flex', alignItems: 'flex-start', gap: 12, border: `1px solid ${C.border}` }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: C.gold, minWidth: 18, paddingTop: 1, fontFamily: 'DM Sans' }}>{mi + 1}</span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: C.text, fontFamily: 'DM Sans' }}>{m.title}</span>
+                              <span style={{ fontSize: 12, color: C.textSoft, fontFamily: 'DM Sans' }}>— {m.artist}</span>
+                              {m.bpm > 0 && <span style={{ fontSize: 10, color: C.muted, background: C.border, padding: '1px 7px', borderRadius: 10, fontFamily: 'DM Sans' }}>{m.bpm} BPM</span>}
+                              <span style={{ fontSize: 11, color: C.gold, fontStyle: 'italic', fontFamily: 'DM Sans' }}>{m.mood}</span>
+                            </div>
+                            <div style={{ fontSize: 12, color: C.textSoft, fontFamily: 'DM Sans', lineHeight: 1.4 }}>{m.why}</div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
