@@ -194,36 +194,46 @@ async function getPreviousReport(): Promise<string> {
 }
 
 async function runTendencias(notifyAdmin: boolean) {
-  const region = 'Riviera Nayarit Bahía de Banderas Puerto Vallarta México'
+  const region = 'Riviera Nayarit, Bahía de Banderas, Nuevo Vallarta, Puerto Vallarta'
   const now = new Date()
   const mes = now.toLocaleString('es-MX', { month: 'long', year: 'numeric' })
-
-  const keywords = ['padel', 'pickleball', 'gym', 'tenis', 'club deportivo']
-  const adsTerms = ['pádel Vallarta', 'club deportivo Puerto Vallarta', 'pickleball México', 'gym membresía Nayarit']
+  const semana = `semana del ${now.toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })}`
 
   const previousReport = await getPreviousReport()
 
-  const [marketRaw, contentRaw, audienceRaw, metaAdsRaw, ...trendsData] = await Promise.all([
+  // Extraer temas previos para evitar repetición
+  const prevTopics = previousReport
+    ? previousReport.match(/Tendencias: ([^\n]+)/)?.[1]?.split(',').map(t => t.trim().split('(')[0].trim()).filter(Boolean) ?? []
+    : []
+  const avoidInstruction = prevTopics.length
+    ? `\nTEMAS YA CUBIERTOS LA SEMANA PASADA (no repetir como tendencia principal): ${prevTopics.join(', ')}. Busca ángulos nuevos, temas adyacentes o tendencias completamente distintas.`
+    : ''
+
+  // Keywords dinámicos: fijos de alto volumen + wellness/lifestyle para no ser repetitivos
+  const keywords = ['padel', 'pickleball', 'natacion', 'wellness mexico', 'vida activa']
+  const adsTerms = ['club deportivo Vallarta', 'membresía gym Nayarit', 'pádel Puerto Vallarta', 'deporte familia México']
+
+  const [marketRaw, viralRaw, audienceRaw, metaAdsRaw, ...trendsData] = await Promise.all([
     perplexityAsk(
-      `Responde estas 3 preguntas sobre ${region} en ${mes} 2026, separadas con ---:
+      `Eres un analista de tendencias para un club deportivo premium en ${region}. Responde estas 3 preguntas separadas con ---. Fecha: ${semana} 2026.
 
-1. TENDENCIAS: 3 temas de deportes/lifestyle en tendencia ESTA SEMANA en la zona. Señales reales.
+1. TENDENCIAS REALES ESTA SEMANA: Qué temas de deportes, wellness, lifestyle o cultura están generando conversación AHORA en redes sociales mexicanas y en la zona. NO menciones solo pádel o pickleball a menos que haya un evento o ángulo concreto nuevo. Busca: torneos locales, eventos deportivos, tendencias de salud mental + deporte, recuperación activa, familias activas en verano, temporada de vacaciones escolares México, turismo deportivo, tendencias fitness que llegaron a México en los últimos 30 días. Da 3-5 temas con señales concretas (hashtags, cuentas, noticias).
 
-2. ESTACIONALIDAD: Volumen de turistas en ${mes}, origen, perfil, cuándo decae.
+2. ESTACIONALIDAD ${mes.toUpperCase()}: Tipo de turista que llega a Riviera Nayarit en esta fecha, origen (MX local, norteamericano, expats), comportamiento de consumo en clubes deportivos. ¿Qué busca el mercado local en vacaciones escolares?
 
-3. COMPETENCIA: 2-3 clubes que compitan con un club premium de pádel y pickleball en la zona. Mensajes que usan.`,
+3. COMPETENCIA: 2-3 clubes o instalaciones que compitan con un club premium de raqueta + alberca + gym en Vallarta/Nayarit. ¿Qué mensajes usan en redes? ¿Qué no están haciendo?`,
       'sonar-pro'
     ),
     perplexityAsk(
-      `Responde estas 2 preguntas, separadas con ---:
+      `Responde estas 2 preguntas sobre contenido en redes sociales para un club deportivo premium en México. Separa con ---. Fecha: ${semana} 2026.
 
-1. HASHTAGS: Top hashtags en Instagram/TikTok para pádel, pickleball, gym en México ahora. 4 masivos, 4 nicho, 3 locales Vallarta/Nayarit.
+1. VIDEOS VIRALES AHORA: 2-3 formatos de Reel o TikTok que están funcionando ESTA SEMANA para cuentas de deportes/wellness/lifestyle en México con menos de 20k seguidores. Para cada formato describe: los primeros 3 segundos exactos (qué se ve, qué dice el texto en pantalla), la emoción que activa, el tipo de corte/edición, la duración ideal, y por qué está funcionando ahora.
 
-2. VIRALES: 2 tipos de videos que viralizan en Reels/TikTok en ${mes} 2026 para cuentas <10k seguidores en deportes/lifestyle. Primeros 3 segundos, emoción que activa.`,
+2. HASHTAGS: Los más efectivos ahora en Instagram y TikTok para deportes, wellness y vida activa en México. Incluye: 4 masivos (>500k posts), 4 de nicho (10k-200k), 3 locales de Vallarta/Nayarit/Riviera Nayarit. Indica cuáles tienen más engagement en este momento.`,
       'sonar-pro'
     ),
     perplexityAsk(
-      `¿Qué 3-4 cuentas siguen aficionados al pádel/pickleball/gym en México? ¿Qué tipo de contenido consumen más? Respuesta breve.`,
+      `¿Qué tipo de contenido consumen en redes sociales los socios de clubes deportivos premium en México (Guadalajara, CDMX, Monterrey, turistas norteamericanos en Vallarta)? Ejemplos de cuentas que siguen, formatos que más guardan o comparten, y qué los hace decidir unirse a un club. Respuesta específica y concreta.`,
       'sonar'
     ),
     metaAdsLibrary(adsTerms),
@@ -232,29 +242,28 @@ async function runTendencias(notifyAdmin: boolean) {
 
   const googleTrendsResults = trendsData.filter(Boolean) as { keyword: string; avgScore: number; trend: string }[]
 
-  // Truncar inputs de Perplexity para no saturar el contexto de Claude
-  const trunc = (s: string, max = 1500) => s.length > max ? s.slice(0, max) + '…' : s
+  const trunc = (s: string, max = 1800) => s.length > max ? s.slice(0, max) + '…' : s
 
   const [marketQ1, marketQ2, marketQ3] = marketRaw.split(/---+/).map(s => s.trim())
-  const [contentQ1, contentQ2] = contentRaw.split(/---+/).map(s => s.trim())
+  const [viralQ1, viralQ2] = viralRaw.split(/---+/).map(s => s.trim())
   const socialTrends = trunc(marketQ1 ?? marketRaw)
   const seasonalityRaw = trunc(marketQ2 ?? '')
   const competitiveRaw = trunc(marketQ3 ?? '')
-  const hashtagsRaw = trunc(contentQ1 ?? contentRaw)
-  const viralPatternsRaw = trunc(contentQ2 ?? '')
+  const viralPatternsRaw = trunc(viralQ1 ?? viralRaw)
+  const hashtagsRaw = trunc(viralQ2 ?? '')
 
   // ─── Claude genera el briefing ────────────────────────────────────────────────
 
   const generatedAt = now.toISOString()
-  const prompt = `Eres el estratega de marketing de Bahía Social Sports Club, club deportivo premium en Paseo de los Flamingos, Nuevo Vallarta, Nayarit.
+  const prompt = `Eres el estratega de contenido de Bahía Social Sports Club, club deportivo premium en Paseo de los Flamingos, Nuevo Vallarta, Nayarit. Tu trabajo es convertir tendencias reales en ideas de contenido concretas y ejecutables.
 
-INSTALACIONES (layout confirmado):
-- CANCHAS DE RAQUETA: 8 canchas de pádel techadas + 8 de pickleball (zona norte, área grande), canchas de tenis de concreto, canchas de tenis de arcilla — todas en la zona norte/central del predio, separadas del lago
-- AGUA Y DESCANSO: albercas exteriores con asoleadero, palapa y baños junto a las albercas
-- FITNESS: gym funcional, salón de spinning, área de yoga y terraza con vistas (planta alta)
-- AMENIDADES: vestidores premium con regaderas (hombres y mujeres), salón de belleza, cocina/cafetería, múltiples salones para eventos (SUM)
-- NATURALEZA: lago natural en la zona baja del predio, rodeado de vegetación tropical — área de descanso y paisaje, NO junto a las canchas
-- ACCESO: entrada principal sobre Paseo de los Flamingos con puente, estacionamiento
+INSTALACIONES:
+- 8 canchas de pádel techadas + 8 pickleball + tenis (concreto y arcilla)
+- Albercas exteriores con asoleadero y palapa
+- Gym funcional, spinning, yoga, terraza con vista
+- Vestidores premium, salón de belleza, cafetería, salones de eventos
+- Lago natural rodeado de vegetación tropical (área de paisaje)
+- Entrada sobre Paseo de los Flamingos con estacionamiento
 
 MEMBRESÍAS: Familiar $6,500 · Pareja $4,500 · Individual $2,500 · Solo Gym $1,800 (mensual).
 
@@ -262,36 +271,40 @@ ${HOOK_PATTERNS_CONTEXT}
 ${COPYWRITING_CONTEXT}
 ${REPURPOSING_CONTEXT}
 
-REGLA: Todo deriva de los datos de investigación. Sin reglas fijas de horarios.
-${previousReport ? `\nEVOLUCIÓN — compara con el reporte anterior y nota qué subió, qué bajó, qué es nuevo:\n${previousReport}` : ''}
+ANTI-REPETICIÓN — CRÍTICO:${avoidInstruction}
+${previousReport ? `\nREPORTE ANTERIOR:\n${previousReport}\n\nComenta qué cambió, qué subió, qué es nuevo esta semana.` : ''}
 
-LÍMITES CRÍTICOS — el JSON DEBE caber en 3000 tokens:
-- Máximo 3 trends, 3 googleTrends, 3 contentOpportunities, 2 viralPatterns, 3 contentIdeas
-- Cada campo de texto: máximo 15 palabras (una oración)
-- hook.text: máximo 12 palabras
-- step1/step2/step3: máximo 10 palabras cada uno
-- triggerWords: máximo 2 elementos
-- hashtags por idea: máximo 4 tags
-- platforms.reel/tiktok/stories/carrusel: máximo 8 palabras cada uno
+INSTRUCCIONES PARA CONTENT IDEAS — LOS REELS DEBEN SER EJECUTABLES:
+- hook.text: La primera oración exacta que dice o aparece en pantalla. Debe ser impactante y completa. Sin límite de palabras.
+- platforms.reel: Describe el video como un director: qué se ve en el plano de apertura, qué texto aparece en pantalla en los primeros 3s, ritmo de edición, duración, qué emoción busca. Mínimo 2 oraciones.
+- platforms.tiktok: Cómo adaptar el hook y tono para TikTok (más casual, texto directo desde segundo 0).
+- step1/step2/step3: Notas de guión reales. Qué dice, qué muestra, qué siente el espectador en cada momento.
+- trendConnection: Por qué esta idea conecta con la tendencia detectada esta semana. Específico.
 
-Devuelve ÚNICAMENTE el JSON a continuación, sin markdown, sin texto antes ni después:
+REGLAS GENERALES:
+- Máximo 3 trends, 3 googleTrends, 3 contentOpportunities, 2 viralPatterns, 4 contentIdeas
+- Las ideas de contenido deben conectar con las tendencias reales de esta semana, no con los deportes del club en general
+- hashtags por idea: máximo 5 tags
+- triggerWords: máximo 3 elementos
+
+Devuelve ÚNICAMENTE el JSON, sin markdown:
 {"generatedAt":"${generatedAt}","period":"${mes}","trends":[{"topic":"string","score":0,"angle":"string","evidence":"string"}],"googleTrends":[{"keyword":"string","avgScore":0,"trend":"string","insight":"string"}],"seasonality":{"touristFlow":"string","dominantProfile":"string","peakWindow":"string","localMarket":"string","insight":"string"},"strategy":{"primarySegment":"string","secondarySegment":"string","message":"string","avoid":"string"},"competitive":{"topCompetitors":["string"],"theirAngle":"string","gap":"string","counterPositioning":"string"},"audienceWhere":{"accounts":["string"],"contentTypes":["string"],"ownHashtags":["#tag"],"insight":"string"},"hashtags":{"masivos":["#tag"],"nicho":["#tag"],"locales":["#tag"],"mixRecomendado":"string"},"contentOpportunities":[{"instalacion":"string","oportunidad":"string","momento":"string","formatoIdeal":"string","urgencia":0}],"viralPatterns":[{"pattern":"string","description":"string","whyItWorks":"string","adaptForBahia":"string","differentiator":"string"}],"contentIdeas":[{"title":"string","format":"Reel","hook":{"text":"string","pattern":"string","triggerWords":["string"]},"copyStructure":{"framework":"PAS","step1":"string","step2":"string","step3":"string","cta":"string"},"platforms":{"reel":"string","tiktok":"string","stories":"string","carrusel":"string"},"instalacion":"string","targetSegment":"string","hashtags":["#tag"],"trendConnection":"string","urgency":0}]}`
 
   const consolidated = await ask(prompt, [{
     role: 'user',
     content: [
-      `TENDENCIAS ESTA SEMANA:\n${socialTrends}`,
+      `TENDENCIAS REALES ESTA SEMANA (${semana}):\n${socialTrends}`,
       `ESTACIONALIDAD ${mes.toUpperCase()}:\n${seasonalityRaw}`,
+      `FORMATOS VIRALES QUE FUNCIONAN AHORA:\n${viralPatternsRaw}`,
       `HASHTAGS EFECTIVOS:\n${hashtagsRaw}`,
-      `PATRONES VIRALES:\n${viralPatternsRaw}`,
       `COMPETENCIA LOCAL:\n${competitiveRaw}`,
       metaAdsRaw ? `META ADS COMPETIDORES:\n${metaAdsRaw}` : '',
-      `AUDIENCIA ONLINE:\n${trunc(audienceRaw, 800)}`,
+      `AUDIENCIA ONLINE (qué consume, qué comparte):\n${trunc(audienceRaw, 1000)}`,
       googleTrendsResults.length
         ? `GOOGLE TRENDS MX:\n${googleTrendsResults.map(t => `${t.keyword}: ${t.avgScore}/100 (${t.trend})`).join(', ')}`
         : '',
     ].filter(Boolean).join('\n\n---\n\n'),
-  }], 4000)
+  }], 6000)
 
   type Trend = { topic: string; score: number; angle: string; evidence: string }
   type GTrend = { keyword: string; avgScore: number; trend: string; insight: string }
