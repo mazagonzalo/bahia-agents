@@ -123,7 +123,8 @@ export async function POST(req: NextRequest) {
   if (!text) return NextResponse.json({ error: 'Sin mensaje' }, { status: 400 })
 
   // Detectar aprobación de creativos
-  const isApproval = /^(sí|si|aprueba|apruebo|ok|dale|todos|1|2|3|1 y 2|1 y 3|2 y 3)/i.test(text.trim())
+  const normalized = text.trim().toLowerCase()
+  const isApproval = /^(aprueba|apruebo|aprobado|dale todos|publica|activa|sí aprueba|si aprueba|aprueba (el |los |todo|ambos)|[123] y [123])$/.test(normalized)
   if (isApproval) {
     const { data: pending } = await supabase
       .from('creatives')

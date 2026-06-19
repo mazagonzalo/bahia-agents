@@ -45,6 +45,10 @@ async function getTopTrend(): Promise<string> {
 }
 
 async function sendFollowUp(lead: Lead, tipo: string, prompt: string): Promise<boolean> {
+  // Marcar last_contact primero — si el cron corre dos veces, el segundo no agarra este lead
+  const sentAt = new Date().toISOString()
+  await supabase.from('leads').update({ last_contact: sentAt }).eq('id', lead.id)
+
   const history = await getHistory(lead.id)
   const nombre = lead.name ?? 'el prospecto'
   const msg = await ask(prompt, [{
@@ -53,7 +57,6 @@ async function sendFollowUp(lead: Lead, tipo: string, prompt: string): Promise<b
   }])
   if (!msg) return false
   await sendText(lead.phone, msg)
-  await supabase.from('leads').update({ last_contact: new Date().toISOString() }).eq('id', lead.id)
   await supabase.from('agent_memory').insert({
     agent: 'seguimiento',
     type: tipo,

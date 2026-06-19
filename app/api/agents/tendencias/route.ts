@@ -375,14 +375,31 @@ Devuelve ÚNICAMENTE el JSON, sin markdown:
     contentIdeas: ContentIdea[]
   }
 
-  let analysis: Analysis | null = null
-  try {
-    const start = consolidated.indexOf('{')
-    const end = consolidated.lastIndexOf('}')
-    if (start === -1 || end === -1) throw new Error('no JSON found')
-    analysis = JSON.parse(consolidated.slice(start, end + 1))
-  } catch {
-    return NextResponse.json({ error: 'Error parsing Claude response', raw: consolidated.slice(0, 3000) }, { status: 500 })
+  const parseAnalysis = (raw: string): Analysis | null => {
+    try {
+      const start = raw.indexOf('{')
+      const end = raw.lastIndexOf('}')
+      if (start === -1 || end === -1) return null
+      return JSON.parse(raw.slice(start, end + 1))
+    } catch {
+      return null
+    }
+  }
+
+  let analysis = parseAnalysis(consolidated)
+
+  // Retry con instrucción explícita si el JSON llegó malformado
+  if (!analysis) {
+    const retry = await ask(
+      'El JSON que generaste estaba malformado. Devuelve ÚNICAMENTE el JSON válido y completo, sin texto adicional, sin markdown.',
+      [{ role: 'user', content: `JSON inválido recibido:\n${consolidated.slice(0, 2000)}` }],
+      6000
+    )
+    analysis = parseAnalysis(retry)
+  }
+
+  if (!analysis) {
+    return NextResponse.json({ error: 'Error parsing Claude response after retry', raw: consolidated.slice(0, 1000) }, { status: 500 })
   }
 
   if (!analysis) return NextResponse.json({ error: 'Análisis vacío' }, { status: 500 })

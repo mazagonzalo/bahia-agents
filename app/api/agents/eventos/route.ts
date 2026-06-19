@@ -4,8 +4,6 @@ import { supabase } from '@/lib/supabase'
 import { ask } from '@/lib/claude'
 import { sendText } from '@/lib/whatsapp'
 import { getClubContext } from '@/lib/context'
-import { generateImage } from '@/lib/muapi'
-
 // POST /api/agents/eventos
 // Recibe texto libre del admin (vía WhatsApp) describiendo un evento,
 // lo parsea con Claude, guarda en club_events y dispara el agente de contenido.
@@ -34,20 +32,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Generar imagen del anuncio del evento en paralelo con la notificación
-  const cuando = saved.recurrence ? saved.recurrence : saved.start_date ?? ''
-  const imgPrompt = `Event announcement photography for "${saved.name}" at Bahía Social Sports Club, Nuevo Vallarta, Riviera Nayarit. ${saved.sport ? `Sport: ${saved.sport}.` : ''} ${cuando ? `Date: ${cuando}.` : ''} Premium sports club environment, tropical lush background, golden hour lighting. Energetic atmosphere, people participating in ${saved.sport ?? 'sports activity'}. Modern upscale facilities visible. Clean composition, social media square format. Photorealistic, high production value, Instagram aesthetic.`
-  const [announcementImage] = await Promise.all([
-    generateImage(imgPrompt, '1:1'),
-    notifyAdmin(saved),
-  ])
-
-  if (announcementImage) {
-    await supabase
-      .from('club_events')
-      .update({ announcement_image_url: announcementImage })
-      .eq('id', saved.id)
-  }
+  await notifyAdmin(saved)
 
   // Dispara el agente de contenido con el evento como contexto principal
   triggerContenido(saved).catch(() => null)
