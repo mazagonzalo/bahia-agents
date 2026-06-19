@@ -1,28 +1,120 @@
 // Bahía Agents — Prisma Schema
 // Database: el MISMO Postgres de Supabase (no una segunda DB).
 //
-// Esta es la capa de GOBIERNO de datos (Fase 1 del re-plataformado). Modela los
-// objetos NUEVOS y aditivos del harness (Agent*) + auditoría. Las tablas LEGACY
-// de Gonzalo (leads, conversations, agent_memory con pgvector, creatives, trends,
-// club_events, club_assets, reviews) se capturan con `prisma db pull` cuando haya
-// tokens de Supabase — ver docs/PRISMA_SETUP.md. NO las hardcodees aquí: el .sql
-// ya está desfasado del código y la fuente de verdad es la DB viva.
+// Dos capas:
+//  1) LEGACY (de Gonzalo) — introspectado con `prisma db pull` de la DB VIVA
+//     (2026-06-19). Fuente de verdad = la DB, no el viejo supabase/schema.sql.
+//     NOTA: la tabla `reviews` NO existe en la DB (el código la lee con fallo
+//     silencioso). pgvector vive en agent_memory.embedding (Unsupported).
+//  2) GOBIERNO (nuevo, aditivo) — el harness (Agent*) + auditoría. Coexisten con
+//     las tablas legacy; los agentes migran a Prisma 1 por PR (Fase 3).
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL") // pooled (pgbouncer, puerto 6543) — runtime
-  directUrl = env("DIRECT_URL")   // directo (puerto 5432) — migraciones
+  url       = env("DATABASE_URL") // pooled (pgbouncer, 6543) — runtime
+  directUrl = env("DIRECT_URL")   // pooler session-mode (5432) — migraciones
 }
 
 generator client {
   provider = "prisma-client-js"
 }
 
-// =============================================================================
-// Harness de agentes — núcleo gobernado (Fase 1/2)
-// Espejo de commerce-os-template (src/lib/agents/*). AgentType = los 9 agentes
-// de Bahía + META (auto-mejora). Ver docs/PRISMA_SETUP.md para el ciclo de vida.
-// =============================================================================
+// ─────────────────────────────────────────────────────────────────────────────
+// LEGACY (introspectado de la DB viva) — agentes de Gonzalo
+// ─────────────────────────────────────────────────────────────────────────────
+
+model agent_memory {
+  id         String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  agent      String
+  type       String
+  content    String
+  outcome    String?
+  embedding  Unsupported("vector")?
+  created_at DateTime?              @default(now()) @db.Timestamptz(6)
+}
+
+model club_assets {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  url            String
+  source         String?
+  instalacion    String?
+  description    String?
+  mood           String?
+  time_of_day    String?
+  people         Boolean?  @default(false)
+  score_reel     Int?
+  score_foto     Int?
+  score_stories  Int?
+  best_format    String?
+  content_angles String[]
+  used_count     Int?      @default(0)
+  last_used      DateTime? @db.Timestamptz(6)
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+model club_events {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name              String
+  type              String?
+  sport             String?
+  recurrence        String?
+  time_of_day       String?
+  start_date        DateTime? @db.Date
+  end_date          DateTime? @db.Date
+  description       String?
+  content_potential Int?
+  active            Boolean?  @default(true)
+  created_at        DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+model conversations {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  lead_id    String?   @db.Uuid
+  role       String
+  content    String
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  leads      leads?    @relation(fields: [lead_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([lead_id, created_at])
+}
+
+model creatives {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type             String
+  content          Json?
+  status           String?   @default("borrador")
+  meta_campaign_id String?
+  metrics          Json?
+  created_at       DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+model leads {
+  id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phone         String          @unique
+  name          String?
+  status        String?         @default("nuevo")
+  score         Int?            @default(0)
+  source        String?         @default("whatsapp")
+  last_contact  DateTime?       @default(now()) @db.Timestamptz(6)
+  created_at    DateTime?       @default(now()) @db.Timestamptz(6)
+  conversations conversations[]
+}
+
+model trends {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  topic      String
+  score      Int?      @default(50)
+  angle      String?
+  source     String?
+  region     String?
+  used       Boolean?  @default(false)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GOBIERNO (nuevo, aditivo) — harness de agentes. Espejo de commerce-os-template.
+// AgentType = los 9 agentes de Bahía + META (auto-mejora).
+// ─────────────────────────────────────────────────────────────────────────────
 
 enum AgentType {
   TENDENCIAS
@@ -63,19 +155,16 @@ enum ApprovalStatus {
   EXECUTED
 }
 
-/// Propuesta de un agente que requiere aprobación humana antes de ejecutarse
-/// (p.ej. secretaria aprueba creativos, meta-ads publica). Sustituye el patrón
-/// fire-and-forget actual por un gate auditable PENDING→APPROVED/EXECUTED.
+/// Propuesta de un agente que requiere aprobación humana antes de ejecutarse.
 model AgentApproval {
   id           String         @id @default(cuid())
   agentType    AgentType
   proposalData Json
   status       ApprovalStatus @default(PENDING)
 
-  proposedAt String? // resumen/origen de la propuesta
-  approvedBy String? // clerkId de quien aprobó (sin FK aún; User llega en Fase 4)
-  approvedAt DateTime?
-
+  proposedAt      DateTime  @default(now())
+  approvedBy      String? // clerkId (sin FK aún; User llega en Fase 4)
+  approvedAt      DateTime?
   coordinatedWith String[]  @default([])
   executedAt      DateTime?
   result          Json?
@@ -87,25 +176,22 @@ model AgentApproval {
   @@index([createdAt])
 }
 
-/// Historial de resultados de propuestas ejecutadas (para el loop de aprendizaje).
+/// Historial de resultados de propuestas ejecutadas (loop de aprendizaje).
 model AgentProposalHistory {
-  id              String    @id @default(cuid())
+  id              String   @id @default(cuid())
   approvalId      String
   agentType       AgentType
   proposalSummary String
-  executionStatus String // "success" | "failed"
+  executionStatus String
   metrics         Json
   result          Json?
-
-  createdAt DateTime @default(now())
+  createdAt       DateTime @default(now())
 
   @@index([agentType])
   @@index([createdAt])
 }
 
-/// Memoria persistente de los agentes: aprendizajes, hechos, fallas, patrones.
-/// `recall()` lee antes de cada corrida; `remember()` escribe después. Reemplaza
-/// los dumps de texto sueltos de la tabla legacy `agent_memory`.
+/// Memoria gobernada: aprendizajes, hechos, fallas, patrones. recall()/remember().
 model AgentContext {
   id        String            @id @default(cuid())
   agentType AgentType
@@ -113,7 +199,7 @@ model AgentContext {
   scope     AgentContextScope @default(AGENT)
   content   String
   tags      String[]          @default([])
-  embedding Bytes? // reservado para kNN (pgvector vive en la tabla legacy vía supabase-js)
+  embedding Bytes?
 
   createdAt  DateTime @default(now())
   lastUsedAt DateTime @default(now())
@@ -124,73 +210,52 @@ model AgentContext {
   @@index([tags])
 }
 
-/// Prompts de sistema versionados por agente. Exactamente una fila isActive por
-/// agentType. La auto-mejora (flujo META) crea versiones; la propuesta APPROVED
-/// cambia el puntero activo. Nunca se edita un .ts para cambiar el prompt vivo.
+/// Prompts de sistema versionados. Una fila isActive por agentType.
 model AgentPromptVersion {
-  id           String  @id @default(cuid())
+  id           String   @id @default(cuid())
   agentType    AgentType
   version      Int
   systemPrompt String
-  toolsConfig  Json    @default("{}")
-  isActive     Boolean @default(false)
-
-  createdBy  String? // clerkId del autor o "system" (seed) o "meta-agent"
-  createdAt  DateTime @default(now())
-  approvalId String?
+  toolsConfig  Json     @default("{}")
+  isActive     Boolean  @default(false)
+  createdBy    String?
+  createdAt    DateTime @default(now())
+  approvalId   String?
 
   @@unique([agentType, version])
   @@index([agentType, isActive])
 }
 
-/// Log de observabilidad por corrida. Una fila por `runAgent()` — el ledger de
-/// costo/tokens/latencia que la app hoy NO tiene. Alimenta el dashboard de métricas.
+/// Ledger de observabilidad: una fila por runAgent() (costo/tokens/latencia).
 model AgentRunLog {
-  id              String  @id @default(cuid())
+  id              String         @id @default(cuid())
   agentType       AgentType
   approvalId      String?
   promptVersionId String?
-
-  status   AgentRunStatus
-  errorMsg String?
-
-  latencyMs    Int
-  inputTokens  Int     @default(0)
-  outputTokens Int     @default(0)
-  costUsd      Decimal @default(0) @db.Decimal(12, 6)
-
-  contextIdsUsed String[] @default([])
-
-  createdAt DateTime @default(now())
+  status          AgentRunStatus
+  errorMsg        String?
+  latencyMs       Int
+  inputTokens     Int            @default(0)
+  outputTokens    Int            @default(0)
+  costUsd         Decimal        @default(0) @db.Decimal(12, 6)
+  contextIdsUsed  String[]       @default([])
+  createdAt       DateTime       @default(now())
 
   @@index([agentType, createdAt])
   @@index([status])
   @@index([approvalId])
 }
 
-// =============================================================================
-// Auditoría (append-only) — quién/qué/cuándo de acciones con efecto
-// =============================================================================
-
-/// Registro inmutable de acciones gobernadas (aprobar/rechazar/publicar, cambios
-/// de estado de leads). Append-only: nunca se actualiza ni borra.
+/// Auditoría append-only de acciones con efecto.
 model AuditLog {
-  id       String  @id @default(cuid())
-  action   String // p.ej. "creative.approved", "lead.status_changed"
-  entity   String // p.ej. "AgentApproval", "Lead"
-  entityId String?
-  actorId  String? // clerkId, "system", o "cron"
-  changes  Json    @default("{}")
-
+  id        String   @id @default(cuid())
+  action    String
+  entity    String
+  entityId  String?
+  actorId   String?
+  changes   Json     @default("{}")
   createdAt DateTime @default(now())
 
   @@index([entity, entityId])
   @@index([createdAt])
 }
-
-// =============================================================================
-// ⚠️ TABLAS LEGACY (de Gonzalo) — NO modeladas aquí a propósito.
-// Cuando haya DATABASE_URL/DIRECT_URL, `prisma db pull` las agrega al introspectar
-// la DB VIVA (leads, conversations, agent_memory[embedding vector(1536)→Unsupported],
-// creatives, trends, club_events, club_assets, reviews). Ver docs/PRISMA_SETUP.md.
-// =============================================================================
