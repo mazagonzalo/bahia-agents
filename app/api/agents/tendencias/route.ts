@@ -211,7 +211,16 @@ async function runTendencias(notifyAdmin: boolean) {
 
   // Keywords dinámicos: fijos de alto volumen + wellness/lifestyle para no ser repetitivos
   const keywords = ['padel', 'pickleball', 'natacion', 'wellness mexico', 'vida activa']
-  const adsTerms = ['club deportivo Vallarta', 'membresía gym Nayarit', 'pádel Puerto Vallarta', 'deporte familia México']
+  const adsTerms = [
+    // Competencia directa zona
+    'club deportivo Vallarta', 'membresía gym Nayarit', 'pádel Puerto Vallarta',
+    // Categoría amplia — deporte y familia
+    'deporte familia México', 'clases pádel México', 'club pickleball',
+    // Wellness y lifestyle premium
+    'wellness México', 'vida activa familia', 'membresía fitness premium',
+    // Turismo deportivo y vacaciones activas
+    'vacaciones activas México', 'resort deportivo', 'actividades Riviera Nayarit',
+  ]
 
   // PERFIL DEL SOCIO — para filtrar relevancia en todos los prompts
   const audienceProfile = `AUDIENCIA OBJETIVO DE BAHÍA (filtra TODO por este perfil):
@@ -332,7 +341,7 @@ Devuelve ÚNICAMENTE el JSON, sin markdown:
       `HASHTAGS EFECTIVOS:\n${hashtagsRaw}`,
       `COMPETENCIA LOCAL:\n${competitiveRaw}`,
       musicTrendsRaw ? `MÚSICA EN TENDENCIA ESTA SEMANA (TikTok/Reels MX):\n${musicTrendsRaw}` : '',
-      metaAdsRaw ? `META ADS COMPETIDORES:\n${metaAdsRaw}` : '',
+      metaAdsRaw ? `META ADS — QUÉ ESTÁ CORRIENDO EN EL MERCADO (competencia, categoría, lifestyle, wellness, turismo deportivo):\n${metaAdsRaw}` : '',
       `AUDIENCIA PREMIUM (qué consume, qué comparte):\n${trunc(audienceRaw, 1000)}`,
       googleTrendsResults.length
         ? `GOOGLE TRENDS MX:\n${googleTrendsResults.map(t => `${t.keyword}: ${t.avgScore}/100 (${t.trend})`).join(', ')}`
