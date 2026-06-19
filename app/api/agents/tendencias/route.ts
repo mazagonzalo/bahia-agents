@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic'
+export const maxDuration = 300 // Vercel Pro — 5 min máx para múltiples llamadas Perplexity + Claude
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { ask } from '@/lib/claude'

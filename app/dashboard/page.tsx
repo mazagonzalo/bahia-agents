@@ -538,7 +538,7 @@ export default function Dashboard() {
           }
         }
       } catch { /* sigue */ }
-      if (attempts >= 42) { setGenerating(false); clearInterval(poll) }
+      if (attempts >= 60) { setGenerating(false); clearInterval(poll) } // 10 min máx
     }, 10000)
   }
 
