@@ -4,7 +4,6 @@ import { supabase } from '@/lib/supabase'
 import { ask } from '@/lib/claude'
 import { sendText } from '@/lib/whatsapp'
 import { getClubContext, contextToPrompt, type ClubEvent } from '@/lib/context'
-import { generateImage, generateVideo } from '@/lib/muapi'
 
 type ContentIdea = {
   title: string
@@ -78,12 +77,10 @@ export async function POST(req: NextRequest) {
   if (format === 'Reel') {
     reelBrief = await generateReelBrief(contexto, idea, upcomingEvents)
     aiScore = await checkAiScore(reelBrief)
-    // Generar video real con seedance-2 basado en el brief
-    const videoPrompt = buildVideoPrompt(idea, trend, upcomingEvents)
-    const videoUrl = await generateVideo(videoPrompt, { aspectRatio: '9:16', duration: 10 })
+    const visualGuide = buildVideoPrompt(idea, trend, upcomingEvents)
     const { data } = await supabase
       .from('creatives')
-      .insert({ type: 'reel_brief', content: { idea, trend, reelBrief, availableAssets, aiScore, videoUrl }, status: 'borrador' })
+      .insert({ type: 'reel_brief', content: { idea, trend, reelBrief, availableAssets, aiScore, visualGuide }, status: 'borrador' })
       .select().single()
     creative = data
   } else {
@@ -91,20 +88,16 @@ export async function POST(req: NextRequest) {
     if (!carousel) return NextResponse.json({ error: 'Error generando carousel' }, { status: 500 })
     const allCopy = carousel.slides.map(s => `${s.headline}. ${s.body}`).join(' ')
     aiScore = await checkAiScore(allCopy)
-    // Generar imagen hero del slide 1 con nano-banana-2 (4:5 para feed de Instagram)
-    const imgPrompt = buildCarouselImagePrompt(idea, trend, carousel.slides[0])
-    const heroImageUrl = await generateImage(imgPrompt, '4:5')
+    const visualGuide = buildCarouselImagePrompt(idea, trend, carousel.slides[0])
     const { data } = await supabase
       .from('creatives')
-      .insert({ type: 'carrusel', content: { idea, trend, carousel, availableAssets, aiScore, heroImageUrl }, status: 'borrador' })
+      .insert({ type: 'carrusel', content: { idea, trend, carousel, availableAssets, aiScore, visualGuide }, status: 'borrador' })
       .select().single()
     creative = data
   }
 
-  const creativeContent = (creative as unknown as { content?: { heroImageUrl?: string; videoUrl?: string } } | null)?.content
-  const heroImageUrl = creativeContent?.heroImageUrl ?? null
-  const videoUrl = creativeContent?.videoUrl ?? null
-  await notifyAdmin({ carousel, reelBrief, idea, trend, availableAssets, upcomingEvents, format, creativeId: creative?.id, aiScore, heroImageUrl, videoUrl })
+  const visualGuide = (creative as unknown as { content?: { visualGuide?: string } } | null)?.content?.visualGuide ?? null
+  await notifyAdmin({ carousel, reelBrief, idea, trend, availableAssets, upcomingEvents, format, creativeId: creative?.id, aiScore, visualGuide })
 
   return NextResponse.json({ creativeId: creative?.id, format, carousel, reelBrief, aiScore })
 }
@@ -312,7 +305,7 @@ async function checkAiScore(text: string): Promise<number | null> {
 // ─── Notificación al admin ────────────────────────────────────────────────────
 
 async function notifyAdmin({
-  carousel, reelBrief, idea, trend, availableAssets, upcomingEvents, format, creativeId, aiScore, heroImageUrl, videoUrl,
+  carousel, reelBrief, idea, trend, availableAssets, upcomingEvents, format, creativeId, aiScore, visualGuide,
 }: {
   carousel: Carousel | null
   reelBrief: string | null
@@ -323,8 +316,7 @@ async function notifyAdmin({
   format: string
   creativeId: string | undefined
   aiScore: number | null
-  heroImageUrl?: string | null
-  videoUrl?: string | null
+  visualGuide?: string | null
 }) {
   const titulo = idea?.title ?? trend?.topic ?? 'Nuevo contenido'
   const segmento = idea?.targetSegment ?? '—'
@@ -377,11 +369,8 @@ async function notifyAdmin({
     }
   }
 
-  if (heroImageUrl) {
-    lines.push(``, `🖼️ *Imagen generada (slide 1):* ${heroImageUrl}`)
-  }
-  if (videoUrl) {
-    lines.push(``, `🎬 *Video generado (Reel):* ${videoUrl}`)
+  if (visualGuide) {
+    lines.push(``, `📷 *Guía visual (referencia para la foto/video):*`, visualGuide)
   }
 
   if (aiScore !== null) {
