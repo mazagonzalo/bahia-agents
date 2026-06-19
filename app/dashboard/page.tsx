@@ -456,6 +456,24 @@ function CompetitiveSection({ competitive: c }: { competitive: Report['competiti
 
 // ─── Página principal ─────────────────────────────────────────────────────────
 
+type CriticoEmbudo = { label: string; valor: number; tasa?: number; tendencia?: string; comentario: string }
+type CriticoReport = {
+  verdict: string; score: number
+  fortalezas: string[]
+  problemas: { problema: string; impacto: 'alto' | 'medio' | 'bajo'; evidencia: string }[]
+  accionesInmediatas: string[]
+  embudo: { captacion: CriticoEmbudo; calificacion: CriticoEmbudo; cita: CriticoEmbudo; cierre: CriticoEmbudo }
+  alertas: { nivel: 'rojo' | 'amarillo' | 'verde'; mensaje: string }[]
+}
+type CriticoData = {
+  metricas: {
+    leads: { total: number; nuevos: number; calificados: number; citados: number; cerrados: number; frios: number; tasaConversion: number; tasaCita: number; tasaFrio: number; leadsConInteraccionReal: number; scorePromedio: number }
+    creativos: { total: number; borradores: number; aprobados: number; publicados: number; rechazados: number; tasaAprobacion: number }
+  }
+  report: CriticoReport | null
+  generatedAt: string
+}
+
 export default function Dashboard() {
   const [report, setReport] = useState<Report | null>(null)
   const [generatedAt, setGeneratedAt] = useState<string | null>(null)
@@ -463,6 +481,8 @@ export default function Dashboard() {
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [timeAgo, setTimeAgo] = useState<string | null>(null)
+  const [critico, setCritico] = useState<CriticoData | null>(null)
+  const [criticoLoading, setCriticoLoading] = useState(false)
 
   const fetchReport = useCallback(async () => {
     try {
@@ -482,8 +502,18 @@ export default function Dashboard() {
     }
   }, [])
 
+  const fetchCritico = useCallback(async () => {
+    setCriticoLoading(true)
+    try {
+      const res = await fetch('/api/agents/critico')
+      if (res.ok) setCritico(await res.json())
+    } finally {
+      setCriticoLoading(false)
+    }
+  }, [])
+
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { fetchReport() }, [fetchReport])
+  useEffect(() => { fetchReport(); fetchCritico() }, [fetchReport, fetchCritico])
 
   async function generate() {
     setGenerating(true)
@@ -583,6 +613,116 @@ export default function Dashboard() {
               <HashtagsSection hashtags={report.hashtags} />
               <CompetitiveSection competitive={report.competitive} />
             </>
+          )}
+        </div>
+
+        {/* ── Agente Crítico ───────────────────────────────────────────── */}
+        <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 40, marginTop: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+            <SectionTitle label="Evaluación del sistema" />
+            <button
+              onClick={fetchCritico}
+              disabled={criticoLoading}
+              style={{ background: criticoLoading ? C.border : C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: '7px 16px', fontSize: 12, color: C.textSoft, cursor: criticoLoading ? 'default' : 'pointer', fontFamily: 'DM Sans', fontWeight: 500 }}
+            >
+              {criticoLoading ? 'Evaluando...' : 'Reevaluar'}
+            </button>
+          </div>
+
+          {criticoLoading && !critico && (
+            <div style={{ textAlign: 'center', padding: 48, color: C.muted, fontSize: 13, fontFamily: 'DM Sans' }}>Analizando el sistema...</div>
+          )}
+
+          {critico && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+              {/* Veredicto + score */}
+              {critico.report && (
+                <div style={{ background: C.surface, borderRadius: 12, padding: '20px 24px', border: `1px solid ${C.border}`, display: 'flex', alignItems: 'flex-start', gap: 20 }}>
+                  <div style={{ textAlign: 'center', minWidth: 72 }}>
+                    <div style={{ fontSize: 36, fontWeight: 800, fontFamily: 'Cormorant Garamond', color: critico.report.score >= 7 ? C.sage : critico.report.score >= 4 ? C.gold : C.red, lineHeight: 1 }}>{critico.report.score}</div>
+                    <div style={{ fontSize: 10, color: C.muted, fontFamily: 'DM Sans', marginTop: 2 }}>/10</div>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, color: C.text, fontWeight: 600, fontFamily: 'DM Sans', lineHeight: 1.5, marginBottom: 8 }}>{critico.report.verdict}</div>
+                    {critico.report.alertas?.map((a, i) => (
+                      <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: a.nivel === 'rojo' ? C.redFaint : a.nivel === 'amarillo' ? C.goldFaint : C.sageFaint, borderRadius: 6, padding: '3px 10px', marginRight: 6, marginTop: 4 }}>
+                        <span style={{ fontSize: 8 }}>{a.nivel === 'rojo' ? '●' : a.nivel === 'amarillo' ? '●' : '●'}</span>
+                        <span style={{ fontSize: 11, color: C.textSoft, fontFamily: 'DM Sans' }}>{a.mensaje}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Embudo */}
+              {critico.report?.embudo && (
+                <Card>
+                  <div style={{ fontSize: 10, color: C.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 16, fontFamily: 'DM Sans', fontWeight: 600 }}>Embudo de conversión</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+                    {Object.values(critico.report.embudo).map((e, i) => (
+                      <div key={i} style={{ background: C.bg, borderRadius: 10, padding: '14px 16px' }}>
+                        <div style={{ fontSize: 10, color: C.muted, fontFamily: 'DM Sans', marginBottom: 6 }}>{e.label}</div>
+                        <div style={{ fontSize: 24, fontWeight: 700, color: C.text, fontFamily: 'Cormorant Garamond', lineHeight: 1 }}>{e.valor}</div>
+                        {e.tasa !== undefined && <div style={{ fontSize: 11, color: C.gold, fontFamily: 'DM Sans', marginTop: 2 }}>{e.tasa}%</div>}
+                        <div style={{ fontSize: 11, color: C.textSoft, fontFamily: 'DM Sans', marginTop: 6, lineHeight: 1.4 }}>{e.comentario}</div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+
+              {/* Métricas rápidas */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+                {[
+                  { label: 'Leads 30d', value: critico.metricas.leads.total },
+                  { label: 'Interacción real', value: `${critico.metricas.leads.leadsConInteraccionReal}/${critico.metricas.leads.total}` },
+                  { label: 'Creativos aprobados', value: `${critico.metricas.creativos.tasaAprobacion}%` },
+                  { label: 'Score prom. lead', value: critico.metricas.leads.scorePromedio },
+                ].map((s, i) => (
+                  <StatCard key={i} label={s.label} value={String(s.value)} />
+                ))}
+              </div>
+
+              {/* Problemas + fortalezas */}
+              {critico.report && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <Card>
+                    <div style={{ fontSize: 10, color: C.red, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14, fontFamily: 'DM Sans', fontWeight: 600 }}>Problemas detectados</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {critico.report.problemas.map((p, i) => (
+                        <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                          <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 4, background: p.impacto === 'alto' ? C.redFaint : p.impacto === 'medio' ? C.goldFaint : C.sageFaint, color: p.impacto === 'alto' ? C.red : p.impacto === 'medio' ? C.gold : C.sage, fontFamily: 'DM Sans', fontWeight: 600, whiteSpace: 'nowrap', marginTop: 1 }}>{p.impacto}</span>
+                          <div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: C.text, fontFamily: 'DM Sans' }}>{p.problema}</div>
+                            <div style={{ fontSize: 11, color: C.muted, fontFamily: 'DM Sans', marginTop: 2 }}>{p.evidencia}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+
+                  <Card>
+                    <div style={{ fontSize: 10, color: C.sage, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14, fontFamily: 'DM Sans', fontWeight: 600 }}>Qué está funcionando</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+                      {critico.report.fortalezas.map((f, i) => (
+                        <div key={i} style={{ display: 'flex', gap: 8, fontSize: 12, color: C.text, fontFamily: 'DM Sans', lineHeight: 1.5 }}>
+                          <span style={{ color: C.sage, marginTop: 1 }}>✓</span>{f}
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ fontSize: 10, color: C.blue, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10, fontFamily: 'DM Sans', fontWeight: 600 }}>Acciones esta semana</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {critico.report.accionesInmediatas.map((a, i) => (
+                        <div key={i} style={{ display: 'flex', gap: 8, fontSize: 12, color: C.text, fontFamily: 'DM Sans', lineHeight: 1.5 }}>
+                          <span style={{ color: C.blue, fontWeight: 700 }}>{i + 1}.</span>{a}
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
