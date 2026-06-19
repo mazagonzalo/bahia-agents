@@ -1,15 +1,15 @@
 # STATUS — Bahía (estado vivo)
 
 > Para ponerte al día: lee esto + los 2 handoffs más recientes en `docs/handoffs/`.
-> **Actualizado: 2026-06-15 (Xavier · sesión 2)**
+> **Actualizado: 2026-06-19 (Xavier · sesión 3)**
 
 ## 🚀 Re-plataformado en curso (commerce-os → bahia-agents)
-Estamos trayendo la fundación de commerce-os (Clerk + Prisma + harness + dashboard + CRM), **sin
-e-commerce/inventario**, + UI propia por agente. Plan por fases, cada una = PR a `dev` verde:
-- **FASE 1 · Clerk (auth) → ✅ PR #3 abierto, CI verde, listo para merge.** Incluye login "Acceso" en el sitio.
-- **FASE 2 · Prisma** → ⛔ bloqueada: falta `DATABASE_URL`/`DIRECT_URL` de Supabase.
-- FASE 3 harness · 4 dashboard+CRM · 5 UI por agente · 6 datos Trainingym + deploy → pendientes.
-(Un workflow está generando el plan exacto de migración.)
+Plan de 6 fases para cablear bahia con la fundación de commerce-os (harness gobernado + Prisma + CRM)
++ **UI propia por agente**. Cada fase = PR a `dev` verde:
+- **FASE 0 · Dashboard unificado por agente → ✅ DONE** (PR `feat/dashboard-ui`→`dev`). Shell oscuro multi-ruta, 9 agentes con su página, tendencias movido a `/dashboard/tendencias`. tsc/lint/build verdes.
+- **FASE 1 · Prisma** (sobre el MISMO Postgres de Supabase) → ⛔ bloqueada: falta `DATABASE_URL`/`DIRECT_URL`.
+- FASE 2 harness (orchestrator/evals/prompts) · 3 rewire agentes a Prisma (1 PR/agente) · 4 CRM Lead/Conversation gobernado · 5 hardening (auth por rol, pgvector) → pendientes.
+**Decisión de datos:** Prisma activa el gobierno (migraciones, `AgentRunLog` de costo, enums, RLS deny-by-default) sin tirar pgvector ni lo de Gonzalo; se migra 1 agente por PR.
 
 ## En una línea
 `bahia-agents` es el **repo canónico**: aquí vive la **app** (5 agentes de marketing IA del compa) +
@@ -35,8 +35,8 @@ Resumen: ser **capa companion** sobre Trainingym (no reemplazarlo). **Objetivo #
 
 ## En progreso
 ### Xavier
-- **Trabajando en:** re-plataformado commerce-os → bahia. FASE 1 (Clerk + login) hecha → **PR #3** verde, lista para merge.
-- **Siguiente:** mergear PR #3 → **FASE 2 (Prisma)**. Necesito el `DATABASE_URL` de Supabase para activarla. Ver `docs/handoffs/2026-06-15-xavier-2.md`.
+- **Trabajando en:** FASE 0 (dashboard unificado por agente) → ✅ hecha, **PR `feat/dashboard-ui`→`dev`** (CI verde local). Ver `docs/handoffs/2026-06-19-xavier.md`.
+- **Siguiente:** mergear el PR del dashboard → **FASE 1 (Prisma)**, bloqueada por `DATABASE_URL`/`DIRECT_URL` de Supabase. Fases 1-2 quedan code-complete en cuanto haya tokens.
 
 ### Gonzalo
 - **Trabajando en:** consolidación del repo — merge del PR de Xavier ✅, rama `dev` creada ✅, sitio HTML fusionado en `public/` ✅.
