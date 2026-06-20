@@ -1,5 +1,17 @@
 # STATUS — Bahía (estado vivo)
 
+> ## 🔴🔴 GONZALO — ACCIÓN URGENTE EN CUANTO LEAS ESTO (1 min) 🔴🔴
+> **El dashboard en Vercel se ve roto** (critico "sin evaluación", harness "sin datos", leads/seguimiento no cargan).
+> **Causa:** los 9 agentes ya corren sobre **Prisma**, que necesita `DATABASE_URL`/`DIRECT_URL` en Vercel.
+> Tú tienes acceso a Supabase + Vercel (`bahia-agents-37jp`, team `mazaprojects`). **Pon estas 2 vars (los 3 entornos) y haz Redeploy:**
+> ```
+> DATABASE_URL = postgresql://postgres.wrlngeqgvhxsozfvrdgh:<PASSWORD>@aws-1-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+> DIRECT_URL   = postgresql://postgres.wrlngeqgvhxsozfvrdgh:<PASSWORD>@aws-1-us-east-1.pooler.supabase.com:5432/postgres
+> ```
+> ⚠️ Usa el **POOLER** (`...pooler.supabase.com`, IPv4), NO la directa `db.xxx.supabase.co` (IPv6, Vercel no la alcanza).
+> `<PASSWORD>` = la de Supabase (la tiene Xavier en su `.env.local`). El código está verificado E2E en localhost — solo falta esta var.
+> **En cuanto la pongas + redeploy, TODO el dashboard funciona.** (Borra este bloque cuando esté hecho.)
+
 > Para ponerte al día: lee esto + los 2 handoffs más recientes en `docs/handoffs/`.
 > **Actualizado: 2026-06-19 (Xavier · sesión 3)**
 
