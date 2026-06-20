@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
-import { ask } from '@/lib/claude'
+import { prisma } from '@/lib/db'
+import { runAgent } from '@/lib/agents/orchestrator'
 import { sendText } from '@/lib/whatsapp'
 
 // POST /api/agents/reputacion  — procesa reseñas nuevas de Google Maps
@@ -87,19 +87,8 @@ async function analyzeReview(review: Review): Promise<ReviewAnalysis> {
   const comment = review.comment ?? ''
   const reviewer = review.reviewer.displayName
 
-  const raw = await ask(
-    `Eres el community manager de Bahía Social Sports Club, club deportivo premium en Nuevo Vallarta.
-Analiza esta reseña de Google Maps y devuelve SOLO JSON sin markdown:
-{
-  "sentiment": "positivo|neutro|negativo",
-  "themes": ["tema1","tema2"],
-  "suggestedReply": "respuesta en español, cálida, profesional, máx 3 oraciones. Si es negativa, reconoce, agradece y ofrece solución concreta. Si es positiva, personaliza con detalle de la reseña y invita a volver.",
-  "priority": "alta|media|baja"
-}
-Priority: alta = 1-2 estrellas o crítica grave · media = 3 estrellas o menciona un problema · baja = 4-5 estrellas positiva`,
-    [{ role: 'user', content: `Reseñador: ${reviewer}\nEstrellas: ${stars}/5\nComentario: "${comment}"` }]
-  )
-
+  // Análisis vía harness: cada reseña es un runAgent('REPUTACION') registrado en
+  // AgentRunLog (skipApproval — no satura aprobaciones, es analítico).
   let parsed: { sentiment: string; themes: string[]; suggestedReply: string; priority: string } = {
     sentiment: stars >= 4 ? 'positivo' : stars >= 3 ? 'neutro' : 'negativo',
     themes: [],
@@ -107,10 +96,21 @@ Priority: alta = 1-2 estrellas o crítica grave · media = 3 estrellas o mencion
     priority: stars <= 2 ? 'alta' : stars === 3 ? 'media' : 'baja',
   }
   try {
-    const start = raw.indexOf('{')
-    const end = raw.lastIndexOf('}')
-    if (start !== -1 && end !== -1) parsed = JSON.parse(raw.slice(start, end + 1))
-  } catch { /* usa defaults */ }
+    const result = await runAgent(
+      'REPUTACION',
+      `Reseñador: ${reviewer}\nEstrellas: ${stars}/5\nComentario: "${comment}"`,
+      { skipApproval: true, tags: ['reputacion'] }
+    )
+    const pd = result.proposalData
+    if (pd && pd.proposalType !== 'abstain' && pd.sentiment) {
+      parsed = {
+        sentiment: String(pd.sentiment),
+        themes: Array.isArray(pd.themes) ? (pd.themes as string[]) : [],
+        suggestedReply: typeof pd.suggestedReply === 'string' ? pd.suggestedReply : '',
+        priority: String(pd.priority ?? parsed.priority),
+      }
+    }
+  } catch { /* usa defaults por estrellas */ }
 
   return {
     reviewId: review.reviewId,
@@ -126,14 +126,11 @@ Priority: alta = 1-2 estrellas o crítica grave · media = 3 estrellas o mencion
 }
 
 export async function GET() {
-  const { data } = await supabase
-    .from('agent_memory')
-    .select('content, created_at')
-    .eq('agent', 'reputacion')
-    .eq('type', 'analysis')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single()
+  const data = await prisma.agent_memory.findFirst({
+    where: { agent: 'reputacion', type: 'analysis' },
+    orderBy: { created_at: 'desc' },
+    select: { content: true, created_at: true },
+  })
 
   if (!data) {
     const hasCredentials = !!(
@@ -150,7 +147,7 @@ export async function GET() {
     }, { status: 404 })
   }
 
-  return NextResponse.json({ generatedAt: data.created_at, analysis: JSON.parse(data.content) })
+  return NextResponse.json({ generatedAt: data.created_at?.toISOString() ?? null, analysis: JSON.parse(data.content) })
 }
 
 export async function POST(req: NextRequest) {
@@ -209,12 +206,14 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Guardar análisis en Supabase
-  await supabase.from('agent_memory').insert({
-    agent: 'reputacion',
-    type: 'analysis',
-    content: JSON.stringify({ reviews: analyses, total: workingReviews.length, isDemo: reviews.length === 0 }),
-    outcome: 'neutro',
+  // Guardar análisis (cache que lee el GET) vía Prisma.
+  await prisma.agent_memory.create({
+    data: {
+      agent: 'reputacion',
+      type: 'analysis',
+      content: JSON.stringify({ reviews: analyses, total: workingReviews.length, isDemo: reviews.length === 0 }),
+      outcome: 'neutro',
+    },
   })
 
   // Métricas globales
@@ -237,7 +236,14 @@ export async function POST(req: NextRequest) {
     negativas.length > 0 && !autoReply ? `\nResponde *responde reseñas* para publicar las respuestas sugeridas.` : '',
   ].filter(Boolean)
 
-  await sendText(process.env.ADMIN_PHONE!, lines.join('\n'))
+  // Notificación al admin — fail-soft (no debe tumbar el análisis si falta WhatsApp).
+  if (process.env.ADMIN_PHONE) {
+    try {
+      await sendText(process.env.ADMIN_PHONE, lines.join('\n'))
+    } catch (e) {
+      console.error('[reputacion] sendText falló (se ignora):', e instanceof Error ? e.message : e)
+    }
+  }
 
   return NextResponse.json({
     dryRun,
