@@ -59,6 +59,7 @@
   </nav>
 
   <div class="nav__right">
+    <a class="nav__link nav__login" href="/dashboard" title="Acceso para equipo y colaboradores">Acceso</a>
     <div class="lang">
       <button data-lang="es" class="active">ES</button>
       <button data-lang="en">EN</button>
@@ -67,6 +68,12 @@
     <button class="hamburger" aria-label="Menú"><span></span><span></span><span></span></button>
   </div>
 </header>
+<style>
+  /* Acceso discreto para empleados/colaboradores (login del software) */
+  .nav__login { opacity:.7; font-size:.82rem; letter-spacing:.04em; }
+  .nav__login:hover { opacity:1; }
+  .mobile-menu__login { opacity:.7; font-size:.95rem; }
+</style>
 
 <!-- ============ MENÚ MÓVIL ============ -->
 <div class="mobile-menu">
@@ -76,6 +83,7 @@
   <a href="#amenidades" data-i18n="nav_amen">Amenidades</a>
   <a href="#planes" data-i18n="nav_planes">Planes</a>
   <a href="#contacto" data-i18n="nav_contacto">Contacto</a>
+  <a class="mobile-menu__login" href="/dashboard">Acceso · Equipo y colaboradores</a>
   <a class="btn btn--ghost" href="https://calendar.app.google/cedvSmtcwGR3grVc6" target="_blank" rel="noopener" data-i18n="nav_cta">Agendar Visita</a>
 </div>
 
