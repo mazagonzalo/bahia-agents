@@ -1,21 +1,18 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { prisma } from '@/lib/db'
 
-// Endpoint de solo lectura — devuelve el último briefing generado
-// Usado por: Agente de Ventas, Agente de Contenido, Agente de Meta Ads, Admin
+// Endpoint de solo lectura — devuelve el último briefing generado (vía Prisma)
+// Usado por: /dashboard/tendencias, Ventas, Contenido, Meta Ads, Admin
 
 export async function GET() {
-  const { data, error } = await supabase
-    .from('agent_memory')
-    .select('content, created_at')
-    .eq('agent', 'tendencias')
-    .eq('type', 'briefing')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single()
+  const data = await prisma.agent_memory.findFirst({
+    where: { agent: 'tendencias', type: 'briefing' },
+    orderBy: { created_at: 'desc' },
+    select: { content: true, created_at: true },
+  })
 
-  if (error || !data) {
+  if (!data) {
     return NextResponse.json({ error: 'No hay ningún reporte generado aún', hint: 'Llama a GET /api/agents/tendencias para generar uno' }, { status: 404 })
   }
 
