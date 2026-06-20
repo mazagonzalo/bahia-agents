@@ -1,223 +1,83 @@
-'use client'
-import { useState, useEffect, useCallback } from 'react'
-import { T, Card, StatCard, Badge, EmptyState, PageHeader, ScoreBar, Skeleton } from '../_components/ui'
+import Link from 'next/link'
+import { prisma } from '@/lib/db'
+import { T, StatCard, Badge, EmptyState, PageHeader } from '../_components/ui'
 
+export const dynamic = 'force-dynamic'
+
+const STATUS_TONE: Record<string, 'info' | 'teal' | 'gold' | 'success' | 'danger' | 'muted'> = {
+  nuevo: 'info', calificado: 'teal', citado: 'gold', cerrado: 'success', frio: 'danger',
+}
 const nf = (n: number) => n.toLocaleString('es-MX')
+const fecha = (d: Date | null) => (d ? d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }) : '—')
 
-// ─── Types (espejan el shape real de GET /api/agents/seguimiento) ─────────────
-// El endpoint devuelve conteos por etapa (pipeline) y los leads de cada etapa.
-// Cada lead trae { id, name, phone, last_contact } (score llega en la Fase 4).
-
-type SeguimientoLead = {
-  id: string
-  name: string | null
-  phone: string
-  last_contact: string | null
-  score?: number | null
-}
-
-type Pipeline = {
-  sinRespuesta24h: number
-  calificadosSinAvance: number
-  citadosPendientes: number
-  inactivos7d: number
-}
-
-type SeguimientoData = {
-  pipeline: Pipeline
-  leads: {
-    sinRespuesta24h: SeguimientoLead[]
-    calificadosSinAvance: SeguimientoLead[]
-    citadosPendientes: SeguimientoLead[]
-    inactivos7d: SeguimientoLead[]
+async function getLeads() {
+  try {
+    const leads = await prisma.leads.findMany({
+      orderBy: { created_at: 'desc' },
+      take: 200,
+      include: { _count: { select: { conversations: true } } },
+    })
+    const byStatus = leads.reduce<Record<string, number>>((acc, l) => {
+      const s = l.status ?? 'nuevo'
+      acc[s] = (acc[s] ?? 0) + 1
+      return acc
+    }, {})
+    return { leads, byStatus, total: leads.length, error: null as string | null }
+  } catch (e) {
+    return { leads: [], byStatus: {}, total: 0, error: e instanceof Error ? e.message : 'error de DB' }
   }
 }
 
-// ─── Mapeo de etapa → etiqueta + tono del Badge ───────────────────────────────
+export default async function LeadsPage() {
+  const { leads, byStatus, total, error } = await getLeads()
 
-type StageKey = keyof Pipeline
-type BadgeTone = 'gold' | 'teal' | 'success' | 'warning' | 'danger' | 'info' | 'muted'
-
-const STAGES: { key: StageKey; label: string; status: string; tone: BadgeTone }[] = [
-  { key: 'sinRespuesta24h', label: 'Sin respuesta 24h', status: 'nuevo', tone: 'warning' },
-  { key: 'calificadosSinAvance', label: 'Calificado sin avance', status: 'calificado', tone: 'info' },
-  { key: 'citadosPendientes', label: 'Citado pendiente', status: 'citado', tone: 'success' },
-  { key: 'inactivos7d', label: 'Inactivo 7d+', status: 'inactivo', tone: 'danger' },
-]
-
-type Row = SeguimientoLead & { status: string; tone: BadgeTone }
-
-function fmtContact(iso: string | null): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return '—'
-  const days = Math.floor((Date.now() - d.getTime()) / (24 * 3600 * 1000))
-  if (days <= 0) return 'hoy'
-  if (days === 1) return 'ayer'
-  return `hace ${days}d`
-}
-
-// ─── Skeleton con la forma del contenido (KPIs + tabla) ───────────────────────
-
-function LeadsSkeleton() {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-      <div className="grid-kpis">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="metric-card" style={{ minWidth: 0 }}>
-            <Skeleton width="60%" height={10} />
-            <Skeleton width="45%" height={28} radius="var(--radius-sm)" />
+    <div>
+      <PageHeader title="Leads" blurb="Pipeline de prospectos del club. Los leads entran por WhatsApp/Instagram y los nutren los agentes de ventas y seguimiento." />
+
+      {error ? (
+        <EmptyState title="No se pudo cargar el CRM" sub={error.includes('DATABASE_URL') ? 'Falta DATABASE_URL en el entorno (ver STATUS.md).' : error} />
+      ) : (
+        <>
+          <div className="grid-kpis" style={{ marginBottom: 'var(--space-8)' }}>
+            <StatCard label="Total leads" value={nf(total)} sub="en el pipeline" />
+            <StatCard label="Nuevos" value={nf(byStatus.nuevo ?? 0)} color={T.info} />
+            <StatCard label="Calificados" value={nf(byStatus.calificado ?? 0)} color={T.teal} />
+            <StatCard label="Citados" value={nf(byStatus.citado ?? 0)} color={T.gold} />
+            <StatCard label="Cerrados" value={nf(byStatus.cerrado ?? 0)} color={T.success} />
           </div>
-        ))}
-      </div>
-      <Card>
-        <Skeleton width={180} height={10} />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', marginTop: 'var(--space-5)' }}>
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
-              <Skeleton width="32%" height={14} />
-              <Skeleton width={96} height={20} radius="var(--radius-full)" />
-              <Skeleton width="20%" height={4} radius="var(--radius-full)" />
-              <Skeleton width={56} height={12} />
-            </div>
-          ))}
-        </div>
-      </Card>
-    </div>
-  )
-}
 
-// ─── Página ───────────────────────────────────────────────────────────────────
-
-export default function LeadsPage() {
-  const [data, setData] = useState<SeguimientoData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  const fetchData = useCallback(async () => {
-    setLoading(true)
-    try {
-      const res = await fetch('/api/agents/seguimiento')
-      if (res.ok) {
-        setData(await res.json())
-        setError(null)
-      } else {
-        setError('No se pudo cargar el pipeline')
-      }
-    } catch {
-      setError('Error de red')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { fetchData() }, [fetchData])
-
-  const pipeline = data?.pipeline
-  const rows: Row[] = data
-    ? STAGES.flatMap(s =>
-        (data.leads[s.key] ?? []).map(l => ({ ...l, status: s.label, tone: s.tone })),
-      )
-    : []
-  const total = pipeline
-    ? pipeline.sinRespuesta24h + pipeline.calificadosSinAvance + pipeline.citadosPendientes + pipeline.inactivos7d
-    : 0
-
-  return (
-    <>
-      <PageHeader
-        title="Leads"
-        blurb="Pipeline de prospectos del club (WhatsApp / Instagram), agrupado por etapa de seguimiento."
-        actions={
-          <button className="btn btn-secondary" onClick={fetchData} disabled={loading}>
-            {loading ? 'Cargando…' : 'Actualizar'}
-          </button>
-        }
-      />
-
-      {/* Aviso de vista previa */}
-      <Card style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-3)', marginBottom: 'var(--space-5)' }}>
-        <Badge tone="warning">Vista previa</Badge>
-        <div style={{ fontSize: 12, color: T.textSec, lineHeight: 1.5 }}>
-          Estos datos vienen del agente de <strong style={{ color: T.text }}>Seguimiento</strong> (pipeline en vivo de
-          Supabase). El <strong style={{ color: T.text }}>CRM gobernado</strong> con modelos
-          {' '}<code style={{ color: T.gold }}>Lead</code> y <code style={{ color: T.gold }}>Conversation</code> en
-          Prisma —con historial, notas y propiedad por etapa— llega en la <strong style={{ color: T.text }}>Fase 4</strong>.
-        </div>
-      </Card>
-
-      {loading && !data && <LeadsSkeleton />}
-
-      {!loading && error && !data && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <EmptyState title="No se pudo cargar el pipeline" sub={error} />
-          <button className="btn btn-secondary" onClick={fetchData} style={{ marginTop: 'var(--space-2)' }}>
-            Reintentar
-          </button>
-        </div>
-      )}
-
-      {!loading && !error && data && total === 0 && (
-        <EmptyState title="Sin prospectos pendientes" sub="No hay leads en seguimiento en este momento." />
-      )}
-
-      {data && total > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-
-          {/* Conteos por etapa */}
-          {pipeline && (
-            <div className="grid-kpis">
-              <StatCard label="Total en pipeline" value={nf(total)} />
-              <StatCard label="Sin respuesta 24h" value={nf(pipeline.sinRespuesta24h)} color={T.warning} />
-              <StatCard label="Calif. sin avance" value={nf(pipeline.calificadosSinAvance)} color={T.info} />
-              <StatCard label="Citados pendientes" value={nf(pipeline.citadosPendientes)} color={T.success} />
-              <StatCard label="Inactivos 7d+" value={nf(pipeline.inactivos7d)} color={T.danger} />
-            </div>
-          )}
-
-          {/* Tabla de leads */}
-          <Card>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 'var(--space-3)', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
-              <div style={{ fontSize: 10, color: T.muted, letterSpacing: 1.2, textTransform: 'uppercase', fontWeight: 600 }}>
-                Prospectos en seguimiento
-              </div>
-              <div style={{ fontSize: 12, color: T.textSec, fontFamily: 'var(--font-headline)' }}>
-                {nf(rows.length)} {rows.length === 1 ? 'prospecto' : 'prospectos'}
-              </div>
-            </div>
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
             <div style={{ overflowX: 'auto' }}>
               <table className="data-table">
                 <thead>
-                  <tr>
-                    <th style={{ minWidth: 180 }}>Prospecto</th>
-                    <th style={{ minWidth: 140 }}>Etapa</th>
-                    <th style={{ width: 160, minWidth: 140 }}>Score</th>
-                    <th style={{ textAlign: 'right', minWidth: 120 }}>Último contacto</th>
-                  </tr>
+                  <tr><th>Prospecto</th><th>Estado</th><th>Score</th><th>Fuente</th><th>Mensajes</th><th>Último contacto</th></tr>
                 </thead>
                 <tbody>
-                  {rows.map(l => (
-                    <tr key={`${l.status}-${l.id}`}>
+                  {leads.length === 0 && (
+                    <tr><td colSpan={6} style={{ color: T.muted, textAlign: 'center', padding: 32 }}>Aún no hay leads. Entrarán automáticamente cuando lleguen mensajes por WhatsApp.</td></tr>
+                  )}
+                  {leads.map((l) => (
+                    <tr key={l.id}>
                       <td>
-                        <div style={{ fontWeight: 600, color: T.text, maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.name ?? 'Sin nombre'}</div>
-                        <div style={{ fontSize: 12, color: T.muted, fontFamily: 'var(--font-headline)' }}>{l.phone}</div>
+                        <Link href={`/dashboard/leads/${l.id}`} style={{ color: T.text, fontWeight: 600 }}>
+                          {l.name || l.phone}
+                        </Link>
+                        {l.name && <div style={{ fontSize: 11, color: T.muted }}>{l.phone}</div>}
                       </td>
-                      <td><Badge tone={l.tone}>{l.status}</Badge></td>
-                      <td>
-                        {typeof l.score === 'number'
-                          ? <ScoreBar score={l.score} />
-                          : <span style={{ fontSize: 12, color: T.muted }}>—</span>}
-                      </td>
-                      <td style={{ textAlign: 'right', color: T.textSec, whiteSpace: 'nowrap' }}>{fmtContact(l.last_contact)}</td>
+                      <td><Badge tone={STATUS_TONE[l.status ?? 'nuevo'] ?? 'muted'}>{l.status ?? 'nuevo'}</Badge></td>
+                      <td style={{ fontFamily: 'var(--font-headline)', color: T.gold }}>{nf(l.score ?? 0)}</td>
+                      <td style={{ color: T.textSec }}>{l.source ?? '—'}</td>
+                      <td style={{ color: T.textSec }}>{nf(l._count.conversations)}</td>
+                      <td style={{ color: T.muted }}>{fecha(l.last_contact)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </Card>
-        </div>
+          </div>
+        </>
       )}
-    </>
+    </div>
   )
 }

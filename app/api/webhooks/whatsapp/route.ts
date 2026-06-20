@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse, after } from 'next/server'
 import crypto from 'crypto'
-import { supabase } from '@/lib/supabase'
+import { prisma } from '@/lib/db'
 import { sendText } from '@/lib/whatsapp'
 import { clipVideo } from '@/lib/muapi'
 
@@ -63,12 +63,12 @@ async function processMessage(body: Record<string, unknown>) {
   const contact = change?.value?.contacts?.[0]
   const name = contact?.profile?.name ?? ''
 
-  // Upsert del lead en Supabase
-  const { data: lead } = await supabase
-    .from('leads')
-    .upsert({ phone: from, name, last_contact: new Date().toISOString() }, { onConflict: 'phone' })
-    .select()
-    .single()
+  // Upsert del lead vía Prisma (ingesta del CRM)
+  const lead = await prisma.leads.upsert({
+    where: { phone: from },
+    update: { name: name || undefined, last_contact: new Date() },
+    create: { phone: from, name, last_contact: new Date() },
+  })
 
   if (!lead) return
 
