@@ -1,0 +1,9 @@
+{
+  "input": "Prospecto: Carlos Méndez\nEtapa: citado\nContacto: 2h desde el último contacto\nHistorial:\nBahía: ¡Listo Carlos! Te esperamos mañana a las 6pm para tu visita guiada.\nLead: Perfecto, ahí estaré. Gracias.\nPropón el siguiente toque de seguimiento (o abstain si no corresponde).",
+  "requiredFields": ["proposalType", "rationale"],
+  "tags": ["seguimiento", "pipeline", "abstain"],
+  "rubric": [
+    { "name": "no_accionable", "description": "El prospecto acaba de confirmar su visita hace 2h; no corresponde ningún toque todavía, debe abstenerse." }
+  ],
+  "expectAbstain": true
+}

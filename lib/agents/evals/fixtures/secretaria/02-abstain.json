@@ -1,0 +1,12 @@
+{
+  "input": "buenas",
+  "requiredFields": ["proposalType", "rationale"],
+  "tags": ["secretaria", "ruido", "sin-accion"],
+  "rubric": [
+    {
+      "name": "reconoce_sin_accion",
+      "description": "Identifica que un saludo suelto sin pregunta ni petición no amerita una respuesta ni propuesta accionable."
+    }
+  ],
+  "expectAbstain": true
+}

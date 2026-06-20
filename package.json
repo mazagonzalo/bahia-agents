@@ -13,7 +13,9 @@
     "prisma:validate": "prisma validate",
     "prisma:studio": "prisma studio",
     "db:pull": "prisma db pull",
-    "db:migrate": "prisma migrate deploy"
+    "db:migrate": "prisma migrate deploy",
+    "harness:seed": "dotenv -e .env.local -- tsx prisma/seed-harness.ts",
+    "eval:agents": "dotenv -e .env.local -- tsx lib/agents/evals/run.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.2",

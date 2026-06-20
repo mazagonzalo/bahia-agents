@@ -1,0 +1,12 @@
+{
+  "input": "Prospecto: Mariana López\nEtapa: calificado\nContacto: 52h desde el último contacto\nHistorial:\nLead: Hola, vi sus canchas de pádel, ¿cómo son las membresías?\nBahía: Tenemos Familiar $6,500, Pareja $4,500 e Individual $2,500. ¿Cuál te late?\nLead: La Individual suena bien, déjame pensarlo.\nPropón el siguiente toque de seguimiento (o abstain si no corresponde).",
+  "requiredFields": ["proposalType", "confidence", "rationale", "message"],
+  "tags": ["seguimiento", "pipeline", "calificado"],
+  "rubric": [
+    { "name": "etapa_correcta", "description": "El proposalType corresponde a un prospecto calificado sin avance >48h (idealmente followup_calificado)." },
+    { "name": "agenda_visita", "description": "El mensaje propone agendar una visita concreta sin reexplicar el club que ya conoce." },
+    { "name": "tono_humano", "description": "Mensaje en español natural de México, cálido, breve (2-3 oraciones), sin spam ni insistencia." },
+    { "name": "personalizado", "description": "Usa el nombre del prospecto y aprovecha el historial." }
+  ],
+  "expectAbstain": false
+}

@@ -1,0 +1,9 @@
+{
+  "input": "haz algo de contenido",
+  "requiredFields": ["proposalType", "rationale"],
+  "tags": ["contenido"],
+  "rubric": [
+    { "name": "Abstención correcta", "description": "Ante un briefing vago, sin idea, sin ángulo ni material, el agente se abstiene en vez de inventar una pieza." }
+  ],
+  "expectAbstain": true
+}

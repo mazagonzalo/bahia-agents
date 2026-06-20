@@ -1,0 +1,9 @@
+{
+  "input": "Buenos días, ¿a qué hora abre el club mañana? Gracias.",
+  "requiredFields": ["proposalType"],
+  "tags": ["evento"],
+  "rubric": [
+    { "name": "abstencion_correcta", "description": "El mensaje es una pregunta del cliente, no describe ningún evento del club, por lo que el agente debe abstenerse." }
+  ],
+  "expectAbstain": true
+}

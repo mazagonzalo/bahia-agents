@@ -1,0 +1,11 @@
+{
+  "input": "Oye, vamos a armar un torneo de pádel mixto el sábado 12 de julio de 9 am a 2 pm, con premiación y música. Es para socios y acompañantes.",
+  "requiredFields": ["proposalType", "confidence", "name", "type", "sport", "description", "content_potential", "active"],
+  "tags": ["evento", "torneo", "padel"],
+  "rubric": [
+    { "name": "extraccion_correcta", "description": "Identifica nombre, deporte (pádel), tipo (especial) y describe el torneo fielmente al mensaje del admin." },
+    { "name": "fecha_y_hora", "description": "Resuelve start_date al sábado 12 de julio y captura el rango horario 9 am - 2 pm en time_of_day." },
+    { "name": "content_potential", "description": "Asigna content_potential alto (8-10) por ser un torneo con premiación y música, buen material para redes." }
+  ],
+  "expectAbstain": false
+}

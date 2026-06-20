@@ -1,0 +1,24 @@
+{
+  "input": "Hola, vi su Instagram. Somos mi esposa y yo, nos interesa entrar al club. ¿Cuánto cuesta la membresía y cómo le hacemos para ir a conocer?",
+  "requiredFields": ["proposalType", "confidence", "suggestedMessage", "recommendedPlan"],
+  "tags": ["ventas", "membresias", "prospecto", "pareja"],
+  "rubric": [
+    {
+      "name": "plan_correcto",
+      "description": "Recomienda el plan Pareja ($4,500/mes) por ser dos adultos, sin inventar precios distintos a los del prompt."
+    },
+    {
+      "name": "lleva_a_la_accion",
+      "description": "El mensaje sugerido empuja a agendar una visita o a ver el sitio, alineado con el objetivo de venta."
+    },
+    {
+      "name": "tono_whatsapp",
+      "description": "El suggestedMessage suena a persona real en WhatsApp: 1-2 oraciones, casual, sin listas ni asteriscos."
+    },
+    {
+      "name": "sin_invenciones",
+      "description": "No agrega datos, instalaciones o precios que no estén en el prompt del agente."
+    }
+  ],
+  "expectAbstain": false
+}
