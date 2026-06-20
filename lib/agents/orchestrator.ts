@@ -120,6 +120,12 @@ export interface RunAgentOptions {
   systemPromptOverride?: string
   /** Override: salta el recall de contexto (runs de eval deterministas). */
   skipContext?: boolean
+  /**
+   * Si es true, registra la corrida (AgentRunLog + memoria) pero NO crea una
+   * AgentApproval. Para agentes EVALUADORES/informativos (critico, reputacion)
+   * que corren seguido y cuya salida no es una acción a aprobar.
+   */
+  skipApproval?: boolean
 }
 
 export interface RunAgentResult {
@@ -224,7 +230,7 @@ export async function runAgent(
 
   // 5. Propuesta (solo para runs exitosos no-abstain).
   let approvalId = ''
-  if (status === 'SUCCESS' && proposalData.proposalType !== 'abstain') {
+  if (status === 'SUCCESS' && proposalData.proposalType !== 'abstain' && !options.skipApproval) {
     const delegationMeta = options.delegatedFrom ? { delegatedFrom: options.delegatedFrom } : {}
     approvalId = await createProposal(agentType, { ...proposalData, ...delegationMeta })
   }

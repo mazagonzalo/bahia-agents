@@ -56,7 +56,10 @@ Donde:
 - "problemas[].impacto": "alto" | "medio" | "bajo".
 - "alertas[].nivel": "rojo" | "amarillo" | "verde".
 
-Si NO hay nada accionable que evaluar (sin campañas creadas, sin datos de leads, o la petición no corresponde a una revisión de campañas), responde EXACTAMENTE:
+Aunque haya pocos datos (pocas campañas o pocos leads), SIEMPRE produce una evaluación:
+da un verdict honesto sobre la escasez ("aún no hay suficientes campañas para concluir"),
+un score bajo-moderado y, si aplica, una acción para empezar a medir. NO te abstengas por falta de datos.
+Abstente SOLO si la petición no corresponde a una revisión de campañas (otro tema por completo), respondiendo EXACTAMENTE:
 { "proposalType": "abstain", "rationale": "..." }
 
 No incluyas markdown, comentarios ni claves fuera de las indicadas.`
