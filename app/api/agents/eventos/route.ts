@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
-import { ask } from '@/lib/claude'
+import { prisma } from '@/lib/db'
+import { runAgent } from '@/lib/agents/orchestrator'
 import { sendText } from '@/lib/whatsapp'
 import { getClubContext } from '@/lib/context'
 // POST /api/agents/eventos
@@ -22,14 +22,34 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No pude entender el evento — intenta con más detalle' }, { status: 422 })
   }
 
-  const { data: saved, error } = await supabase
-    .from('club_events')
-    .insert(event)
-    .select()
-    .single()
+  const row = await prisma.club_events.create({
+    data: {
+      name: event.name,
+      type: event.type,
+      sport: event.sport,
+      recurrence: event.recurrence,
+      time_of_day: event.time_of_day,
+      start_date: event.start_date ? new Date(event.start_date) : null,
+      end_date: event.end_date ? new Date(event.end_date) : null,
+      description: event.description,
+      content_potential: event.content_potential,
+      active: event.active,
+    },
+  })
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  // Normalizar fechas Date → 'YYYY-MM-DD' para preservar el shape original.
+  const saved: ParsedEvent & { id: string } = {
+    id: row.id,
+    name: row.name,
+    type: row.type ?? 'especial',
+    sport: row.sport,
+    recurrence: row.recurrence,
+    time_of_day: row.time_of_day,
+    start_date: row.start_date ? row.start_date.toISOString().split('T')[0] : null,
+    end_date: row.end_date ? row.end_date.toISOString().split('T')[0] : null,
+    description: row.description,
+    content_potential: row.content_potential ?? 5,
+    active: row.active ?? true,
   }
 
   await notifyAdmin(saved)
@@ -58,44 +78,35 @@ type ParsedEvent = {
 async function parseEvent(message: string, existingEvents: { name: string; start_date: string | null }[] = []): Promise<ParsedEvent | null> {
   const today = new Date().toISOString().split('T')[0]
   const existingNote = existingEvents.length
-    ? `\nEventos ya registrados (evita duplicados): ${existingEvents.map(e => `"${e.name}"${e.start_date ? ` (${e.start_date})` : ''}`).join(', ')}`
+    ? ` Eventos ya registrados (evita duplicados): ${existingEvents.map(e => `"${e.name}"${e.start_date ? ` (${e.start_date})` : ''}`).join(', ')}.`
     : ''
 
-  const raw = await ask(
-    `Eres el asistente de Bahía Social Sports Club. El admin acaba de describir un evento del club.
-Extrae la información y devuelve SOLO el siguiente JSON sin markdown (hoy es ${today}).${existingNote}
-
-{
-  "name": "nombre corto del evento",
-  "type": "especial o recurrente",
-  "sport": "deporte principal o null (pádel, tenis, pickleball, natación, gym, general, etc.)",
-  "recurrence": "si es recurrente: con qué frecuencia en palabras (ej: 'todos los sábados', 'cada martes') — null si es evento único",
-  "time_of_day": "hora o rango de hora (ej: '9:00 am', '6-8 pm') o null si no se especifica",
-  "start_date": "YYYY-MM-DD de inicio — null si no se especifica o si es recurrente sin fecha fija",
-  "end_date": "YYYY-MM-DD de cierre — null si no aplica",
-  "description": "descripción completa del evento tal como la entendiste (1-2 oraciones)",
-  "content_potential": número del 1 al 10 (qué tan buen contenido para redes genera este evento),
-  "active": true
-}
-
-Criterios de content_potential:
-- 8-10: torneos, clases especiales, eventos sociales, inauguraciones
-- 5-7: ligas regulares, clínicas, actividades de temporada
-- 1-4: mantenimiento, avisos internos, cambios de horario sin actividad
-
-Si el mensaje no describe ningún evento del club, devuelve null.`,
-    [{ role: 'user', content: message }],
-    600,
-  )
-
+  // Parseo vía harness: registra AgentRunLog. El prompt sembrado EVENTOS emite el
+  // JSON del evento; abstain ⇒ el mensaje no describe un evento.
+  let pd: Record<string, unknown> | null = null
   try {
-    if (raw.trim() === 'null') return null
-    const start = raw.indexOf('{')
-    const end = raw.lastIndexOf('}')
-    if (start === -1 || end === -1) return null
-    return JSON.parse(raw.slice(start, end + 1)) as ParsedEvent
+    const result = await runAgent(
+      'EVENTOS',
+      `Hoy es ${today}.${existingNote}\n\nMensaje del admin: ${message}`,
+      { skipApproval: true, tags: ['eventos'] }
+    )
+    if (result.proposalData.proposalType !== 'abstain') pd = result.proposalData
   } catch {
     return null
+  }
+  if (!pd || typeof pd.name !== 'string' || !pd.name) return null
+
+  return {
+    name: String(pd.name),
+    type: String(pd.type ?? 'especial'),
+    sport: typeof pd.sport === 'string' ? pd.sport : null,
+    recurrence: typeof pd.recurrence === 'string' ? pd.recurrence : null,
+    time_of_day: typeof pd.time_of_day === 'string' ? pd.time_of_day : null,
+    start_date: typeof pd.start_date === 'string' ? pd.start_date : null,
+    end_date: typeof pd.end_date === 'string' ? pd.end_date : null,
+    description: typeof pd.description === 'string' ? pd.description : null,
+    content_potential: typeof pd.content_potential === 'number' ? pd.content_potential : 5,
+    active: pd.active !== false,
   }
 }
 
@@ -117,10 +128,13 @@ async function notifyAdmin(event: ParsedEvent & { id: string }) {
     `📱 Generando contenido para redes... te lo mando en un momento.`,
   ]
 
-  await sendText(
-    process.env.ADMIN_PHONE!,
-    lines.filter(Boolean).join('\n'),
-  )
+  if (process.env.ADMIN_PHONE) {
+    try {
+      await sendText(process.env.ADMIN_PHONE, lines.filter(Boolean).join('\n'))
+    } catch (e) {
+      console.error('[eventos] sendText falló (se ignora):', e instanceof Error ? e.message : e)
+    }
+  }
 }
 
 // ─── Disparo del agente de contenido ─────────────────────────────────────────
