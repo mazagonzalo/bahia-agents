@@ -6,9 +6,10 @@
 ## 🚀 Re-plataformado en curso (commerce-os → bahia-agents)
 Plan de 6 fases para cablear bahia con la fundación de commerce-os (harness gobernado + Prisma + CRM)
 + **UI propia por agente**. Cada fase = PR a `dev` verde:
-- **FASE 0 · Dashboard unificado por agente → ✅ DONE** (PR `feat/dashboard-ui`→`dev`). Shell oscuro multi-ruta, 9 agentes con su página, tendencias movido a `/dashboard/tendencias`. tsc/lint/build verdes.
-- **FASE 1 · Prisma** (sobre el MISMO Postgres de Supabase) → ⛔ bloqueada: falta `DATABASE_URL`/`DIRECT_URL`.
-- FASE 2 harness (orchestrator/evals/prompts) · 3 rewire agentes a Prisma (1 PR/agente) · 4 CRM Lead/Conversation gobernado · 5 hardening (auth por rol, pgvector) → pendientes.
+- **FASE 0 · Dashboard unificado por agente → ✅ DONE + MERGED a `dev`** (PR #12). Shell oscuro multi-ruta, 9 agentes con su página, tendencias en `/dashboard/tendencias`. **Velo en el preview de `dev`** (la URL sin sufijo = `main` = viejo; falta release dev→main).
+- **FASE 1 · Prisma → ✅ DONE + APLICADA A PROD + VERIFICADA** (PR #13). `db pull` de la DB viva, migraciones `0_init`+`1_governance_harness` (6 tablas Agent* + enums + RLS) con `migrate deploy` — **aditivo, tablas de Gonzalo intactas** (`trends=52`). ⚠️ DIRECT directo es IPv6-only → usar pooler session-mode 5432.
+- **FASE 2 · Harness → ✅ DONE + VERIFICADO E2E** (PR #13). `runAgent`/evals portados; `eval:agents` **18/18 fixtures, juez 4.5–5.0/5**. + **Fase 3-lite: UI de Gobierno** `/dashboard/harness` (ledger + aprobaciones). 9 prompts v1 sembrados en `AgentPromptVersion`.
+- FASE 3 rewire de los 9 agentes VIVOS a `runAgent`+Prisma (1 PR/agente, con cuidado) · 4 CRM Lead/Conversation · 5 hardening (RLS legacy + auth por rol) → pendientes.
 **Decisión de datos:** Prisma activa el gobierno (migraciones, `AgentRunLog` de costo, enums, RLS deny-by-default) sin tirar pgvector ni lo de Gonzalo; se migra 1 agente por PR.
 
 ## En una línea

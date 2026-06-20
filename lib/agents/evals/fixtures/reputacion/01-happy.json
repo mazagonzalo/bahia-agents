@@ -1,0 +1,12 @@
+{
+  "input": "Reseñador: Ana Rodríguez\nEstrellas: 2/5\nComentario: \"Esperé 40 minutos para una cancha de pádel que tenía reservada. Mala organización en las reservas.\"\nAnaliza la reseña y propón una respuesta pública (o abstain si no corresponde).",
+  "requiredFields": ["proposalType", "confidence", "rationale", "sentiment", "themes", "priority", "suggestedReply"],
+  "tags": ["reputacion", "google-maps", "negativa"],
+  "rubric": [
+    { "name": "sentimiento_correcto", "description": "Clasifica la reseña como negativa y le asigna prioridad alta por ser de 1-2 estrellas con queja concreta." },
+    { "name": "respuesta_constructiva", "description": "La suggestedReply reconoce el problema, agradece el feedback y ofrece una solución concreta, sin excusas defensivas." },
+    { "name": "tono_profesional", "description": "Respuesta pública en español natural de México, cálida y profesional, máximo 3 oraciones, usando el nombre del reseñador." },
+    { "name": "temas_extraidos", "description": "themes captura el problema real (organización/reservas, espera, canchas de pádel)." }
+  ],
+  "expectAbstain": false
+}

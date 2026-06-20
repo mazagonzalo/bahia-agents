@@ -1,0 +1,30 @@
+{
+  "input": "CAMPAÑAS (últimos 30 días):\n1. [reel] \"Vive el verano jugando pádel\" | id: crv-001 | status: active | leads: 18 | citas: 6 | cerrados: 4 | fríos: 3 | conversión: 22% | abandono: 17% | interacción prom: 5 msgs | copy AI score: 0.9 | hook: \"Tu mejor verano empieza en la cancha\"\n2. [carousel] \"Membresía familiar premium\" | id: crv-002 | status: active | leads: 12 | citas: 1 | cerrados: 0 | fríos: 8 | conversión: 0% | abandono: 67% | interacción prom: 1 msgs | copy AI score: 0.4 | hook: \"Descubre la experiencia que tu familia merece hoy mismo\"\n3. [reel] \"Torneo de tenis nocturno\" | id: crv-003 | status: active | leads: 9 | citas: 4 | cerrados: 2 | fríos: 1 | conversión: 22% | abandono: 11% | interacción prom: 4 msgs | copy AI score: 0.85 | hook: \"Las noches se juegan aquí\"\n\nRESUMEN GLOBAL:\n- Total leads captados: 39 | Cerrados: 6 | Citados: 11 | Fríos: 12\n- Total de creativos: 3\n- Tendencias activas esta semana: pádel familiar (88), tenis nocturno (74)\n\nCalifica honestamente cada campaña destacada y el rendimiento general.",
+  "requiredFields": [
+    "proposalType",
+    "confidence",
+    "verdict",
+    "score",
+    "campañasDestacadas",
+    "patronesDetectados",
+    "problemas",
+    "accionesInmediatas",
+    "alertas"
+  ],
+  "tags": ["critico", "campanas", "review"],
+  "rubric": [
+    {
+      "name": "honestidad_con_evidencia",
+      "description": "Penaliza explícitamente la peor campaña (crv-002: 0% conversión, 67% fríos, copy AI score bajo) y reconoce las que sí convierten, respaldándose en las métricas entregadas y sin inventar datos."
+    },
+    {
+      "name": "calificaciones_validas",
+      "description": "Cada campaña destacada lleva una calificación A-F coherente con su conversión/abandono, y el score global 1-10 refleja el desempeño mixto del conjunto."
+    },
+    {
+      "name": "acciones_accionables",
+      "description": "Las accionesInmediatas y el campo 'mejorar' son concretos (copy, hook o audiencia) y orientados a mejorar el rendimiento esta semana, no genéricos."
+    }
+  ],
+  "expectAbstain": false
+}

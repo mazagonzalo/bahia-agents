@@ -1,0 +1,24 @@
+{
+  "input": "¿Cuántos leads nuevos tenemos esta semana y qué está pendiente de aprobar?\n\nESTADO ACTUAL:\n=== ESTADO DEL SISTEMA BAHÍA — lunes, 9 de junio ===\n\nLEADS (últimos 7 días):\n  Nuevos: 7 | Calificados: 3 | Citados: 2 | Fríos: 1\n  Recientes:\n  • Mariana López — calificado (score: 82)\n  • Carlos Ruiz — nuevo (score: 60)\n\nCREATIVOS:\n  Borradores (pendientes de aprobación): 2\n  1. [reel] Verano en las canchas de pádel — ID: a1b2c3d4\n  2. [post] Promo familiar de inscripción — ID: e5f6a7b8\n  Aprobados: 4 | Publicados: 9\n\nTENDENCIAS DETECTADAS ESTA SEMANA:\n  • pickleball nocturno (score: 88) — instagram\n\nACTIVIDAD RECIENTE POR AGENTE:\n  [ventas] última acción hace 2h — reply (success)\n    → Recomendó plan Pareja a un prospecto.",
+  "requiredFields": ["proposalType", "confidence", "answer"],
+  "tags": ["secretaria", "estado-sistema", "leads", "creativos"],
+  "rubric": [
+    {
+      "name": "cifras_correctas",
+      "description": "Reporta los números reales del ESTADO ACTUAL (7 leads nuevos, 2 borradores pendientes) sin inventar cifras."
+    },
+    {
+      "name": "responde_lo_preguntado",
+      "description": "Responde ambas partes: leads nuevos de la semana y qué creativos están pendientes de aprobación."
+    },
+    {
+      "name": "concisa",
+      "description": "Respuesta directa y concisa (máx ~5 líneas), sin relleno ni texto fuera del contrato JSON."
+    },
+    {
+      "name": "sin_invenciones",
+      "description": "No agrega leads, creativos, tendencias ni números que no estén en el ESTADO ACTUAL."
+    }
+  ],
+  "expectAbstain": false
+}

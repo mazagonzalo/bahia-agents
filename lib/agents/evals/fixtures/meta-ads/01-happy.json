@@ -1,0 +1,30 @@
+{
+  "input": "Tendencia del contenido: torneo de pádel familiar de verano\nÁngulo: vive el verano en familia jugando pádel en el club\nDefine la audiencia óptima de Meta Ads y el presupuesto diario para una campaña de generación de leads de Bahía Social Sports Club en Nuevo Vallarta.",
+  "requiredFields": [
+    "proposalType",
+    "confidence",
+    "campaignName",
+    "objective",
+    "audience.age_min",
+    "audience.age_max",
+    "audience.genders",
+    "audience.cities",
+    "budget_daily"
+  ],
+  "tags": ["meta-ads", "padel", "verano"],
+  "rubric": [
+    {
+      "name": "audiencia_local",
+      "description": "Las ciudades pertenecen al mercado de Bahía de Banderas (Nuevo Vallarta, Bucerías, Puerto Vallarta y alrededores) y la audiencia es coherente con un club familiar premium."
+    },
+    {
+      "name": "presupuesto_razonable",
+      "description": "El presupuesto diario está en MXN y es conservador/realista para un club local (no inflado ni trivial)."
+    },
+    {
+      "name": "campana_segura",
+      "description": "El objetivo es de generación de leads y la propuesta no enciende la campaña automáticamente (estado inicial PAUSED)."
+    }
+  ],
+  "expectAbstain": false
+}
