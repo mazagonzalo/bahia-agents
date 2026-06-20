@@ -20,6 +20,7 @@ export const NAV_GROUPS = [
   'Ventas & CRM',
   'Inteligencia',
   'Operación',
+  'Gobierno',
 ] as const
 
 export const AGENTS: AgentNav[] = [
@@ -42,6 +43,9 @@ export const AGENTS: AgentNav[] = [
 
   // ── Operación ──
   { slug: 'secretaria', label: 'Secretaria', group: 'Operación', kind: 'chat', icon: 'clipboard', blurb: 'Asistente del admin — lee el estado de todos los agentes.', endpoint: '/api/agents/secretaria' },
+
+  // ── Gobierno (harness) ──
+  { slug: 'harness', label: 'Gobierno', group: 'Gobierno', kind: 'data', icon: 'gauge', blurb: 'Ledger de corridas (costo/tokens) + cola de aprobaciones del harness.', endpoint: '/api/harness/runs' },
 ]
 
 export function agentBySlug(slug: string): AgentNav | undefined {
