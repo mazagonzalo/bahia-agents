@@ -1,9 +1,11 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
-import { ask } from '@/lib/claude'
+import { prisma } from '@/lib/db'
+import { runAgent } from '@/lib/agents/orchestrator'
 
-// GET /api/agents/critico — califica campañas publicitarias con datos reales
+// GET /api/agents/critico — califica campañas publicitarias con datos reales.
+// Rewireado (Fase 3): lecturas vía Prisma, evaluación vía runAgent('CRITICO')
+// (registra AgentRunLog + memoria gobernada). Contrato de respuesta INTACTO.
 
 type Creative = {
   id: string
@@ -29,19 +31,48 @@ type Lead = {
 }
 
 export async function GET() {
-  const since30d = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()
-  const since7d  = new Date(Date.now() -  7 * 24 * 3600 * 1000).toISOString()
+  const since30d = new Date(Date.now() - 30 * 24 * 3600 * 1000)
+  const since7d  = new Date(Date.now() -  7 * 24 * 3600 * 1000)
 
-  const [creativesRes, leadsRes, convsRes, trendsRes] = await Promise.all([
-    supabase.from('creatives').select('id, type, status, meta_campaign_id, created_at, content').gte('created_at', since30d).order('created_at', { ascending: false }),
-    supabase.from('leads').select('id, status, score, source, created_at').gte('created_at', since30d),
-    supabase.from('conversations').select('lead_id, role, created_at').gte('created_at', since30d),
-    supabase.from('trends').select('topic, score').gte('created_at', since7d).order('score', { ascending: false }).limit(5),
+  const [creativesRaw, leadsRaw, convsRaw, trendsRaw] = await Promise.all([
+    prisma.creatives.findMany({
+      where: { created_at: { gte: since30d } },
+      orderBy: { created_at: 'desc' },
+      select: { id: true, type: true, status: true, meta_campaign_id: true, created_at: true, content: true },
+    }),
+    prisma.leads.findMany({
+      where: { created_at: { gte: since30d } },
+      select: { id: true, status: true, score: true, source: true, created_at: true },
+    }),
+    prisma.conversations.findMany({
+      where: { created_at: { gte: since30d } },
+      select: { lead_id: true, role: true, created_at: true },
+    }),
+    prisma.trends.findMany({
+      where: { created_at: { gte: since7d } },
+      orderBy: { score: 'desc' },
+      take: 5,
+      select: { topic: true, score: true },
+    }),
   ])
 
-  const creativos = (creativesRes.data ?? []) as Creative[]
-  const leads = (leadsRes.data ?? []) as Lead[]
-  const convs = convsRes.data ?? []
+  // Normalizar al shape que espera la lógica de abajo (created_at → ISO string).
+  const creativos: Creative[] = creativesRaw.map(c => ({
+    id: c.id,
+    type: c.type,
+    status: c.status ?? 'borrador',
+    meta_campaign_id: c.meta_campaign_id,
+    created_at: c.created_at?.toISOString() ?? '',
+    content: (c.content ?? {}) as Creative['content'],
+  }))
+  const leads: Lead[] = leadsRaw.map(l => ({
+    id: l.id,
+    status: l.status ?? 'nuevo',
+    score: l.score,
+    source: l.source,
+    created_at: l.created_at?.toISOString() ?? '',
+  }))
+  const convs = convsRaw.map(c => ({ lead_id: c.lead_id ?? '', role: c.role }))
 
   // ── Mensajes por lead ─────────────────────────────────────────────────────
   const msgsPorLead = convs.reduce<Record<string, number>>((acc, c) => {
@@ -50,7 +81,6 @@ export async function GET() {
   }, {})
 
   // ── Atribuir leads a campañas por source ──────────────────────────────────
-  // source puede ser: "creative:<id>", "meta:<campaign_id>", "whatsapp", "instagram", etc.
   const leadsPorCampaña = leads.reduce<Record<string, Lead[]>>((acc, l) => {
     const src = l.source ?? 'organico'
     if (!acc[src]) acc[src] = []
@@ -85,7 +115,6 @@ export async function GET() {
     const instalacion = c.content?.idea?.instalacion ?? '—'
     const hook = c.content?.idea?.hook?.text ?? c.content?.carousel?.slides?.[0]?.headline ?? '—'
 
-    // Leads atribuidos directamente a este creativo
     const directKey = `creative:${c.id}`
     const metaKey = c.meta_campaign_id ? `meta:${c.meta_campaign_id}` : null
     const leadsDirectos = leadsPorCampaña[directKey] ?? []
@@ -142,44 +171,17 @@ export async function GET() {
   const leadsOrganicos = (leadsPorCampaña['organico'] ?? []).length + (leadsPorCampaña['whatsapp'] ?? []).length + (leadsPorCampaña['instagram'] ?? []).length
 
   const conDatos   = campañasCalificadas.filter(c => c.leadsAtribuidos > 0)
-  const mejorCamp  = conDatos.sort((a, b) => b.tasaConversion - a.tasaConversion)[0]
-  const peorCamp   = conDatos.sort((a, b) => a.tasaConversion - b.tasaConversion)[0]
+  const mejorCamp  = [...conDatos].sort((a, b) => b.tasaConversion - a.tasaConversion)[0]
+  const peorCamp   = [...conDatos].sort((a, b) => a.tasaConversion - b.tasaConversion)[0]
 
-  // ── Texto de campañas para Claude ────────────────────────────────────────
+  // ── Texto de campañas para el agente ──────────────────────────────────────
   const campañasTexto = campañasCalificadas.slice(0, 12).map((c, i) =>
     `${i + 1}. [${c.tipo}] "${c.titulo}" (${c.instalacion}) | status: ${c.status} | leads: ${c.leadsAtribuidos} | citas: ${c.leadsCitados} | cerrados: ${c.leadsCerrados} | fríos: ${c.leadsFrios} | conversión: ${c.tasaConversion}% | abandono: ${c.tasaFrio}% | interacción prom: ${c.interaccionPromedio} msgs | copy AI score: ${c.aiScore ?? 'N/A'} | hook: "${c.hook}"`
   ).join('\n')
 
-  const tendenciasTexto = (trendsRes.data ?? []).map(t => `${t.topic} (${t.score})`).join(', ')
+  const tendenciasTexto = trendsRaw.map(t => `${t.topic} (${t.score})`).join(', ')
 
-  // ── Evaluación Claude — centrada en campañas ──────────────────────────────
-  const evaluacion = await ask(
-    `Eres un consultor de paid media y marketing digital especializado en clubes deportivos premium.
-Tu trabajo: calificar honestamente cada campaña publicitaria de Bahía Social Sports Club con los datos reales.
-Habla con precisión. Si una campaña no generó leads, dilo. Si el copy suena a IA y eso puede estar afectando la conversión, dilo.
-No suavices. El admin necesita saber qué funciona y qué está tirando presupuesto.
-
-Devuelve SOLO este JSON sin markdown:
-{
-  "verdict": "string — estado real de las campañas en una oración",
-  "score": número 1-10 (rendimiento general de las campañas),
-  "campañasDestacadas": [
-    {
-      "id": "string — id del creativo",
-      "veredicto": "string — evaluación directa de esta campaña en 1-2 oraciones",
-      "calificacion": "A|B|C|D|F",
-      "razon": "string — por qué esa calificación, con evidencia",
-      "mejorar": "string — qué cambiarías específicamente en el copy, hook o audiencia"
-    }
-  ],
-  "patronesDetectados": ["string"] — máx 3 patrones entre todas las campañas (ej: "los reels convierten mejor que carruseles"),
-  "problemas": [{"problema": "string", "impacto": "alto|medio|bajo", "evidencia": "string"}],
-  "accionesInmediatas": ["string"] — máx 3 acciones concretas para mejorar campañas esta semana,
-  "alertas": [{"nivel": "rojo|amarillo|verde", "mensaje": "string"}]
-}`,
-    [{
-      role: 'user',
-      content: `CAMPAÑAS (últimos 30 días):
+  const userMessage = `CAMPAÑAS (últimos 30 días):
 ${campañasTexto || 'Sin campañas creadas aún.'}
 
 RESUMEN GLOBAL:
@@ -187,24 +189,17 @@ RESUMEN GLOBAL:
 - Leads orgánicos (sin atribuir a campaña): ${leadsOrganicos}
 - Mejor campaña por conversión: ${mejorCamp ? `"${mejorCamp.titulo}" (${mejorCamp.tasaConversion}%)` : 'N/A'}
 - Peor campaña: ${peorCamp ? `"${peorCamp.titulo}" (${peorCamp.tasaFrio}% fríos)` : 'N/A'}
-- Tendencias activas esta semana: ${tendenciasTexto || 'sin datos'}`,
-    }],
-    2500,
-  )
+- Tendencias activas esta semana: ${tendenciasTexto || 'sin datos'}`
 
-  let report = null
+  // ── Evaluación vía harness (registra AgentRunLog + memoria; sin AgentApproval) ──
+  let report: Record<string, unknown> | null = null
   try {
-    const s = evaluacion.indexOf('{')
-    const e = evaluacion.lastIndexOf('}')
-    if (s !== -1 && e !== -1) report = JSON.parse(evaluacion.slice(s, e + 1))
-  } catch { /* continúa sin report estructurado */ }
-
-  await supabase.from('agent_memory').insert({
-    agent: 'critico',
-    type: 'evaluacion_campañas',
-    content: JSON.stringify({ campañas: campañasCalificadas.length, report }),
-    outcome: (report?.score ?? 0) >= 7 ? 'bueno' : (report?.score ?? 0) >= 4 ? 'neutro' : 'malo',
-  })
+    const result = await runAgent('CRITICO', userMessage, { skipApproval: true, tags: ['critico', 'evaluacion'] })
+    const pd = result.proposalData
+    if (pd && pd.proposalType !== 'abstain' && pd.verdict !== undefined) report = pd
+  } catch {
+    /* si el harness falla, devolvemos las métricas sin report estructurado */
+  }
 
   return NextResponse.json({
     campañas: campañasCalificadas,
