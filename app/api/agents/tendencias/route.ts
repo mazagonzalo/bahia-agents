@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300 // Vercel Pro — 5 min máx para múltiples llamadas Perplexity + Claude
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { prisma } from '@/lib/db'
 import { ask } from '@/lib/claude'
 import { sendText } from '@/lib/whatsapp'
 
@@ -161,20 +161,17 @@ PLATAFORMAS: Reel (hook 1-3s, 30-60s, subtítulos) · TikTok (texto primeros 2s,
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function getPreviousReport(): Promise<string> {
-  const { data } = await supabase
-    .from('agent_memory')
-    .select('content, created_at')
-    .eq('agent', 'tendencias')
-    .eq('type', 'briefing')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single()
+  const data = await prisma.agent_memory.findFirst({
+    where: { agent: 'tendencias', type: 'briefing' },
+    orderBy: { created_at: 'desc' },
+    select: { content: true, created_at: true },
+  })
 
   if (!data) return ''
 
   try {
     const prev = JSON.parse(data.content)
-    const fecha = new Date(data.created_at).toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })
+    const fecha = new Date(data.created_at ?? new Date()).toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })
     const trends = (prev.trends ?? []).map((t: { topic: string; score: number }) => `${t.topic} (${t.score})`).join(', ')
     const gtrends = (prev.googleTrends ?? []).map((g: { keyword: string; avgScore: number; trend: string }) => `${g.keyword}: ${g.avgScore} (${g.trend})`).join(', ')
     const topIdeas = (prev.contentIdeas ?? []).slice(0, 2).map((i: { title: string }) => i.title).join(', ')
@@ -442,17 +439,19 @@ Devuelve ÚNICAMENTE el JSON, sin markdown:
   }
 
   // Guardar reporte completo en agent_memory — consultable por todos los agentes
-  await supabase.from('agent_memory').insert({
-    agent: 'tendencias',
-    type: 'briefing',
-    content: JSON.stringify(analysis),
-    outcome: 'neutro',
+  await prisma.agent_memory.create({
+    data: {
+      agent: 'tendencias',
+      type: 'briefing',
+      content: JSON.stringify(analysis),
+      outcome: 'neutro',
+    },
   })
 
   // Guardar tendencias individuales
-  await supabase.from('trends').insert(
-    analysis.trends.map(t => ({ topic: t.topic, score: t.score, source: 'perplexity+claude', region }))
-  )
+  await prisma.trends.createMany({
+    data: analysis.trends.map(t => ({ topic: t.topic, score: t.score, source: 'perplexity+claude', region })),
+  })
 
   // Disparar Agente de Contenido con la idea de mayor urgency (solo si hay ideas)
   const topIdea = [...analysis.contentIdeas].sort((a, b) => b.urgency - a.urgency)[0]
@@ -511,7 +510,10 @@ Devuelve ÚNICAMENTE el JSON, sin markdown:
       h.mixRecomendado,
     ].filter(Boolean).join('\n')
 
-    await sendText(process.env.ADMIN_PHONE!, msg)
+    if (process.env.ADMIN_PHONE) {
+      try { await sendText(process.env.ADMIN_PHONE, msg) }
+      catch (e) { console.error('[tendencias] sendText falló:', e instanceof Error ? e.message : e) }
+    }
   }
 
   return NextResponse.json(analysis)
