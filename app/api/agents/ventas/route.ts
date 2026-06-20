@@ -1,8 +1,10 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { prisma } from '@/lib/db'
 import { ask } from '@/lib/claude'
 import { sendText } from '@/lib/whatsapp'
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const SYSTEM = `Eres asesor de membresías de Bahía Social Sports Club. Escribes por WhatsApp como una persona real, directo y sin rodeos.
 
@@ -59,42 +61,54 @@ export async function POST(req: NextRequest) {
   try {
   const { leadId, phone, text } = await req.json()
 
-  // Cargar historial de conversación
-  const { data: history } = await supabase
-    .from('conversations')
-    .select('role, content')
-    .eq('lead_id', leadId)
-    .order('created_at', { ascending: true })
-    .limit(20)
+  // leadId real = UUID de un lead. El panel de prueba manda 'test-panel' →
+  // chat sin persistencia (la columna lead_id es uuid, no acepta strings libres).
+  const validLead = typeof leadId === 'string' && UUID_RE.test(leadId)
+
+  // Cargar historial de conversación (solo leads reales)
+  const history = validLead
+    ? await prisma.conversations.findMany({
+        where: { lead_id: leadId },
+        orderBy: { created_at: 'asc' },
+        take: 20,
+        select: { role: true, content: true },
+      })
+    : []
 
   const messages = [
-    ...(history ?? []).map((m: { role: string; content: string }) => ({
-      role: m.role as 'user' | 'assistant',
-      content: m.content,
-    })),
+    ...history.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
     { role: 'user' as const, content: text },
   ]
 
   const reply = await ask(SYSTEM, messages)
 
-  // Guardar conversación
-  await supabase.from('conversations').insert([
-    { lead_id: leadId, role: 'user', content: text },
-    { lead_id: leadId, role: 'assistant', content: reply },
-  ])
+  // Guardar conversación (solo leads reales)
+  if (validLead) {
+    await prisma.conversations.createMany({
+      data: [
+        { lead_id: leadId, role: 'user', content: text },
+        { lead_id: leadId, role: 'assistant', content: reply },
+      ],
+    })
+  }
 
   // Si el agente detectó que quiere agendar, notificar al admin
   if (reply.startsWith('AGENDAR:')) {
     const [, name, tel] = reply.split(':')
     const adminMsg = `🔔 Lead listo para agendar\nNombre: ${name}\nTeléfono: ${tel ?? phone}\nÚltimos mensajes en conversación guardados en sistema.`
-    await sendText(process.env.ADMIN_PHONE!, adminMsg)
+    if (process.env.ADMIN_PHONE) {
+      try { await sendText(process.env.ADMIN_PHONE, adminMsg) }
+      catch (e) { console.error('[ventas] sendText falló:', e instanceof Error ? e.message : e) }
+    }
 
     const confirmacion = `¡Perfecto! Le pedí a nuestro equipo que te contacte para confirmar la visita. Te esperamos pronto en Bahía 🏆`
     return NextResponse.json({ reply: confirmacion })
   }
 
-  // Actualizar score del lead (+1 por cada interacción)
-  await supabase.rpc('increment_lead_score', { lead_id: leadId })
+  // Score del lead +1 por interacción (reemplaza el RPC increment_lead_score)
+  if (validLead) {
+    await prisma.leads.updateMany({ where: { id: leadId }, data: { score: { increment: 1 } } })
+  }
 
   return NextResponse.json({ reply })
   } catch (e: unknown) {
