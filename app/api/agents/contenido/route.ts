@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { Prisma } from '@prisma/client'
+import { prisma } from '@/lib/db'
 import { ask } from '@/lib/claude'
 import { sendText } from '@/lib/whatsapp'
 import { getClubContext, contextToPrompt, type ClubEvent } from '@/lib/context'
@@ -73,30 +74,28 @@ export async function POST(req: NextRequest) {
   let carousel: Carousel | null = null
   let reelBrief: string | null = null
   let aiScore: number | null = null
+  let visualGuide: string | null = null
 
   if (format === 'Reel') {
     reelBrief = await generateReelBrief(contexto, idea, upcomingEvents)
     aiScore = await checkAiScore(reelBrief)
-    const visualGuide = buildVideoPrompt(idea, trend, upcomingEvents)
-    const { data } = await supabase
-      .from('creatives')
-      .insert({ type: 'reel_brief', content: { idea, trend, reelBrief, availableAssets, aiScore, visualGuide }, status: 'borrador' })
-      .select().single()
-    creative = data
+    visualGuide = buildVideoPrompt(idea, trend, upcomingEvents)
+    creative = await prisma.creatives.create({
+      data: { type: 'reel_brief', content: { idea, trend, reelBrief, availableAssets, aiScore, visualGuide } as Prisma.InputJsonValue, status: 'borrador' },
+      select: { id: true },
+    })
   } else {
     carousel = await generateCarousel(contexto, idea)
     if (!carousel) return NextResponse.json({ error: 'Error generando carousel' }, { status: 500 })
     const allCopy = carousel.slides.map(s => `${s.headline}. ${s.body}`).join(' ')
     aiScore = await checkAiScore(allCopy)
-    const visualGuide = buildCarouselImagePrompt(idea, trend, carousel.slides[0])
-    const { data } = await supabase
-      .from('creatives')
-      .insert({ type: 'carrusel', content: { idea, trend, carousel, availableAssets, aiScore, visualGuide }, status: 'borrador' })
-      .select().single()
-    creative = data
+    visualGuide = buildCarouselImagePrompt(idea, trend, carousel.slides[0])
+    creative = await prisma.creatives.create({
+      data: { type: 'carrusel', content: { idea, trend, carousel, availableAssets, aiScore, visualGuide } as Prisma.InputJsonValue, status: 'borrador' },
+      select: { id: true },
+    })
   }
 
-  const visualGuide = (creative as unknown as { content?: { visualGuide?: string } } | null)?.content?.visualGuide ?? null
   await notifyAdmin({ carousel, reelBrief, idea, trend, availableAssets, upcomingEvents, format, creativeId: creative?.id, aiScore, visualGuide })
 
   return NextResponse.json({ creativeId: creative?.id, format, carousel, reelBrief, aiScore })
@@ -105,17 +104,18 @@ export async function POST(req: NextRequest) {
 // ─── Consultas a Supabase ─────────────────────────────────────────────────────
 
 async function fetchBestAssets(instalacion: string | null): Promise<ClubAsset[]> {
-  let query = supabase
-    .from('club_assets')
-    .select('*')
-    .order('used_count', { ascending: true }) // prioriza los menos usados
-
-  if (instalacion) {
-    query = query.eq('instalacion', instalacion)
-  }
-
-  const { data } = await query.limit(6)
-  return (data ?? []) as ClubAsset[]
+  const rows = await prisma.club_assets.findMany({
+    where: instalacion ? { instalacion } : {},
+    orderBy: { used_count: 'asc' }, // prioriza los menos usados
+    take: 6,
+  })
+  return rows.map(a => ({
+    id: a.id, url: a.url,
+    instalacion: a.instalacion ?? '', description: a.description ?? '',
+    mood: a.mood ?? '', time_of_day: a.time_of_day ?? '', people: a.people ?? false,
+    score_reel: a.score_reel ?? 0, score_foto: a.score_foto ?? 0, score_stories: a.score_stories ?? 0,
+    best_format: a.best_format ?? '', content_angles: a.content_angles ?? [],
+  }))
 }
 
 // ─── Lógica de formato ────────────────────────────────────────────────────────
@@ -380,5 +380,11 @@ async function notifyAdmin({
 
   lines.push(``, `ID: \`${creativeId ?? 'sin id'}\``)
 
-  await sendText(process.env.ADMIN_PHONE!, lines.filter(l => l !== undefined).join('\n'))
+  if (process.env.ADMIN_PHONE) {
+    try {
+      await sendText(process.env.ADMIN_PHONE, lines.filter(l => l !== undefined).join('\n'))
+    } catch (e) {
+      console.error('[contenido] sendText falló (se ignora):', e instanceof Error ? e.message : e)
+    }
+  }
 }
