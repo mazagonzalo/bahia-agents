@@ -1,0 +1,7 @@
+{
+  "input": "Oye, ¿me recomiendas un buen lugar para comer mariscos cerca del club este fin de semana?",
+  "requiredFields": ["proposalType", "rationale"],
+  "tags": ["critico", "off-topic"],
+  "rubric": [],
+  "expectAbstain": true
+}

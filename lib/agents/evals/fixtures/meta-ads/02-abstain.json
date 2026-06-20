@@ -1,0 +1,7 @@
+{
+  "input": "¿Me recomiendas una pizzería buena cerca de la oficina para comer hoy?",
+  "requiredFields": ["proposalType", "rationale"],
+  "tags": ["meta-ads", "off-topic"],
+  "rubric": [],
+  "expectAbstain": true
+}

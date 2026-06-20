@@ -1,0 +1,9 @@
+{
+  "input": "PERIODO: semana del 19 de junio · junio 2026\n\n---\n\nTENDENCIAS REALES ESTA SEMANA:\nNo se detectaron señales utilizables. Las búsquedas devolvieron únicamente contenido de gyms low-cost masivos (Smartfit, Sport City), retos de home workout gratuitos y apps fitness sin costo, todo dirigido a mercado de masas sin poder adquisitivo premium ni conexión con Riviera Nayarit.\n\n---\n\nESTACIONALIDAD:\nSin datos relevantes para el segmento premium esta semana.\n\n---\n\nFORMATOS VIRALES QUE FUNCIONAN AHORA:\nSolo retos genéricos de pérdida de peso y rutinas sin equipo en casa, irrelevantes para un club deportivo-social premium.\n\n---\n\nGOOGLE TRENDS MX:\npadel: 40/100 (bajando), pickleball: 30/100 (bajando), wellness mexico: 35/100 (bajando)",
+  "requiredFields": ["proposalType", "rationale"],
+  "tags": ["briefing"],
+  "rubric": [
+    { "name": "abstención_correcta", "description": "El agente reconoce que no hay señales accionables para el perfil premium de Bahía y se abstiene en vez de inventar tendencias." }
+  ],
+  "expectAbstain": true
+}

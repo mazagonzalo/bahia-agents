@@ -1,0 +1,12 @@
+{
+  "input": "👍",
+  "requiredFields": ["proposalType", "rationale"],
+  "tags": ["ventas", "ruido", "sin-accion"],
+  "rubric": [
+    {
+      "name": "reconoce_sin_accion",
+      "description": "Identifica que un emoji suelto sin intención no amerita una propuesta de venta accionable."
+    }
+  ],
+  "expectAbstain": true
+}

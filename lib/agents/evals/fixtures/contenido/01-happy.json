@@ -1,0 +1,11 @@
+{
+  "input": "Idea de la semana: mostrar las 8 canchas de pádel y las 8 de pickleball para atraer jugadores intermedios que buscan dónde jugar el fin de semana. Instalación destacada: canchas de pádel. Segmento: jugadores intermedios de pádel/pickleball en Riviera Nayarit. Evento próximo relevante: Torneo Social de Pickleball el sábado por la tarde. Hay buen material de foto de las canchas a hora dorada. Propón la pieza de contenido lista para producir.",
+  "requiredFields": ["proposalType", "confidence", "title", "format", "visualGuide", "hashtags"],
+  "tags": ["contenido", "padel", "pickleball", "finde"],
+  "rubric": [
+    { "name": "Marca", "description": "El copy tutea al lector, es específico (cifras reales como 8 canchas), sin palabras de relleno ni emojis en slides." },
+    { "name": "Accionable", "description": "Propone un formato claro (Reel o Carrusel) con copy/brief y una guía visual concreta que alguien puede ejecutar hoy." },
+    { "name": "Relevancia", "description": "El ángulo encaja con el club y el segmento; usa el evento próximo solo si aporta." }
+  ],
+  "expectAbstain": false
+}

@@ -1,0 +1,9 @@
+{
+  "input": "Reseñador: María González\nEstrellas: 5/5\nComentario: \"Excelentes instalaciones, las canchas de pádel son increíbles.\"\nEstado: la reseña YA tiene respuesta publicada.\nAnaliza la reseña y propón una respuesta pública (o abstain si no corresponde).",
+  "requiredFields": ["proposalType", "rationale"],
+  "tags": ["reputacion", "google-maps", "abstain"],
+  "rubric": [
+    { "name": "no_accionable", "description": "La reseña ya tiene respuesta publicada; no corresponde proponer otra respuesta, debe abstenerse." }
+  ],
+  "expectAbstain": true
+}
