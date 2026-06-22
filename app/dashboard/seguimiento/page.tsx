@@ -38,6 +38,17 @@ const ETAPAS: { key: EtapaKey; label: string; tone: BadgeTone; color: string; st
   { key: 'inactivos7d', label: 'Inactivo 7d+', tone: 'danger', color: T.danger, status: 'Inactivo' },
 ]
 
+// Etiquetas legibles para los tipos de follow-up que devuelve el preview (dryRun)
+const TIPO_LABEL: Record<string, string> = {
+  followup_24h: 'Sin respuesta 24h',
+  followup_calificado: 'Calificado · agendar visita',
+  followup_post_visita: 'Post-visita',
+  reactivacion_7d: 'Reactivación 7d',
+  reactivacion_14d: 'Último intento 14d',
+}
+
+type PreviewItem = { type: string; phone: string; name: string | null; sent: boolean; preview: string }
+
 type FlatLead = PipelineLead & { etapa: EtapaKey }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -97,6 +108,10 @@ export default function SeguimientoPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const [preview, setPreview] = useState<PreviewItem[] | null>(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [previewErr, setPreviewErr] = useState<string | null>(null)
+
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
@@ -111,6 +126,24 @@ export default function SeguimientoPage() {
       setError('Error de red')
     } finally {
       setLoading(false)
+    }
+  }, [])
+
+  const runPreview = useCallback(async () => {
+    setPreviewLoading(true); setPreviewErr(null)
+    try {
+      const res = await fetch('/api/agents/seguimiento', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dryRun: true }), signal: AbortSignal.timeout(180_000),
+      })
+      const json = await res.json()
+      const items = (json.results as PreviewItem[] | undefined)?.filter(r => r.preview) ?? []
+      setPreview(items)
+      if (!items.length) setPreviewErr('No hay mensajes que generar ahora mismo.')
+    } catch {
+      setPreviewErr('No se pudo generar el preview (o tardó demasiado).')
+    } finally {
+      setPreviewLoading(false)
     }
   }, [])
 
@@ -134,11 +167,43 @@ export default function SeguimientoPage() {
         title="Seguimiento"
         blurb="Reactiva prospectos sin avance: detecta cada etapa estancada del embudo y dispara mensajes de seguimiento por WhatsApp."
         actions={
-          <button className="btn btn-secondary" onClick={fetchData} disabled={loading}>
-            {loading ? 'Cargando…' : 'Actualizar'}
-          </button>
+          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+            <button className="btn btn-secondary" onClick={fetchData} disabled={loading}>
+              {loading ? 'Cargando…' : 'Actualizar'}
+            </button>
+            <button className="btn btn-primary" onClick={runPreview} disabled={previewLoading}>
+              {previewLoading ? 'Generando…' : 'Previsualizar mensajes'}
+            </button>
+          </div>
         }
       />
+
+      {(preview || previewErr || previewLoading) && (
+        <Card style={{ marginBottom: 'var(--space-5)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div style={{ fontSize: 10, color: T.muted, letterSpacing: 1.2, textTransform: 'uppercase', fontWeight: 600 }}>
+              Preview de mensajes · no enviados
+            </div>
+            <button className="btn btn-secondary" onClick={() => { setPreview(null); setPreviewErr(null) }} style={{ fontSize: 12 }}>Cerrar</button>
+          </div>
+          {previewLoading && <div style={{ fontSize: 13, color: T.muted }}>Generando mensajes (sin enviar)…</div>}
+          {previewErr && !previewLoading && <div style={{ fontSize: 13, color: T.warning }}>{previewErr}</div>}
+          {preview && preview.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+              {preview.map((p, i) => (
+                <div key={i} style={{ padding: 'var(--space-3) var(--space-4)', background: T.surface2, border: `1px solid ${T.border}`, borderRadius: 'var(--radius-lg)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 700, color: T.text, fontSize: 13 }}>{p.name ?? 'Sin nombre'}</span>
+                    <span style={{ color: T.muted, fontSize: 12, fontFamily: 'var(--font-headline)' }}>{p.phone}</span>
+                    <Badge tone="muted">{TIPO_LABEL[p.type] ?? p.type}</Badge>
+                  </div>
+                  <div style={{ fontSize: 13, color: T.textSec, lineHeight: 1.5 }}>{p.preview}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
 
       {loading && !data && <SeguimientoSkeleton />}
 

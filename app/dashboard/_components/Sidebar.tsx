@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { agentsByGroup } from '../_lib/agents'
 import { Icon } from './icons'
@@ -14,8 +15,8 @@ export function Sidebar() {
   return (
     <aside className="dashboard-sidebar" aria-label="Navegación de agentes">
       <div style={{ height: 'var(--header-height)', display: 'flex', alignItems: 'center', gap: 10, padding: '0 var(--space-5)', borderBottom: '1px solid var(--color-border)', flexShrink: 0 }}>
-        <span className="status-dot active" />
-        <span className="sidebar-logo">Bahía<span> · IA</span></span>
+        <Image src="/assets/whale-gold.png" alt="Bahía" width={26} height={26} style={{ objectFit: 'contain', flexShrink: 0 }} priority />
+        <span className="sidebar-logo">BAH<span>.IA</span></span>
       </div>
 
       <nav style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-4) var(--space-3)', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
