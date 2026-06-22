@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import { agentsByGroup, type AgentKind } from './_lib/agents'
 import { Icon } from './_components/icons'
 
@@ -39,15 +38,6 @@ export default function DashboardOverview() {
             generan contenido, atienden leads y evalúan el desempeño.
           </p>
         </div>
-        <Image
-          src="/assets/whale-rider.png"
-          alt="Bahía — ballena con raqueta"
-          width={192}
-          height={159}
-          className="overview-hero-rider"
-          style={{ objectFit: 'contain', width: 'auto', height: 'auto', maxWidth: 192 }}
-          priority
-        />
       </div>
 
       {groups
