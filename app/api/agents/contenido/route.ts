@@ -96,9 +96,14 @@ export async function POST(req: NextRequest) {
     })
   }
 
+  // Si no hay fotos del club para esta instalación, lista las fotos concretas a pedir.
+  const photosNeeded = availableAssets.length === 0
+    ? buildPhotoRequests(format, carousel, idea, trend)
+    : []
+
   await notifyAdmin({ carousel, reelBrief, idea, trend, availableAssets, upcomingEvents, format, creativeId: creative?.id, aiScore, visualGuide })
 
-  return NextResponse.json({ creativeId: creative?.id, format, carousel, reelBrief, aiScore })
+  return NextResponse.json({ creativeId: creative?.id, format, carousel, reelBrief, aiScore, visualGuide, photosNeeded })
 }
 
 // ─── Consultas a Supabase ─────────────────────────────────────────────────────
@@ -281,6 +286,28 @@ function buildVideoPrompt(
   const hook = idea?.hook?.text ?? trend?.topic ?? 'Bahía Social Sports Club'
   const eventNote = events[0] ? ` Event happening: ${events[0].name}.` : ''
   return `[SCENE] Premium sports club exterior and courts at golden hour, Nuevo Vallarta Mexico, tropical vegetation background, lagoon visible. [SUBJECT] Athletic players on ${instalacion}, modern high-end facilities, people enjoying active lifestyle. [ACTION] Dynamic gameplay footage transitioning to relaxed social moments by the pool. Camera reveals the full club experience in 10 seconds. [CAMERA] Drone aerial establishing shot descending into ground-level tracking shot of courts, smooth gimbal stabilization, 24mm wide angle. [STYLE] Warm golden hour grade, high contrast, cinematic slow motion at peaks, luxury lifestyle aesthetic.${eventNote} [SOUND] Upbeat acoustic-electronic fusion, court sounds ambient, ends with subtle logo sting. Opening text overlay: "${hook}"`
+}
+
+// ─── Fotos a pedir cuando no hay assets del club ──────────────────────────────
+// Sin generación IA: lista material REAL concreto que el admin debe mandar.
+function buildPhotoRequests(
+  format: string,
+  carousel: Carousel | null,
+  idea: ContentIdea | null,
+  trend: { topic: string; angle: string } | null,
+): string[] {
+  const instalacion = idea?.instalacion ?? 'las instalaciones'
+  if (format !== 'Reel' && carousel) {
+    // Carrusel: una foto por slide, con el tema de cada lámina.
+    return carousel.slides.map(s => `Slide ${s.slide} — "${s.headline}": foto real de ${instalacion} que ilustre esto.`)
+  }
+  // Reel: clips clave de apertura, acción y cierre.
+  const hook = idea?.hook?.text ?? trend?.topic ?? 'el gancho del reel'
+  return [
+    `Clip de apertura (primeros 3s): ${hook} — en ${instalacion}.`,
+    `Clips de acción: actividad o juego en ${instalacion}.`,
+    `Clip de cierre: momento social o llamado a la acción, en ${instalacion}.`,
+  ]
 }
 
 // ─── Quality check: detect AI patterns ───────────────────────────────────────

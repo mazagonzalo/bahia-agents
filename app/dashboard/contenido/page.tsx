@@ -11,6 +11,8 @@ type ContenidoResult = {
   carousel?: Carousel | null
   reelBrief?: string | null
   aiScore?: number | null
+  visualGuide?: string | null
+  photosNeeded?: string[]
 }
 
 function ScoreLabel({ score }: { score: number }) {
@@ -24,9 +26,11 @@ function renderResult(data: unknown) {
   const slides = r.carousel?.slides ?? []
   const hasReel = r.format === 'Reel' && !!r.reelBrief
   const hasCarousel = !!r.carousel && slides.length > 0
+  const hasPhotos = Array.isArray(r.photosNeeded) && r.photosNeeded.length > 0
+  const hasGuide = !!r.visualGuide
 
   // Guard on-brand: respuesta vacía / malformada → EmptyState con acción.
-  if (!r || (!hasReel && !hasCarousel && typeof r.aiScore !== 'number')) {
+  if (!r || (!hasReel && !hasCarousel && typeof r.aiScore !== 'number' && !hasPhotos && !hasGuide)) {
     return (
       <Card>
         <EmptyState
@@ -148,6 +152,61 @@ function renderResult(data: unknown) {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Fotos que necesito (cuando no hay assets del club) */}
+      {hasPhotos && (
+        <div style={{ marginTop: 'var(--space-6)' }}>
+          <SectionTitle>Fotos que necesito del club</SectionTitle>
+          <div style={{ fontSize: 13, color: T.textSec, marginBottom: 'var(--space-3)', lineHeight: 1.5 }}>
+            No tengo fotos de esta instalación en la biblioteca. Manda este material <strong>real</strong> (nada de imágenes generadas):
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+            {r.photosNeeded!.map((p, i) => (
+              <div
+                key={i}
+                style={{
+                  display: 'flex',
+                  gap: 'var(--space-3)',
+                  background: T.gold + '14',
+                  border: `1px solid ${T.gold}33`,
+                  borderRadius: 'var(--radius-lg)',
+                  padding: 'var(--space-3) var(--space-4)',
+                }}
+              >
+                <span style={{ flexShrink: 0, color: T.gold, fontWeight: 700, fontFamily: 'var(--font-headline)', fontSize: 13 }}>
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <span style={{ fontSize: 13, color: T.text, lineHeight: 1.5, overflowWrap: 'anywhere' }}>{p}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Guía visual de producción (referencia — no se genera con IA) */}
+      {hasGuide && (
+        <div style={{ marginTop: 'var(--space-6)' }}>
+          <SectionTitle>Guía visual de producción</SectionTitle>
+          <div style={{ fontSize: 12, color: T.muted, marginBottom: 'var(--space-2)', lineHeight: 1.5 }}>
+            Referencia de cómo debe verse la toma — úsala como guía para la foto o el video real.
+          </div>
+          <div
+            style={{
+              whiteSpace: 'pre-wrap',
+              overflowWrap: 'anywhere',
+              fontSize: 13,
+              lineHeight: 1.6,
+              color: T.textSec,
+              background: T.bg,
+              border: `1px solid ${T.border}`,
+              borderRadius: 'var(--radius-lg)',
+              padding: 'var(--space-4) var(--space-5)',
+            }}
+          >
+            {r.visualGuide}
           </div>
         </div>
       )}
