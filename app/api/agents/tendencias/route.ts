@@ -187,10 +187,13 @@ async function runTendencias(notifyAdmin: boolean) {
 
   const previousReport = await getPreviousReport()
 
-  // Extraer temas previos para evitar repetición
-  const prevTopics = previousReport
-    ? previousReport.match(/Tendencias: ([^\n]+)/)?.[1]?.split(',').map(t => t.trim().split('(')[0].trim()).filter(Boolean) ?? []
-    : []
+  // Extraer temas previos para evitar repetición (#3: robusto, nunca rompe)
+  let prevTopics: string[] = []
+  try {
+    prevTopics = previousReport
+      ? previousReport.match(/Tendencias: ([^\n]+)/)?.[1]?.split(',').map(t => t.trim().split('(')[0].trim()).filter(Boolean) ?? []
+      : []
+  } catch { prevTopics = [] }
   const avoidInstruction = prevTopics.length
     ? `\nTEMAS YA CUBIERTOS LA SEMANA PASADA (no repetir como tendencia principal): ${prevTopics.join(', ')}. Busca ángulos nuevos, temas adyacentes o tendencias completamente distintas.`
     : ''
@@ -280,63 +283,74 @@ Fecha: ${semana} 2026.`,
   // ─── Claude genera el briefing ────────────────────────────────────────────────
 
   const generatedAt = now.toISOString()
-  const prompt = `Eres el estratega de contenido de Bahía Social Sports Club, club deportivo premium en Paseo de los Flamingos, Nuevo Vallarta, Nayarit. Tu trabajo es convertir tendencias reales en ideas de contenido concretas y ejecutables.
 
-INSTALACIONES:
-- 8 canchas de pádel techadas + 8 pickleball + tenis (concreto y arcilla)
-- Albercas exteriores con asoleadero y palapa
-- Gym funcional, spinning, yoga, terraza con vista
-- Vestidores premium, salón de belleza, cafetería, salones de eventos
-- Lago natural rodeado de vegetación tropical (área de paisaje)
-- Entrada sobre Paseo de los Flamingos con estacionamiento
+  // ─── #2 Validación de fuentes: no inventar si vienen vacías ─────────────────
+  const has = (s: string, min = 40) => typeof s === 'string' && s.trim().length > min
+  const sourceStatus: Record<string, boolean> = {
+    tendencias: has(socialTrends), estacionalidad: has(seasonalityRaw), competencia: has(competitiveRaw),
+    'formatos virales': has(viralPatternsRaw), hashtags: has(hashtagsRaw, 20),
+    música: has(musicTrendsRaw), audiencia: has(audienceRaw),
+    'google trends': googleTrendsResults.length > 0, 'meta ads': has(metaAdsRaw, 20),
+  }
+  const missing = Object.entries(sourceStatus).filter(([, ok]) => !ok).map(([k]) => k)
+  const honestyRule = `REGLA DE HONESTIDAD — CRÍTICO: usa SOLO los datos de la investigación de abajo. Si algo no está ahí, NO lo inventes: pon "sin datos verificados esta semana". NUNCA inventes tendencias, scores, canciones ni competidores que no aparezcan en los datos.${missing.length ? ` Esta semana NO llegaron datos de: ${missing.join(', ')} — no inventes nada de eso.` : ''}`
 
+  // Investigación compartida por las 2 llamadas (marca [SIN DATOS] lo vacío)
+  const researchContent = [
+    `TENDENCIAS REALES ESTA SEMANA (${semana}):\n${socialTrends || '[SIN DATOS]'}`,
+    `ESTACIONALIDAD ${mes.toUpperCase()}:\n${seasonalityRaw || '[SIN DATOS]'}`,
+    `FORMATOS VIRALES:\n${viralPatternsRaw || '[SIN DATOS]'}`,
+    `HASHTAGS EFECTIVOS:\n${hashtagsRaw || '[SIN DATOS]'}`,
+    `COMPETENCIA LOCAL:\n${competitiveRaw || '[SIN DATOS]'}`,
+    `MÚSICA EN TENDENCIA (TikTok/Reels MX):\n${musicTrendsRaw || '[SIN DATOS]'}`,
+    metaAdsRaw ? `META ADS (mercado + clubes deportivos LATAM):\n${metaAdsRaw}` : 'META ADS: [SIN DATOS]',
+    `AUDIENCIA PREMIUM:\n${trunc(audienceRaw, 1000) || '[SIN DATOS]'}`,
+    googleTrendsResults.length
+      ? `GOOGLE TRENDS MX:\n${googleTrendsResults.map(t => `${t.keyword}: ${t.avgScore}/100 (${t.trend})`).join(', ')}`
+      : 'GOOGLE TRENDS: [SIN DATOS]',
+  ].join('\n\n---\n\n')
+
+  // Contexto base del club, compartido por ambas llamadas
+  const baseContext = `Eres el estratega de contenido de Bahía Social Sports Club, club deportivo premium en Paseo de los Flamingos, Nuevo Vallarta, Nayarit.
+
+INSTALACIONES: 8 canchas de pádel techadas + 8 pickleball + tenis · albercas exteriores con asoleadero · gym funcional, spinning, yoga · vestidores premium, salón de belleza, cafetería, salones de eventos · lago natural.
 MEMBRESÍAS: Familiar $6,500 · Pareja $4,500 · Individual $2,500 · Solo Gym $1,800 (mensual).
 
+${honestyRule}
+ANTI-REPETICIÓN:${avoidInstruction}
+${previousReport ? `\nREPORTE ANTERIOR:\n${previousReport}\n` : ''}`
+
+  // ─── #1 Generación en 2 llamadas (cada JSON chico → no se trunca) ───────────
+  // Llamada A: BRIEF estratégico (todo menos las ideas de contenido).
+  const briefPrompt = `${baseContext}
+Genera el BRIEF estratégico de la semana (SIN ideas de contenido). Conciso: cada texto máximo 2-3 oraciones.
+REGLAS: máximo 3 trends, 3 googleTrends, 3 contentOpportunities, 2 viralPatterns · hashtags 4 masivos / 4 nicho / 3 locales.
+Devuelve ÚNICAMENTE el JSON, sin markdown:
+{"generatedAt":"${generatedAt}","period":"${mes}","trends":[{"topic":"string","score":0,"angle":"string","evidence":"string"}],"googleTrends":[{"keyword":"string","avgScore":0,"trend":"string","insight":"string"}],"seasonality":{"touristFlow":"string","dominantProfile":"string","peakWindow":"string","localMarket":"string","insight":"string"},"strategy":{"primarySegment":"string","secondarySegment":"string","message":"string","avoid":"string"},"competitive":{"topCompetitors":["string"],"theirAngle":"string","gap":"string","counterPositioning":"string"},"audienceWhere":{"accounts":["string"],"contentTypes":["string"],"ownHashtags":["#tag"],"insight":"string"},"hashtags":{"masivos":["#tag"],"nicho":["#tag"],"locales":["#tag"],"mixRecomendado":"string"},"contentOpportunities":[{"instalacion":"string","oportunidad":"string","momento":"string","formatoIdeal":"string","urgencia":0}],"viralPatterns":[{"pattern":"string","description":"string","whyItWorks":"string","adaptForBahia":"string","differentiator":"string"}]}`
+
+  // Llamada B: IDEAS de contenido ejecutables (la parte pesada, con música).
+  const musicRule = sourceStatus['música']
+    ? 'music: exactamente 4 opciones reales sacadas de la música provista. SOLO canciones ✅ (sin letra explícita, violencia, alcohol).'
+    : 'music: NO hubo música verificada esta semana → deja "music":[] (vacío). NO inventes canciones.'
+  const ideasPrompt = `${baseContext}
 ${HOOK_PATTERNS_CONTEXT}
 ${COPYWRITING_CONTEXT}
 ${REPURPOSING_CONTEXT}
-
-ANTI-REPETICIÓN — CRÍTICO:${avoidInstruction}
-${previousReport ? `\nREPORTE ANTERIOR:\n${previousReport}\n\nComenta qué cambió, qué subió, qué es nuevo esta semana.` : ''}
-
-INSTRUCCIONES PARA CONTENT IDEAS — LOS REELS DEBEN SER EJECUTABLES:
-- hook.text: La primera oración exacta que aparece en pantalla o dice el creador. Impactante, completa, en presente. Sin límite de palabras.
-- platforms.reel: Descríbelo como director de cine: plano de apertura (qué se ve exactamente), texto en pantalla en los primeros 3s, ritmo de cortes, duración total, cierre/CTA visual, qué emoción debe sentir el espectador al terminar. Mínimo 3 oraciones.
-- platforms.tiktok: Adaptación de tono y hook para TikTok — más casual, texto desde segundo 0, energía diferente.
-- step1/step2/step3: Guión real por momento. Qué dice el audio/texto en pantalla, qué se muestra, qué construye emocionalmente. No resúmenes, notas de producción reales.
-- music: Propón 4-5 opciones de canciones para que el admin elija. SOLO canciones ✅ (sin letra explícita, violencia, alcohol ni contenido sexual). Para cada opción: title, artist, bpm, mood y why (por qué esta canción encaja con este reel específico). El admin decide cuál usar.
-- trendConnection: Conexión directa con la tendencia real detectada esta semana. Por qué ahora, por qué Bahía.
-
-FILTRO DE CALIDAD — CRÍTICO:
-- Cada idea debe pasar este test: "¿Un socio potencial de Bahía que paga $6,500/mes vería este reel y pensaría 'esto es para mí'?" Si no, descártala.
-- Evita ideas genéricas de gym o deporte sin ángulo específico de Bahía.
-- Las tendencias deben ser reales y verificables, no suposiciones.
-
-REGLAS:
-- Máximo 3 trends, 3 googleTrends, 3 contentOpportunities, 2 viralPatterns, 3 contentIdeas
-- hashtags por idea: máximo 5 tags · triggerWords: máximo 3 elementos
-- music: exactamente 4 opciones por idea (no más, para que el JSON quepa completo)
-- Sé rico en las descripciones pero conciso: cada campo de texto máximo 2-3 oraciones
-
+Genera 3 ideas de contenido EJECUTABLES basadas en las tendencias REALES de la investigación.
+- hook.text: la primera oración exacta en pantalla, impactante y completa.
+- platforms.reel: como director de cine — plano de apertura, texto en pantalla a los 3s, ritmo de cortes, duración, cierre/CTA, emoción final. Mínimo 3 oraciones.
+- platforms.tiktok/stories/carrusel: adaptación por plataforma.
+- copyStructure.step1/step2/step3: guión real por momento (notas de producción).
+- ${musicRule}
+- trendConnection: conexión directa con una tendencia REAL de la investigación (no inventes).
+FILTRO: cada idea debe pasar "¿un socio que paga $6,500/mes pensaría 'esto es para mí'?". Nada genérico de gym.
 Devuelve ÚNICAMENTE el JSON, sin markdown:
-{"generatedAt":"${generatedAt}","period":"${mes}","trends":[{"topic":"string","score":0,"angle":"string","evidence":"string"}],"googleTrends":[{"keyword":"string","avgScore":0,"trend":"string","insight":"string"}],"seasonality":{"touristFlow":"string","dominantProfile":"string","peakWindow":"string","localMarket":"string","insight":"string"},"strategy":{"primarySegment":"string","secondarySegment":"string","message":"string","avoid":"string"},"competitive":{"topCompetitors":["string"],"theirAngle":"string","gap":"string","counterPositioning":"string"},"audienceWhere":{"accounts":["string"],"contentTypes":["string"],"ownHashtags":["#tag"],"insight":"string"},"hashtags":{"masivos":["#tag"],"nicho":["#tag"],"locales":["#tag"],"mixRecomendado":"string"},"contentOpportunities":[{"instalacion":"string","oportunidad":"string","momento":"string","formatoIdeal":"string","urgencia":0}],"viralPatterns":[{"pattern":"string","description":"string","whyItWorks":"string","adaptForBahia":"string","differentiator":"string"}],"contentIdeas":[{"title":"string","format":"Reel","hook":{"text":"string","pattern":"string","triggerWords":["string"]},"copyStructure":{"framework":"PAS","step1":"string","step2":"string","step3":"string","cta":"string"},"platforms":{"reel":"string","tiktok":"string","stories":"string","carrusel":"string"},"music":[{"title":"string","artist":"string","bpm":0,"mood":"string","why":"string"}],"instalacion":"string","targetSegment":"string","hashtags":["#tag"],"trendConnection":"string","urgency":0}]}`
+{"contentIdeas":[{"title":"string","format":"Reel","hook":{"text":"string","pattern":"string","triggerWords":["string"]},"copyStructure":{"framework":"PAS","step1":"string","step2":"string","step3":"string","cta":"string"},"platforms":{"reel":"string","tiktok":"string","stories":"string","carrusel":"string"},"music":[{"title":"string","artist":"string","bpm":0,"mood":"string","why":"string"}],"instalacion":"string","targetSegment":"string","hashtags":["#tag"],"trendConnection":"string","urgency":0}]}`
 
-  const consolidated = await ask(prompt, [{
-    role: 'user',
-    content: [
-      `TENDENCIAS REALES ESTA SEMANA (${semana}):\n${socialTrends}`,
-      `ESTACIONALIDAD ${mes.toUpperCase()}:\n${seasonalityRaw}`,
-      `FORMATOS VIRALES QUE FUNCIONAN AHORA:\n${viralPatternsRaw}`,
-      `HASHTAGS EFECTIVOS:\n${hashtagsRaw}`,
-      `COMPETENCIA LOCAL:\n${competitiveRaw}`,
-      musicTrendsRaw ? `MÚSICA EN TENDENCIA ESTA SEMANA (TikTok/Reels MX):\n${musicTrendsRaw}` : '',
-      metaAdsRaw ? `META ADS — DOS NIVELES: (1) mercado general: lifestyle, wellness, turismo deportivo MX; (2) mercado específico de clubes deportivos en México y LATAM sin importar ubicación — qué mensajes, ángulos y formatos están funcionando en clubes ahora:\n${metaAdsRaw}` : '',
-      `AUDIENCIA PREMIUM (qué consume, qué comparte):\n${trunc(audienceRaw, 1000)}`,
-      googleTrendsResults.length
-        ? `GOOGLE TRENDS MX:\n${googleTrendsResults.map(t => `${t.keyword}: ${t.avgScore}/100 (${t.trend})`).join(', ')}`
-        : '',
-    ].filter(Boolean).join('\n\n---\n\n'),
-  }], 8000)
+  const [briefRaw, ideasRaw] = await Promise.all([
+    ask(briefPrompt, [{ role: 'user', content: researchContent }], 4500),
+    ask(ideasPrompt, [{ role: 'user', content: researchContent }], 5500),
+  ])
 
   type Trend = { topic: string; score: number; angle: string; evidence: string }
   type GTrend = { keyword: string; avgScore: number; trend: string; insight: string }
@@ -363,39 +377,35 @@ Devuelve ÚNICAMENTE el JSON, sin markdown:
     contentIdeas: ContentIdea[]
   }
 
-  const parseAnalysis = (raw: string): Analysis | null => {
+  const parseObj = <T,>(raw: string): T | null => {
     try {
       const start = raw.indexOf('{')
       const end = raw.lastIndexOf('}')
       if (start === -1 || end === -1) return null
-      return JSON.parse(raw.slice(start, end + 1))
+      return JSON.parse(raw.slice(start, end + 1)) as T
     } catch {
       return null
     }
   }
 
-  // El JSON está completo solo si parsea Y trae las ideas de contenido (el campo
-  // más pesado y el último del schema — si Claude se truncó, es lo primero que falta).
-  const isComplete = (a: Analysis | null): a is Analysis =>
-    !!a && Array.isArray(a.contentIdeas) && a.contentIdeas.length > 0
+  type Brief = Omit<Analysis, 'contentIdeas'>
 
-  let analysis = parseAnalysis(consolidated)
-
-  // Retry si el JSON llegó malformado O incompleto (truncado sin contentIdeas)
-  if (!isComplete(analysis)) {
-    const retry = await ask(
-      'El JSON anterior llegó incompleto o malformado (probablemente truncado). Devuelve ÚNICAMENTE el JSON completo y válido, con TODOS los campos incluyendo contentIdeas. Sin markdown, sin texto adicional. Si es necesario, sé más conciso en las descripciones para que quepa completo.',
-      [{ role: 'user', content: `JSON incompleto recibido:\n${consolidated.slice(0, 3000)}` }],
-      8000,
-    )
-    const retried = parseAnalysis(retry)
-    if (isComplete(retried)) analysis = retried
-    else if (retried) analysis = retried // usa lo que haya, el blindaje de abajo evita crashes
+  // Parse de cada llamada; retry individual si alguna falló (cada JSON es chico → casi nunca se trunca)
+  let brief = parseObj<Brief>(briefRaw)
+  if (!brief || !Array.isArray(brief.trends)) {
+    brief = parseObj<Brief>(await ask(`${briefPrompt}\n\nEl JSON anterior llegó inválido. Devuelve SOLO el JSON completo y válido.`, [{ role: 'user', content: researchContent }], 4500))
   }
 
-  if (!analysis) {
-    return NextResponse.json({ error: 'Error parsing Claude response after retry', raw: consolidated.slice(0, 1000) }, { status: 500 })
+  let ideas = parseObj<{ contentIdeas: ContentIdea[] }>(ideasRaw)?.contentIdeas
+  if (!Array.isArray(ideas) || ideas.length === 0) {
+    ideas = parseObj<{ contentIdeas: ContentIdea[] }>(await ask(`${ideasPrompt}\n\nEl JSON anterior llegó inválido. Devuelve SOLO el JSON con las 3 ideas.`, [{ role: 'user', content: researchContent }], 5500))?.contentIdeas
   }
+
+  if (!brief) {
+    return NextResponse.json({ error: 'No se pudo generar el brief de tendencias' }, { status: 500 })
+  }
+
+  const analysis = { ...brief, contentIdeas: Array.isArray(ideas) ? ideas : [] } as Analysis
 
   // Blindaje — nunca crashear por un campo faltante si Claude devolvió JSON parcial.
   analysis.trends ??= []
@@ -425,8 +435,6 @@ Devuelve ÚNICAMENTE el JSON, sin markdown:
     o && typeof o.instalacion === 'string' && typeof o.oportunidad === 'string',
   )
   analysis.trends = analysis.trends.filter(t => t && typeof t.topic === 'string')
-
-  if (!analysis) return NextResponse.json({ error: 'Análisis vacío' }, { status: 500 })
 
   // Enriquecer googleTrends con datos reales si los tenemos
   if (googleTrendsResults.length && analysis.googleTrends) {
