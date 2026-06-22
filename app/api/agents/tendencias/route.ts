@@ -5,8 +5,6 @@ import { prisma } from '@/lib/db'
 import { ask } from '@/lib/claude'
 import { sendText } from '@/lib/whatsapp'
 
-const isDev = process.env.NODE_ENV === 'development'
-
 export async function POST(req: NextRequest) {
   const { notifyAdmin = true } = await req.json().catch(() => ({}))
   return runTendencias(notifyAdmin)
@@ -453,15 +451,9 @@ Devuelve ÚNICAMENTE el JSON, sin markdown:
     data: analysis.trends.map(t => ({ topic: t.topic, score: t.score, source: 'perplexity+claude', region })),
   })
 
-  // Disparar Agente de Contenido con la idea de mayor urgency (solo si hay ideas)
-  const topIdea = [...analysis.contentIdeas].sort((a, b) => b.urgency - a.urgency)[0]
-  if (topIdea) {
-    await fetch(`${process.env.NEXT_PUBLIC_URL}/api/agents/contenido`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idea: topIdea, strategy: analysis.strategy, report: analysis }),
-    }).catch(() => {})
-  }
+  // NOTA: la generación de carrusel promocional NO se dispara aquí (sería diaria).
+  // El ciclo de pauta corre cada 14 días vía el cron /api/cron/promo-cycle, que
+  // lee este reporte y genera las 3 variantes. Aquí solo se guarda el briefing.
 
   // Notificar al admin
   if (notifyAdmin) {

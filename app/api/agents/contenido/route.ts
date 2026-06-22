@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic'
+export const maxDuration = 300 // genera 3 variantes (varias llamadas a Claude) — necesita margen
 import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/db'
@@ -42,12 +43,38 @@ type ClubAsset = {
 }
 
 
-type Slide = { slide: number; headline: string; body: string }
-type Carousel = { caption: string; slides: Slide[] }
+type Slide = { slide: number; headline: string; body: string; photo?: string }
+type Carousel = { caption: string; slides: Slide[]; angle?: string }
+
+// Una variante del carrusel promocional (para rotación cuando el crítico ve que baja la curva)
+type PromoVariant = {
+  creativeId: string | null
+  angle: string
+  carousel: Carousel
+  aiScore: number | null
+  photosNeeded: string[]
+}
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
 
+  // Modo SUGERENCIAS (barra de apoyo): de una idea/tema del club, genera 3-4
+  // sugerencias DETALLADAS (guía de producción, no drafts de IA) + califica c/u.
+  if (body.mode === 'sugerencias') {
+    const ideaText: string = (body.idea ?? body.trend?.topic ?? '').toString()
+    if (!ideaText.trim()) return NextResponse.json({ error: 'Se requiere una idea' }, { status: 400 })
+    return sugerenciasContenido(ideaText)
+  }
+
+  // Modo APROBAR: el admin aprueba una variante → se marca y se generan 2 más
+  // del MISMO estilo (cola de rotación) + el brief de video complementario.
+  if (body.mode === 'aprobar') {
+    if (!body.creativeId) return NextResponse.json({ error: 'Se requiere creativeId' }, { status: 400 })
+    return aprobarVariante(String(body.creativeId))
+  }
+
+  // Modo GENERAR (default): 3 variantes promocionales con ángulos DISTINTOS,
+  // basadas en la tendencia/idea, para que el admin elija una.
   const idea: ContentIdea | null = body.idea ?? null
   const strategy: Strategy | null = body.strategy ?? null
   const trend = body.trend ?? null
@@ -56,49 +83,150 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Se requiere idea o trend' }, { status: 400 })
   }
 
-  // Obtener contexto compartido del club + assets específicos en paralelo
   const instalacion = idea?.instalacion ?? null
   const [ctx, availableAssets] = await Promise.all([
     getClubContext({ agents: ['contenido'], days: 14 }),
     fetchBestAssets(instalacion),
   ])
   const upcomingEvents = ctx.upcomingEvents
+  const sharedContext = contextToPrompt({ ...ctx, upcomingEvents: [] })
+  const contexto = buildContexto(idea, strategy, trend, upcomingEvents, availableAssets, 'Carrusel', sharedContext)
 
-  // Decidir formato basado en assets disponibles y tendencia
-  const format = decideFormat(idea, availableAssets)
-
-  const sharedContext = contextToPrompt({ ...ctx, upcomingEvents: [] }) // eventos ya van en buildContexto
-  const contexto = buildContexto(idea, strategy, trend, upcomingEvents, availableAssets, format, sharedContext)
-
-  let creative: { id: string } | null = null
-  let carousel: Carousel | null = null
-  let reelBrief: string | null = null
-  let aiScore: number | null = null
-  let visualGuide: string | null = null
-
-  if (format === 'Reel') {
-    reelBrief = await generateReelBrief(contexto, idea, upcomingEvents)
-    aiScore = await checkAiScore(reelBrief)
-    visualGuide = buildVideoPrompt(idea, trend, upcomingEvents)
-    creative = await prisma.creatives.create({
-      data: { type: 'reel_brief', content: { idea, trend, reelBrief, availableAssets, aiScore, visualGuide } as Prisma.InputJsonValue, status: 'borrador' },
-      select: { id: true },
-    })
-  } else {
-    carousel = await generateCarousel(contexto, idea)
-    if (!carousel) return NextResponse.json({ error: 'Error generando carousel' }, { status: 500 })
+  const VARIANT_COUNT = 3
+  const variants: PromoVariant[] = []
+  for (let i = 0; i < VARIANT_COUNT; i++) {
+    const carousel = await generateCarousel(contexto, idea, { avoidAngles: variants.map(v => v.angle) })
+    if (!carousel) continue
     const allCopy = carousel.slides.map(s => `${s.headline}. ${s.body}`).join(' ')
-    aiScore = await checkAiScore(allCopy)
-    visualGuide = buildCarouselImagePrompt(idea, trend, carousel.slides[0])
-    creative = await prisma.creatives.create({
-      data: { type: 'carrusel', content: { idea, trend, carousel, availableAssets, aiScore, visualGuide } as Prisma.InputJsonValue, status: 'borrador' },
+    const aiScore = await checkAiScore(allCopy)
+    const photosNeeded = buildPhotoRequests(carousel, idea, availableAssets.length)
+    const creative = await prisma.creatives.create({
+      data: {
+        type: 'carrusel',
+        content: { idea, trend, carousel, availableAssets, aiScore, variant: i + 1, angle: carousel.angle, rol: 'inicial' } as Prisma.InputJsonValue,
+        status: 'borrador',
+      },
       select: { id: true },
     })
+    variants.push({ creativeId: creative.id, angle: carousel.angle ?? `Variante ${i + 1}`, carousel, aiScore, photosNeeded })
   }
 
-  await notifyAdmin({ carousel, reelBrief, idea, trend, availableAssets, upcomingEvents, format, creativeId: creative?.id, aiScore, visualGuide })
+  if (variants.length === 0) {
+    return NextResponse.json({ error: 'Error generando el carrusel' }, { status: 500 })
+  }
 
-  return NextResponse.json({ creativeId: creative?.id, format, carousel, reelBrief, aiScore })
+  await notifyAdmin({ titulo: idea?.title ?? trend?.topic ?? 'Nueva promo', variants })
+
+  return NextResponse.json({ mode: 'generar', variants })
+}
+
+// ─── Aprobar una variante → marcar + derivar 2 del mismo estilo (rotación) ────
+async function aprobarVariante(creativeId: string) {
+  const creative = await prisma.creatives.findUnique({ where: { id: creativeId }, select: { content: true } })
+  if (!creative) return NextResponse.json({ error: 'Creativo no encontrado' }, { status: 404 })
+
+  const content = creative.content as unknown as {
+    idea?: ContentIdea | null
+    trend?: { topic: string; angle: string } | null
+    carousel?: Carousel
+    angle?: string
+  }
+  const approved = content.carousel
+  if (!approved) return NextResponse.json({ error: 'El creativo no tiene carrusel' }, { status: 400 })
+
+  const idea = content.idea ?? null
+  const trend = content.trend ?? null
+  const approvedAngle = approved.angle ?? content.angle ?? 'estilo aprobado'
+
+  // Marca la aprobada
+  await prisma.creatives.update({ where: { id: creativeId }, data: { status: 'aprobado' } })
+
+  // Reconstruye contexto para derivar
+  const instalacion = idea?.instalacion ?? null
+  const [ctx, availableAssets] = await Promise.all([
+    getClubContext({ agents: ['contenido'], days: 14 }),
+    fetchBestAssets(instalacion),
+  ])
+  const upcomingEvents = ctx.upcomingEvents
+  const sharedContext = contextToPrompt({ ...ctx, upcomingEvents: [] })
+  const contexto = buildContexto(idea, null, trend, upcomingEvents, availableAssets, 'Carrusel', sharedContext)
+
+  // 2 variantes del MISMO estilo → cola de rotación (status 'en_cola')
+  const DERIVED_COUNT = 2
+  const derived: PromoVariant[] = []
+  for (let i = 0; i < DERIVED_COUNT; i++) {
+    const carousel = await generateCarousel(contexto, idea, { styleRef: { angle: approvedAngle, caption: approved.caption } })
+    if (!carousel) continue
+    const allCopy = carousel.slides.map(s => `${s.headline}. ${s.body}`).join(' ')
+    const aiScore = await checkAiScore(allCopy)
+    const photosNeeded = buildPhotoRequests(carousel, idea, availableAssets.length)
+    const c = await prisma.creatives.create({
+      data: {
+        type: 'carrusel',
+        content: { idea, trend, carousel, availableAssets, aiScore, angle: carousel.angle, rol: 'rotacion', derivadaDe: creativeId } as Prisma.InputJsonValue,
+        status: 'en_cola',
+      },
+      select: { id: true },
+    })
+    derived.push({ creativeId: c.id, angle: carousel.angle ?? `Rotación ${i + 1}`, carousel, aiScore, photosNeeded })
+  }
+
+  // Brief de video complementario REAL (sin IA) para la promo aprobada
+  const videoBrief = await generateReelBrief(contexto, idea, upcomingEvents)
+
+  await notifyAdmin({ titulo: `Aprobada: ${approvedAngle} · cola de rotación`, variants: derived, videoBrief })
+
+  return NextResponse.json({ mode: 'aprobar', approvedId: creativeId, derived, videoBrief })
+}
+
+// ─── Sugerencias de contenido (apoyo de ideas) — guía detallada + score c/u ───
+// NO escribe drafts: da una guía de producción de cómo crear cada idea.
+async function sugerenciasContenido(ideaText: string) {
+  const last = await prisma.agent_memory.findFirst({
+    where: { agent: 'tendencias', type: 'briefing' },
+    orderBy: { created_at: 'desc' },
+    select: { content: true },
+  })
+
+  let trendsSummary = 'No hay un reporte de tendencias reciente; sugiere con criterio general de club deportivo premium.'
+  if (last?.content) {
+    try {
+      const r = JSON.parse(last.content) as {
+        trends?: { topic: string; angle: string; score: number }[]
+        strategy?: { message?: string }
+        seasonality?: { insight?: string }
+      }
+      const tr = (r.trends ?? []).map(t => `- ${t.topic} (${t.score}/100): ${t.angle}`).join('\n')
+      trendsSummary = [
+        tr && `TENDENCIAS DE LA SEMANA:\n${tr}`,
+        r.strategy?.message && `Mensaje estratégico: ${r.strategy.message}`,
+        r.seasonality?.insight && `Temporada: ${r.seasonality.insight}`,
+      ].filter(Boolean).join('\n') || trendsSummary
+    } catch { /* usa el default */ }
+  }
+
+  const raw = await ask(
+    `Eres el estratega de contenido de Bahía Social Sports Club (club deportivo premium en Nuevo Vallarta).
+El club tiene una idea/tema y quiere APOYO para crear su propio contenido (reels, historias, posts).
+NO escribas el contenido final ni drafts de IA: da una GUÍA DE PRODUCCIÓN detallada. Propón 3-4 sugerencias DISTINTAS de cómo ejecutar la idea, y detalla cómo se haría cada una. Califica cada una según qué tan alineada está con las tendencias de la semana.
+
+Devuelve SOLO este JSON, sin markdown:
+{"suggestions":[{"format":"Reel|Historia|Post|Carrusel","title":"nombre corto de la idea","concept":"el ángulo: de qué trata y por qué funciona (1-2 oraciones)","hook":"el gancho / primeros 3 segundos","music":"audio o música sugerida si aplica (si no, vacío)","duration":"duración sugerida si es reel/historia (si no, vacío)","execution":"cómo se haría: tomas, qué aparece en cuadro, texto en pantalla, ritmo (2-4 oraciones)","score":número 0-10,"why":"1 oración: por qué ese score, conectando con tendencias"}]}`,
+    [{ role: 'user', content: `IDEA / TEMA DEL CLUB:\n"${ideaText}"\n\n${trendsSummary}` }],
+    2500,
+  )
+
+  let parsed: { suggestions?: unknown[] } | null = null
+  try {
+    const s = raw.indexOf('{')
+    const e = raw.lastIndexOf('}')
+    if (s !== -1 && e !== -1) parsed = JSON.parse(raw.slice(s, e + 1))
+  } catch { /* */ }
+
+  const suggestions = Array.isArray(parsed?.suggestions) ? parsed!.suggestions : []
+  if (suggestions.length === 0) return NextResponse.json({ error: 'No se pudieron generar sugerencias' }, { status: 500 })
+
+  return NextResponse.json({ mode: 'sugerencias', idea: ideaText, suggestions })
 }
 
 // ─── Consultas a Supabase ─────────────────────────────────────────────────────
@@ -116,21 +244,6 @@ async function fetchBestAssets(instalacion: string | null): Promise<ClubAsset[]>
     score_reel: a.score_reel ?? 0, score_foto: a.score_foto ?? 0, score_stories: a.score_stories ?? 0,
     best_format: a.best_format ?? '', content_angles: a.content_angles ?? [],
   }))
-}
-
-// ─── Lógica de formato ────────────────────────────────────────────────────────
-
-function decideFormat(idea: ContentIdea | null, assets: ClubAsset[]): 'Reel' | 'Carrusel' | 'Foto' {
-  // Si la idea ya especifica formato, respetarlo
-  if (idea?.format === 'Reel') return 'Reel'
-  if (idea?.format === 'Carrusel') return 'Carrusel'
-
-  // Si hay assets con alto score_reel y el tema es de ambiente/lifestyle → Reel
-  const topReelScore = Math.max(0, ...assets.map(a => a.score_reel ?? 0))
-  if (topReelScore >= 8) return 'Reel'
-
-  // Default: carrusel (funciona sin assets físicos, solo copy)
-  return 'Carrusel'
 }
 
 // ─── Construcción de contexto ─────────────────────────────────────────────────
@@ -193,36 +306,55 @@ function buildContexto(
 
 // ─── Generación de contenido ──────────────────────────────────────────────────
 
-async function generateCarousel(contexto: string, idea: ContentIdea | null): Promise<Carousel | null> {
-  const hookInstruction = idea
+async function generateCarousel(
+  contexto: string,
+  idea: ContentIdea | null,
+  opts: { avoidAngles?: string[]; styleRef?: { angle: string; caption: string } } = {},
+): Promise<Carousel | null> {
+  const { avoidAngles = [], styleRef } = opts
+
+  // 1a variante (sin avoid ni styleRef): respeta el hook de la idea.
+  // Variantes distintas / derivadas: hook nuevo.
+  const hookInstruction = idea && avoidAngles.length === 0 && !styleRef
     ? `Usa EXACTAMENTE este hook para el slide 1: "${idea.hook.text}" — agrega "Desliza →" al final del body.`
     : 'Crea un hook que detenga el scroll: pregunta directa, afirmación con número o promesa concreta. Termina el body con "Desliza →".'
 
+  const angleInstruction = styleRef
+    ? `Esta es una variante de ROTACIÓN en el MISMO estilo y ángulo que la versión aprobada (mismo tono y estructura persuasiva, mismo "angle": "${styleRef.angle}"), pero con copy FRESCO y distinto. La aprobada decía en su caption: "${styleRef.caption}". No la copies; haz una nueva del mismo estilo.`
+    : avoidAngles.length
+      ? `Esta es una VARIANTE de la MISMA promoción. Usa un ángulo creativo CLARAMENTE distinto a los ya usados: ${avoidAngles.join('; ')}. Mismo objetivo, enfoque persuasivo diferente.`
+      : 'Define el "angle": el ángulo creativo del carrusel (su enfoque persuasivo) en pocas palabras.'
+
   const raw = await ask(
     `Eres el creador de contenido de Bahía Social Sports Club (club deportivo premium en Nuevo Vallarta, Riviera Nayarit).
-Crea un carrusel de Instagram de 7 slides basado en el briefing.
+Crea un carrusel promocional de Instagram (pauteable) basado en el briefing.
+${angleInstruction}
 
-ESTRUCTURA (7 slides — no negociable):
+ESTRUCTURA (usa SOLO los slides que el contenido pida — entre 2 y 8. MENOS puede ser mejor; no rellenes para llegar a un número. Si con 2-3 slides la idea queda clara y potente, hazlo así):
 • Slide 1 — HOOK: Para el scroll. ${hookInstruction}
-• Slide 2 — CONTEXTO: Por qué esto importa. Plantea el problema o el deseo del lector.
-• Slides 3-6 — VALOR: Un solo punto por slide, numerado (01 02 03 04). Una idea, no dos.
-• Slide 7 — CTA: Acción clara y directa. Ej: "Agenda tu visita", "Prueba un Day Pass este finde", "8 canchas te esperan".
+• Slides del medio (si los hay) — VALOR: un solo punto por slide, una idea, no dos.
+• Último slide — CTA: acción clara y directa. Ej: "Agenda tu visita", "Prueba un Day Pass este finde".
 
 REGLAS DE COPY (sin excepción):
-- Tutéa al lector: "tú", "tu cancha", "tu nivel", "te lo mereces"
+- Tutéa al lector: "tú", "tu cancha", "tu nivel"
 - Máximo 30 palabras por body de slide
 - Sé específico: no "excelentes instalaciones" → "8 canchas de pádel + 8 de pickleball + alberca olímpica"
-- Sin palabras de relleno: "fundamental", "crucial", "sin duda", "de hecho", "en definitiva", "aprovecha al máximo"
-- Varía el ritmo: mezcla frases cortas con frases un poco más largas. Que no todos suenen igual.
-- Menciona eventos próximos con nombre y fecha si son relevantes para el tema
+- Sin palabras de relleno: "fundamental", "crucial", "sin duda", "aprovecha al máximo"
+- Varía el ritmo: mezcla frases cortas con frases un poco más largas
+- Menciona eventos próximos con nombre y fecha si son relevantes
 - Sin emojis en los slides
 
-FORMATO: Instagram 1080×1350 px (4:5) — más visibilidad en el feed que cuadrado.
+FOTO POR SLIDE (campo "photo") — IMPORTANTE:
+Cada slide lleva la descripción ESPECÍFICA de la toma real que necesita: qué se ve exactamente, encuadre, instalación concreta y momento. Concreta, no genérica.
+✅ Bien: "Pareja jugando pádel en cancha techada al atardecer, plano medio desde la esquina"
+❌ Mal (genérico): "foto de las instalaciones"
 
-Devuelve SOLO el JSON sin markdown, con exactamente 7 slides:
-{"caption":"texto con hashtags (máx 150 chars, español natural)","slides":[{"slide":1,"headline":"string (máx 7 palabras, impacto)","body":"string (máx 30 palabras)"},{"slide":2,"headline":"string","body":"string"},{"slide":3,"headline":"string","body":"string"},{"slide":4,"headline":"string","body":"string"},{"slide":5,"headline":"string","body":"string"},{"slide":6,"headline":"string","body":"string"},{"slide":7,"headline":"string","body":"string"}]}`,
+FORMATO: Instagram 1080×1350 px (4:5).
+
+Devuelve SOLO el JSON sin markdown. Incluye entre 2 y 8 slides en el array (los que el contenido necesite, numerados 1..N):
+{"angle":"string (ángulo creativo en pocas palabras)","caption":"texto con hashtags (máx 150 chars, español natural)","slides":[{"slide":1,"headline":"string (máx 7 palabras, impacto)","body":"string (máx 30 palabras)","photo":"descripción específica de la toma para este slide"},{"slide":2,"headline":"string","body":"string","photo":"string"}]}`,
     [{ role: 'user', content: contexto }],
-    1500,
+    2200,
   )
 
   try {
@@ -260,27 +392,16 @@ Escribe el brief como si se lo dijeras en persona. Directo, sin relleno, que lo 
   )
 }
 
-// ─── Prompts visuales para muapi ─────────────────────────────────────────────
-
-function buildCarouselImagePrompt(
-  idea: ContentIdea | null,
-  trend: { topic: string; angle: string } | null,
-  hookSlide: Slide,
-): string {
-  const instalacion = idea?.instalacion ?? 'instalaciones premium'
-  const topic = idea?.title ?? trend?.topic ?? 'Bahía Social Sports Club'
-  return `Premium sports club lifestyle photography. ${topic}. ${instalacion} in Nuevo Vallarta, Riviera Nayarit, Mexico. Tropical natural light, lush greenery visible. Active lifestyle, modern upscale facilities. The scene conveys: "${hookSlide.headline}". Golden hour warm lighting, shallow depth of field f/2.0. People in athletic wear enjoying the space. Clean composition, single focal point. Social media photography, 4:5 vertical format, Instagram aesthetic. Photorealistic, high production value. No text overlays.`
-}
-
-function buildVideoPrompt(
-  idea: ContentIdea | null,
-  trend: { topic: string; angle: string } | null,
-  events: ClubEvent[],
-): string {
-  const instalacion = idea?.instalacion ?? 'canchas de pádel y pickleball'
-  const hook = idea?.hook?.text ?? trend?.topic ?? 'Bahía Social Sports Club'
-  const eventNote = events[0] ? ` Event happening: ${events[0].name}.` : ''
-  return `[SCENE] Premium sports club exterior and courts at golden hour, Nuevo Vallarta Mexico, tropical vegetation background, lagoon visible. [SUBJECT] Athletic players on ${instalacion}, modern high-end facilities, people enjoying active lifestyle. [ACTION] Dynamic gameplay footage transitioning to relaxed social moments by the pool. Camera reveals the full club experience in 10 seconds. [CAMERA] Drone aerial establishing shot descending into ground-level tracking shot of courts, smooth gimbal stabilization, 24mm wide angle. [STYLE] Warm golden hour grade, high contrast, cinematic slow motion at peaks, luxury lifestyle aesthetic.${eventNote} [SOUND] Upbeat acoustic-electronic fusion, court sounds ambient, ends with subtle logo sting. Opening text overlay: "${hook}"`
+// ─── Fotos a pedir (material REAL, sin IA) ────────────────────────────────────
+// Pide SOLO las fotos que faltan: cubre las primeras láminas con la biblioteca
+// (haveCount) y solicita el resto. Si hay suficientes, no pide nada.
+function buildPhotoRequests(carousel: Carousel | null, idea: ContentIdea | null, haveCount: number): string[] {
+  if (!carousel) return []
+  return carousel.slides.slice(Math.max(0, haveCount)).map(s => {
+    // Usa la descripción específica de la toma (campo photo); si falta, cae a una genérica.
+    const desc = s.photo?.trim() || `foto real de ${idea?.instalacion ?? 'las instalaciones'} que ilustre "${s.headline}"`
+    return `Slide ${s.slide}: ${desc}`
+  })
 }
 
 // ─── Quality check: detect AI patterns ───────────────────────────────────────
@@ -305,86 +426,37 @@ async function checkAiScore(text: string): Promise<number | null> {
 // ─── Notificación al admin ────────────────────────────────────────────────────
 
 async function notifyAdmin({
-  carousel, reelBrief, idea, trend, availableAssets, upcomingEvents, format, creativeId, aiScore, visualGuide,
+  titulo, variants, videoBrief,
 }: {
-  carousel: Carousel | null
-  reelBrief: string | null
-  idea: ContentIdea | null
-  trend: { topic: string; angle: string } | null
-  availableAssets: ClubAsset[]
-  upcomingEvents: ClubEvent[]
-  format: string
-  creativeId: string | undefined
-  aiScore: number | null
-  visualGuide?: string | null
+  titulo: string
+  variants: PromoVariant[]
+  videoBrief?: string | null
 }) {
-  const titulo = idea?.title ?? trend?.topic ?? 'Nuevo contenido'
-  const segmento = idea?.targetSegment ?? '—'
+  if (!process.env.ADMIN_PHONE) return
 
-  const lines = [
-    `🎨 *Brief de contenido listo*`,
+  const lines: string[] = [
+    `🎨 *Contenido — ${titulo}*`,
+    `${variants.length} variante(s) de carrusel promocional.`,
     ``,
-    `*${titulo}* · ${format}`,
-    `Segmento: ${segmento}`,
   ]
 
-  // Eventos próximos relevantes
-  if (upcomingEvents.length) {
-    lines.push(``, `📅 *Eventos próximos:*`)
-    upcomingEvents.slice(0, 3).forEach(e => {
-      const cuando = e.recurrence ? `cada ${e.recurrence}` : e.start_date ?? ''
-      lines.push(`  • ${e.name} — ${cuando} ${e.time_of_day}`)
-    })
-  }
-
-  if (format === 'Reel' && reelBrief) {
-    lines.push(``, `🎬 *Brief de Reel:*`, reelBrief)
-
-    // Pedir fotos/video si no hay assets
-    if (availableAssets.length === 0) {
-      lines.push(``, `📸 *Necesito material tuyo para esto.*`, `¿Tienes fotos o videos de ${idea?.instalacion ?? 'las instalaciones'}? Mándamelos aquí o dime qué tienes grabado.`)
-    } else {
-      lines.push(``, `✅ *Assets disponibles del club que puedes usar:*`)
-      availableAssets.slice(0, 3).forEach(a => {
-        lines.push(`  • ${a.instalacion} — ${a.description} (mejor para: ${a.best_format})`)
-      })
-      lines.push(`¿Tienes algo más reciente de esto? Mándalo aquí si quieres usarlo.`)
+  variants.forEach((v, i) => {
+    lines.push(`*${i + 1}. ${v.angle}*`)
+    lines.push(`   Hook: ${v.carousel.slides[0]?.headline ?? '—'}`)
+    if (typeof v.aiScore === 'number') {
+      const label = v.aiScore >= 70 ? '✅ natural' : v.aiScore >= 50 ? '⚠️ tono' : '🔴 suena a IA'
+      lines.push(`   Naturalidad: ${v.aiScore}/100 ${label}`)
     }
-  } else if (carousel) {
-    const slidesText = carousel.slides
-      .map(s => `${s.slide}. *${s.headline}*\n   ${s.body}`)
-      .join('\n\n')
-    lines.push(``, `*Slides:*`, slidesText, ``, `*Caption:*`, carousel.caption)
+    if (v.photosNeeded.length) lines.push(`   📸 Faltan ${v.photosNeeded.length} foto(s) — revisa el panel`)
+    lines.push(`   ID: ${v.creativeId ?? 'sin id'}`)
+    lines.push(``)
+  })
 
-    if (availableAssets.length === 0) {
-      lines.push(``, `📸 *Para las fotos del carrusel:*`)
-      lines.push(`No tengo fotos de ${idea?.instalacion ?? 'esta área'} en mi biblioteca aún.`)
-      lines.push(`¿Puedes mandarme 6 fotos de ${idea?.instalacion ?? 'las instalaciones'}? Idealmente una por slide.`)
-    } else {
-      lines.push(``, `✅ *Fotos sugeridas de mi biblioteca:*`)
-      availableAssets.slice(0, 6).forEach((a, i) => {
-        lines.push(`  ${i + 1}. ${a.description} (${a.mood})`)
-      })
-      lines.push(`¿Usamos estas o tienes algo más reciente?`)
-    }
-  }
+  if (videoBrief) lines.push(`🎬 *Video complementario (brief real):*`, videoBrief)
 
-  if (visualGuide) {
-    lines.push(``, `📷 *Guía visual (referencia para la foto/video):*`, visualGuide)
-  }
-
-  if (aiScore !== null) {
-    const label = aiScore >= 70 ? '✅ natural' : aiScore >= 50 ? '⚠️ revisar tono' : '🔴 suena a IA'
-    lines.push(``, `🤖 *Naturalidad del copy:* ${aiScore}/100 — ${label}`)
-  }
-
-  lines.push(``, `ID: \`${creativeId ?? 'sin id'}\``)
-
-  if (process.env.ADMIN_PHONE) {
-    try {
-      await sendText(process.env.ADMIN_PHONE, lines.filter(l => l !== undefined).join('\n'))
-    } catch (e) {
-      console.error('[contenido] sendText falló (se ignora):', e instanceof Error ? e.message : e)
-    }
+  try {
+    await sendText(process.env.ADMIN_PHONE, lines.join('\n'))
+  } catch (e) {
+    console.error('[contenido] sendText falló (se ignora):', e instanceof Error ? e.message : e)
   }
 }
