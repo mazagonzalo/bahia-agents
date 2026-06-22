@@ -50,3 +50,6 @@ next-env.d.ts
 
 # Harness eval outputs
 .eval-results/
+
+# clerk configuration (can include secrets)
+/.clerk/

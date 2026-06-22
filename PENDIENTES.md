@@ -30,6 +30,12 @@
 
 ## Agente de Seguimiento (Instagram)
 
+## Harness / Gobierno (para Xavier)
+
+- [ ] **Bug en prod (2026-06-20):** `GET /api/harness/runs` y `GET /api/harness/approvals` devuelven **500** con `Clerk: auth() was called...`. El resto del dashboard (agentes, leads, tendencias) responde 200 — no es la DB, las `DATABASE_URL`/`DIRECT_URL` ya están en Vercel y Prisma conecta bien.
+  - **Hipótesis (Gonzalo):** el matcher de `proxy.ts` solo cubre `['/dashboard/:path*','/admin/:path*']`, así que `auth()` dentro de `/api/harness/*` corre **fuera del contexto de clerkMiddleware** → tira. Fix probable: incluir `/api/harness/(.*)` en el matcher del middleware, o no llamar `auth()` ahí / usarlo con el patrón correcto para route handlers.
+  - Detectado vía runtime logs de producción (deploy `dpl_7gKLm...`, branch main).
+
 ## Dashboard y dominio
 
 - [ ] Unificar todos los agentes en un solo dashboard — Ventas, Tendencias, Contenido, Secretaria, Meta Ads en una sola página con navegación por secciones
