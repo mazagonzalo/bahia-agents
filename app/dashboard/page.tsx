@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { agentsByGroup, type AgentKind } from './_lib/agents'
 import { Icon } from './_components/icons'
 
@@ -15,14 +16,38 @@ export default function DashboardOverview() {
 
   return (
     <div>
-      <style>{`.overview-agent-card:hover .overview-agent-arrow{transform:translateX(4px)}`}</style>
-      {/* Hero */}
-      <div style={{ marginBottom: 'var(--space-8)' }}>
-        <h1 style={{ fontSize: 28, margin: 0 }}>Sistema de agentes</h1>
-        <p style={{ color: 'var(--color-text-secondary)', fontSize: 14, marginTop: 6, maxWidth: 640 }}>
-          Los agentes de marketing IA del Bahía Social Sports Club. Cada uno tiene su panel:
-          investigan tendencias, generan contenido, atienden leads y evalúan el desempeño.
-        </p>
+      <style>{`
+        .overview-agent-card:hover .overview-agent-arrow{transform:translateX(4px)}
+        .overview-hero{display:flex;align-items:center;justify-content:space-between;gap:var(--space-6);margin-bottom:var(--space-8);
+          background:linear-gradient(120deg, var(--color-surface) 0%, var(--color-surface-2) 100%);
+          border:1px solid var(--color-border);border-radius:var(--radius-xl);padding:var(--space-6) var(--space-8);overflow:hidden;position:relative}
+        .overview-hero-rider{flex-shrink:0;filter:drop-shadow(0 6px 24px rgba(0,0,0,0.45))}
+        @media (max-width:760px){.overview-hero{flex-direction:column;align-items:flex-start;text-align:left}.overview-hero-rider{align-self:center}}
+      `}</style>
+
+      {/* Hero con identidad Bahía — la ballena con raqueta (whale-rider) */}
+      <div className="overview-hero">
+        <div style={{ minWidth: 0, position: 'relative', zIndex: 1 }}>
+          <div style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: 12, letterSpacing: 2, color: 'var(--color-primary)', textTransform: 'uppercase', marginBottom: 10 }}>
+            Bahía Social Sports Club
+          </div>
+          <h1 style={{ fontSize: 32, margin: 0, fontFamily: 'var(--font-headline)', letterSpacing: -0.5 }}>
+            Sistema de agentes <span style={{ color: 'var(--color-primary)' }}>BAH.IA</span>
+          </h1>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: 14, marginTop: 10, maxWidth: 560, lineHeight: 1.6 }}>
+            La inteligencia de marketing del club. Cada agente tiene su panel: investigan tendencias,
+            generan contenido, atienden leads y evalúan el desempeño.
+          </p>
+        </div>
+        <Image
+          src="/assets/whale-rider.png"
+          alt="Bahía — ballena con raqueta"
+          width={230}
+          height={230}
+          className="overview-hero-rider"
+          style={{ objectFit: 'contain', maxWidth: '40%', height: 'auto' }}
+          priority
+        />
       </div>
 
       {groups

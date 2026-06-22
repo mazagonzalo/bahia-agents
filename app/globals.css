@@ -205,17 +205,17 @@ img {
   position: relative;
 }
 
-/* Ballena de Bahía como marca de agua, fija detrás del contenido */
+/* Ballena con raqueta (whale-rider) como marca de agua, fija detrás del contenido */
 .dashboard-main::after {
   content: '';
   position: absolute;
   right: -2vw;
-  bottom: -2vw;
-  width: 42vw;
-  max-width: 580px;
+  bottom: -3vw;
+  width: 40vw;
+  max-width: 560px;
   aspect-ratio: 1;
-  background: url('/assets/whale-gold.png') no-repeat right bottom / contain;
-  opacity: 0.06;
+  background: url('/assets/whale-rider-white.png') no-repeat right bottom / contain;
+  opacity: 0.05;
   pointer-events: none;
   z-index: 0;
 }
