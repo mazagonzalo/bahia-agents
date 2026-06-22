@@ -43,7 +43,7 @@ type ClubAsset = {
 }
 
 
-type Slide = { slide: number; headline: string; body: string }
+type Slide = { slide: number; headline: string; body: string; photo?: string }
 type Carousel = { caption: string; slides: Slide[]; angle?: string }
 
 // Una variante del carrusel promocional (para rotación cuando el crítico ve que baja la curva)
@@ -327,30 +327,34 @@ async function generateCarousel(
 
   const raw = await ask(
     `Eres el creador de contenido de Bahía Social Sports Club (club deportivo premium en Nuevo Vallarta, Riviera Nayarit).
-Crea un carrusel promocional de Instagram de 7 slides (pauteable) basado en el briefing.
+Crea un carrusel promocional de Instagram (pauteable) basado en el briefing.
 ${angleInstruction}
 
-ESTRUCTURA (7 slides — no negociable):
+ESTRUCTURA (usa SOLO los slides que el contenido pida — entre 2 y 8. MENOS puede ser mejor; no rellenes para llegar a un número. Si con 2-3 slides la idea queda clara y potente, hazlo así):
 • Slide 1 — HOOK: Para el scroll. ${hookInstruction}
-• Slide 2 — CONTEXTO: Por qué esto importa. Plantea el problema o el deseo del lector.
-• Slides 3-6 — VALOR: Un solo punto por slide, numerado (01 02 03 04). Una idea, no dos.
-• Slide 7 — CTA: Acción clara y directa. Ej: "Agenda tu visita", "Prueba un Day Pass este finde", "8 canchas te esperan".
+• Slides del medio (si los hay) — VALOR: un solo punto por slide, una idea, no dos.
+• Último slide — CTA: acción clara y directa. Ej: "Agenda tu visita", "Prueba un Day Pass este finde".
 
 REGLAS DE COPY (sin excepción):
-- Tutéa al lector: "tú", "tu cancha", "tu nivel", "te lo mereces"
+- Tutéa al lector: "tú", "tu cancha", "tu nivel"
 - Máximo 30 palabras por body de slide
 - Sé específico: no "excelentes instalaciones" → "8 canchas de pádel + 8 de pickleball + alberca olímpica"
-- Sin palabras de relleno: "fundamental", "crucial", "sin duda", "de hecho", "en definitiva", "aprovecha al máximo"
-- Varía el ritmo: mezcla frases cortas con frases un poco más largas. Que no todos suenen igual.
-- Menciona eventos próximos con nombre y fecha si son relevantes para el tema
+- Sin palabras de relleno: "fundamental", "crucial", "sin duda", "aprovecha al máximo"
+- Varía el ritmo: mezcla frases cortas con frases un poco más largas
+- Menciona eventos próximos con nombre y fecha si son relevantes
 - Sin emojis en los slides
 
-FORMATO: Instagram 1080×1350 px (4:5) — más visibilidad en el feed que cuadrado.
+FOTO POR SLIDE (campo "photo") — IMPORTANTE:
+Cada slide lleva la descripción ESPECÍFICA de la toma real que necesita: qué se ve exactamente, encuadre, instalación concreta y momento. Concreta, no genérica.
+✅ Bien: "Pareja jugando pádel en cancha techada al atardecer, plano medio desde la esquina"
+❌ Mal (genérico): "foto de las instalaciones"
 
-Devuelve SOLO el JSON sin markdown, con exactamente 7 slides:
-{"angle":"string (ángulo creativo en pocas palabras)","caption":"texto con hashtags (máx 150 chars, español natural)","slides":[{"slide":1,"headline":"string (máx 7 palabras, impacto)","body":"string (máx 30 palabras)"},{"slide":2,"headline":"string","body":"string"},{"slide":3,"headline":"string","body":"string"},{"slide":4,"headline":"string","body":"string"},{"slide":5,"headline":"string","body":"string"},{"slide":6,"headline":"string","body":"string"},{"slide":7,"headline":"string","body":"string"}]}`,
+FORMATO: Instagram 1080×1350 px (4:5).
+
+Devuelve SOLO el JSON sin markdown. Incluye entre 2 y 8 slides en el array (los que el contenido necesite, numerados 1..N):
+{"angle":"string (ángulo creativo en pocas palabras)","caption":"texto con hashtags (máx 150 chars, español natural)","slides":[{"slide":1,"headline":"string (máx 7 palabras, impacto)","body":"string (máx 30 palabras)","photo":"descripción específica de la toma para este slide"},{"slide":2,"headline":"string","body":"string","photo":"string"}]}`,
     [{ role: 'user', content: contexto }],
-    1500,
+    2200,
   )
 
   try {
@@ -393,10 +397,11 @@ Escribe el brief como si se lo dijeras en persona. Directo, sin relleno, que lo 
 // (haveCount) y solicita el resto. Si hay suficientes, no pide nada.
 function buildPhotoRequests(carousel: Carousel | null, idea: ContentIdea | null, haveCount: number): string[] {
   if (!carousel) return []
-  const instalacion = idea?.instalacion ?? 'las instalaciones'
-  return carousel.slides.slice(Math.max(0, haveCount)).map(
-    s => `Slide ${s.slide} — "${s.headline}": foto real de ${instalacion} que ilustre esto.`,
-  )
+  return carousel.slides.slice(Math.max(0, haveCount)).map(s => {
+    // Usa la descripción específica de la toma (campo photo); si falta, cae a una genérica.
+    const desc = s.photo?.trim() || `foto real de ${idea?.instalacion ?? 'las instalaciones'} que ilustre "${s.headline}"`
+    return `Slide ${s.slide}: ${desc}`
+  })
 }
 
 // ─── Quality check: detect AI patterns ───────────────────────────────────────
