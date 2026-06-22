@@ -2,6 +2,7 @@
   "crons": [
     { "path": "/api/cron/daily-trends", "schedule": "0 14 * * *" },
     { "path": "/api/cron/lead-followup", "schedule": "0 */4 * * *" },
-    { "path": "/api/cron/weekly-report", "schedule": "0 15 * * 1" }
+    { "path": "/api/cron/weekly-report", "schedule": "0 15 * * 1" },
+    { "path": "/api/cron/promo-cycle", "schedule": "0 15 1,15 * *" }
   ]
 }
