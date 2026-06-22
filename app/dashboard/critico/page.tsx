@@ -39,9 +39,13 @@ type CampañaCalificada = {
   createdAt: string
 }
 
+type Tendencia = { desde: string; leads: number; cerrados: number; conversion: number; frios: number }
+
 type CriticoData = {
   campañas: CampañaCalificada[]
   resumen: { totalLeads: number; totalCerrados: number; totalCitados: number; totalFrios: number; leadsOrganicos: number; totalCreativos: number }
+  tendencia: Tendencia | null
+  atribucionDisponible: boolean
   report: CriticoReport | null
   generatedAt: string
 }
@@ -63,6 +67,21 @@ function gradeFor(c: CampañaCalificada, report: CriticoReport | null): Grade {
 }
 
 // ─── Subcomponentes ───────────────────────────────────────────────────────────
+
+function Delta({ label, v, unit, invert }: { label: string; v: number; unit?: string; invert?: boolean }) {
+  const neutral = v === 0
+  const good = invert ? v < 0 : v > 0
+  const color = neutral ? T.muted : good ? T.success : T.danger
+  const arrow = neutral ? '→' : v > 0 ? '▲' : '▼'
+  return (
+    <div>
+      <div style={{ fontSize: 10, color: T.muted, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600 }}>{label}</div>
+      <div style={{ fontSize: 18, fontWeight: 800, color, fontFamily: 'var(--font-headline)' }}>
+        {arrow} {v >= 0 ? '+' : ''}{v}{unit ? ` ${unit}` : ''}
+      </div>
+    </div>
+  )
+}
 
 function Verdict({ report }: { report: CriticoReport }) {
   const scoreColor = report.score >= 7 ? T.success : report.score >= 4 ? T.gold : T.danger
@@ -281,6 +300,28 @@ export default function CriticoPage() {
               <StatCard label="Citados" value={fmt(r.totalCitados)} color={T.info} />
               <StatCard label="Cerrados" value={fmt(r.totalCerrados)} color={T.success} />
               <StatCard label="Orgánicos" value={fmt(r.leadsOrganicos)} color={T.textSec} />
+            </div>
+          )}
+
+          {/* Tendencia vs evaluación anterior */}
+          {data.tendencia && (
+            <Card>
+              <div style={{ fontSize: 10, color: T.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 12, fontWeight: 600 }}>
+                Tendencia vs evaluación anterior · {data.tendencia.desde}
+              </div>
+              <div style={{ display: 'flex', gap: 'var(--space-6)', flexWrap: 'wrap' }}>
+                <Delta label="Leads" v={data.tendencia.leads} />
+                <Delta label="Cerrados" v={data.tendencia.cerrados} />
+                <Delta label="Conversión" v={data.tendencia.conversion} unit="pts" />
+                <Delta label="Fríos" v={data.tendencia.frios} unit="pts" invert />
+              </div>
+            </Card>
+          )}
+
+          {/* Nota de atribución (cuando no hay enlace lead→campaña) */}
+          {!data.atribucionDisponible && (
+            <div style={{ padding: 'var(--space-3) var(--space-4)', background: T.surface2, border: `1px solid ${T.warning}`, borderRadius: 'var(--radius-lg)', fontSize: 13, color: T.textSec, lineHeight: 1.5 }}>
+              ⚠️ <strong style={{ color: T.text }}>Sin atribución lead→campaña.</strong> El grading por campaña requiere conectar Meta/tracking. Mientras tanto, la evaluación se centra en la salud del embudo global y la calidad del contenido.
             </div>
           )}
 
