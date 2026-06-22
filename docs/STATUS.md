@@ -13,7 +13,7 @@
 > **En cuanto la pongas + redeploy, TODO el dashboard funciona.** (Borra este bloque cuando esté hecho.)
 
 > Para ponerte al día: lee esto + los 2 handoffs más recientes en `docs/handoffs/`.
-> **Actualizado: 2026-06-19 (Xavier · sesión 3)**
+> **Actualizado: 2026-06-22 (Gonzalo)**
 
 ## 🚀 Re-plataformado en curso (commerce-os → bahia-agents)
 Plan de 6 fases para cablear bahia con la fundación de commerce-os (harness gobernado + Prisma + CRM)
@@ -52,8 +52,8 @@ Resumen: ser **capa companion** sobre Trainingym (no reemplazarlo). **Objetivo #
 - **Siguiente:** mergear el PR del dashboard → **FASE 1 (Prisma)**, bloqueada por `DATABASE_URL`/`DIRECT_URL` de Supabase. Fases 1-2 quedan code-complete en cuanto haya tokens.
 
 ### Gonzalo
-- **Trabajando en:** consolidación del repo — merge del PR de Xavier ✅, rama `dev` creada ✅, sitio HTML fusionado en `public/` ✅.
-- **Siguiente:** agregar `CRON_SECRET` en Vercel env vars; dar acceso Write a Xavier en GitHub; revisar docs de estrategia de Xavier.
+- **Trabajando en:** **Agente de contenido rediseñado y EN PRODUCCIÓN** (PR #29→`dev`, #30→`main`): (1) sugerencias de contenido = apoyo de ideas con guías detalladas + score; (2) carrusel promocional con **ciclo de pauta de 14 días** (3 variantes ángulos distintos → aprobar → derivar 2 de rotación) + cron `promo-cycle` (días 1 y 15). Slides flexibles 2-8, foto específica por slide, pide solo las que faltan, sin IA/muapi. Comparte datos con tendencias vía `agent_memory`. Ver `docs/handoffs/2026-06-22-gonzalo.md`.
+- **Siguiente:** cerrar el ciclo — aprobado→**meta-ads** (lanzar pauta) + **crítico**→contenido (rotación al bajar la curva); subir **fotos reales** a `club_assets`; **Canva** para ensamblar el carrusel final.
 
 ## Pendientes / bloqueos
 - ⛔ **Supabase `DATABASE_URL`/`DIRECT_URL`** — bloquea la FASE 2 (Prisma). ¿Existe el proyecto con el schema aplicado? Pasarlo o `vercel env pull`.
