@@ -5,24 +5,25 @@ import type { CSSProperties, ReactNode } from 'react'
 
 // Paleta en JS para lógica de color por umbral (espeja los tokens de globals.css).
 export const T = {
-  gold: '#D4A853',
-  goldDark: '#B8893A',
-  goldLight: '#E8C57A',
-  teal: '#0EA5E9',
-  coral: '#F97316',
-  bg: '#080C14',
-  surface: '#0F1623',
-  surface2: '#161E2E',
-  surface3: '#1C2640',
-  border: '#1E2D45',
-  borderHover: '#2A3F60',
-  text: '#E8EDF5',
-  textSec: '#A0AEBF',
-  muted: '#5C6E85',
-  success: '#22C55E',
-  warning: '#F59E0B',
-  danger: '#EF4444',
-  info: '#3B82F6',
+  gold: '#C9A85C',      // oro Bahía
+  goldDark: '#A88945',
+  goldLight: '#E4C786',
+  teal: '#5B79D6',      // azul Bahía
+  coral: '#D98558',     // terracota cálido
+  sage: '#8AA088',      // sage Bahía
+  bg: '#0A1024',        // navy profundo Bahía
+  surface: '#101A30',
+  surface2: '#18223D',
+  surface3: '#202C4D',
+  border: '#28335C',
+  borderHover: '#3A4880',
+  text: '#ECEFF7',
+  textSec: '#A6B0C8',
+  muted: '#6A7A98',
+  success: '#6FA88E',
+  warning: '#D9A55B',
+  danger: '#E06A5E',
+  info: '#5B79D6',
 } as const
 
 export const FORMAT_COLOR: Record<string, string> = {
