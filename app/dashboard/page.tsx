@@ -42,10 +42,10 @@ export default function DashboardOverview() {
         <Image
           src="/assets/whale-rider.png"
           alt="Bahía — ballena con raqueta"
-          width={230}
-          height={230}
+          width={192}
+          height={159}
           className="overview-hero-rider"
-          style={{ objectFit: 'contain', maxWidth: '40%', height: 'auto' }}
+          style={{ objectFit: 'contain', width: 'auto', height: 'auto', maxWidth: 192 }}
           priority
         />
       </div>
