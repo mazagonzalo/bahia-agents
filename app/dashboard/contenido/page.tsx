@@ -14,13 +14,29 @@ type Variant = {
   aiScore: number | null
   photosNeeded: string[]
 }
-type Calif = {
-  idea: string
+type Suggestion = {
+  format: string
+  title: string
+  concept: string
+  hook: string
+  music?: string
+  duration?: string
+  execution: string
   score: number
-  verdict: string
   why: string
-  suggestion: string
-  canGenerate: boolean
+}
+
+const inputStyle = {
+  width: '100%',
+  resize: 'vertical' as const,
+  background: T.bg,
+  border: `1px solid ${T.border}`,
+  borderRadius: 10,
+  color: T.text,
+  padding: '12px 14px',
+  fontSize: 14,
+  fontFamily: 'var(--font-sans)',
+  outline: 'none',
 }
 
 function NaturalidadBadge({ score }: { score: number | null }) {
@@ -30,7 +46,48 @@ function NaturalidadBadge({ score }: { score: number | null }) {
   return <Badge tone={tone}>{label} · {nf(score)}/100</Badge>
 }
 
-// ─── Tarjeta de una variante de carrusel ──────────────────────────────────────
+function Detail({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
+  if (!value) return null
+  return (
+    <div>
+      <div style={{ fontSize: 10, color: T.muted, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600, marginBottom: 3 }}>{label}</div>
+      <div style={{ fontSize: 13, color: muted ? T.muted : T.textSec, lineHeight: 1.5, overflowWrap: 'anywhere' }}>{value}</div>
+    </div>
+  )
+}
+
+// ─── Card expandible de una sugerencia de contenido ───────────────────────────
+function SuggestionCard({ s }: { s: Suggestion }) {
+  const [open, setOpen] = useState(false)
+  const scoreColor = s.score >= 7 ? T.teal : s.score >= 4 ? T.gold : T.coral
+  return (
+    <div style={{ border: `1px solid ${open ? T.gold + '55' : T.border}`, borderRadius: 12, overflow: 'hidden', transition: 'border-color 0.2s ease' }}>
+      <button
+        onClick={() => setOpen(!open)}
+        style={{ width: '100%', background: open ? T.surface2 : 'transparent', border: 'none', padding: '14px 18px', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12 }}
+      >
+        <span style={{ fontSize: 16, fontWeight: 800, fontFamily: 'var(--font-headline)', color: scoreColor, minWidth: 46 }}>{nf(s.score)}/10</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ color: T.text, fontWeight: 600, fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.title}</div>
+          <div style={{ fontSize: 11, color: T.muted }}>{s.format}{s.duration ? ` · ${s.duration}` : ''}</div>
+        </div>
+        <span style={{ fontSize: 11, color: T.muted, flexShrink: 0 }}>{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div style={{ padding: '4px 18px 16px', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+          <Detail label="Concepto" value={s.concept} />
+          <Detail label="Gancho / primeros 3s" value={s.hook} />
+          <Detail label="Música / audio" value={s.music ?? ''} />
+          <Detail label="Duración" value={s.duration ?? ''} />
+          <Detail label="Cómo se haría" value={s.execution} />
+          <Detail label="Por qué ese score" value={s.why} muted />
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Card de una variante de carrusel promocional ─────────────────────────────
 function VariantCard({ v, badge, onApprove, approving }: {
   v: Variant
   badge: string
@@ -89,27 +146,14 @@ function VariantCard({ v, badge, onApprove, approving }: {
   )
 }
 
-const inputStyle = {
-  width: '100%',
-  resize: 'vertical' as const,
-  background: T.bg,
-  border: `1px solid ${T.border}`,
-  borderRadius: 10,
-  color: T.text,
-  padding: '12px 14px',
-  fontSize: 14,
-  fontFamily: 'var(--font-sans)',
-  outline: 'none',
-}
-
 export default function ContenidoPage() {
-  // Calificar
-  const [califText, setCalifText] = useState('')
-  const [calif, setCalif] = useState<Calif | null>(null)
-  const [califLoading, setCalifLoading] = useState(false)
-  const [califError, setCalifError] = useState<string | null>(null)
+  // Sugerencias de contenido (apoyo de ideas)
+  const [sugText, setSugText] = useState('')
+  const [suggestions, setSuggestions] = useState<Suggestion[] | null>(null)
+  const [sugLoading, setSugLoading] = useState(false)
+  const [sugError, setSugError] = useState<string | null>(null)
 
-  // Generar
+  // Generar carrusel promocional (pauta)
   const [genText, setGenText] = useState('')
   const [variants, setVariants] = useState<Variant[] | null>(null)
   const [genLoading, setGenLoading] = useState(false)
@@ -121,21 +165,22 @@ export default function ContenidoPage() {
   const [videoBrief, setVideoBrief] = useState<string | null>(null)
   const [approvingId, setApprovingId] = useState<string | null>(null)
 
-  const calificar = useCallback(async () => {
-    const t = califText.trim()
-    if (!t || califLoading) return
-    setCalifLoading(true); setCalifError(null)
+  const sugerir = useCallback(async () => {
+    const t = sugText.trim()
+    if (!t || sugLoading) return
+    setSugLoading(true); setSugError(null)
     try {
       const res = await fetch('/api/agents/contenido', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'calificar', idea: t }),
+        body: JSON.stringify({ mode: 'sugerencias', idea: t }),
+        signal: AbortSignal.timeout(120_000),
       })
       const d = await res.json().catch(() => ({}))
-      if (!res.ok) { setCalifError(d.error ?? 'Error al calificar'); setCalif(null) }
-      else setCalif(d)
-    } catch { setCalifError('Error de red') }
-    finally { setCalifLoading(false) }
-  }, [califText, califLoading])
+      if (!res.ok) { setSugError(d.error ?? 'Error al generar sugerencias'); setSuggestions(null) }
+      else setSuggestions(d.suggestions ?? [])
+    } catch { setSugError('Error de red o tardó demasiado') }
+    finally { setSugLoading(false) }
+  }, [sugText, sugLoading])
 
   const generar = useCallback(async (topic: string) => {
     const t = topic.trim()
@@ -178,59 +223,47 @@ export default function ContenidoPage() {
     <>
       <PageHeader
         title="Agente de Contenido"
-        blurb="Califica ideas de contenido del club contra las tendencias, y genera carruseles promocionales pauteables con variantes para rotación."
+        blurb="Apoyo de ideas de contenido (guías detalladas + score) y carruseles promocionales pauteables con rotación."
       />
 
-      {/* ── Calificar idea de contenido normal ── */}
+      {/* ── Sugerencias de contenido (apoyo de ideas) ── */}
       <Card style={{ marginBottom: 'var(--space-4)' }}>
-        <SectionTitle>Calificar una idea</SectionTitle>
+        <SectionTitle>Sugerencias de contenido</SectionTitle>
         <div style={{ fontSize: 13, color: T.muted, marginBottom: 'var(--space-3)', lineHeight: 1.5 }}>
-          ¿Una idea de post o historia que quiere hacer el club? El agente la califica según las tendencias de la semana.
+          Escribe una idea o tema. El agente propone 3-4 formas detalladas de hacerlo (formato, música, duración, cómo grabarlo), cada una calificada según las tendencias. Es apoyo de ideas — no genera el contenido final.
         </div>
         <textarea
-          value={califText}
-          onChange={e => setCalifText(e.target.value)}
-          placeholder="Ej: «un post sobre los beneficios del pádel para la salud mental»"
-          rows={3}
+          value={sugText}
+          onChange={e => setSugText(e.target.value)}
+          placeholder="Ej: «atardecer con pickleball»"
+          rows={2}
           style={inputStyle}
         />
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
-          <button className="btn btn-primary" onClick={calificar} disabled={califLoading || !califText.trim()}>
-            {califLoading ? 'Calificando…' : 'Calificar'}
+          <button className="btn btn-primary" onClick={sugerir} disabled={sugLoading || !sugText.trim()}>
+            {sugLoading ? 'Generando sugerencias…' : 'Generar sugerencias'}
           </button>
-          {califError && <span style={{ color: T.danger, fontSize: 13 }}>{califError}</span>}
+          {sugError && <span style={{ color: T.danger, fontSize: 13 }}>{sugError}</span>}
         </div>
 
-        {calif && (
-          <div style={{ marginTop: 'var(--space-4)', background: T.bg, border: `1px solid ${T.border}`, borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-2)', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 26, fontWeight: 800, fontFamily: 'var(--font-headline)', color: calif.score >= 7 ? T.teal : calif.score >= 4 ? T.gold : T.coral }}>{nf(calif.score)}/10</span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{calif.verdict}</span>
-            </div>
-            <div style={{ fontSize: 13, color: T.textSec, lineHeight: 1.5, marginBottom: 'var(--space-2)', overflowWrap: 'anywhere' }}>{calif.why}</div>
-            {calif.suggestion && <div style={{ fontSize: 13, color: T.gold, lineHeight: 1.5, overflowWrap: 'anywhere' }}>💡 {calif.suggestion}</div>}
-            {calif.canGenerate && (
-              <div style={{ marginTop: 'var(--space-3)' }}>
-                <button className="btn btn-primary" onClick={() => generar(calif.idea)} disabled={genLoading}>
-                  {genLoading ? 'Generando…' : 'Generar carrusel promocional de esta idea'}
-                </button>
-              </div>
-            )}
+        {suggestions && suggestions.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', marginTop: 'var(--space-4)' }}>
+            {suggestions.map((s, i) => <SuggestionCard key={i} s={s} />)}
           </div>
         )}
       </Card>
 
-      {/* ── Generar carrusel promocional ── */}
+      {/* ── Generar carrusel promocional (pauta) ── */}
       <Card style={{ marginBottom: 'var(--space-4)' }}>
         <SectionTitle>Generar carrusel promocional</SectionTitle>
         <div style={{ fontSize: 13, color: T.muted, marginBottom: 'var(--space-3)', lineHeight: 1.5 }}>
-          Genera 3 variantes con ángulos distintos. Apruebas una y el agente crea 2 más del mismo estilo para rotación.
+          El contenido con pauta. Genera 3 variantes con ángulos distintos; apruebas una y el agente crea 2 más del mismo estilo para rotación. (Automático cada 14 días vía cron; aquí puedes dispararlo manual.)
         </div>
         <textarea
           value={genText}
           onChange={e => setGenText(e.target.value)}
           placeholder="Ej: «Day Pass de fin de semana en las canchas de pádel»"
-          rows={3}
+          rows={2}
           style={inputStyle}
         />
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>

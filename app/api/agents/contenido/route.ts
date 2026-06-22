@@ -58,12 +58,12 @@ type PromoVariant = {
 export async function POST(req: NextRequest) {
   const body = await req.json()
 
-  // Modo CALIFICAR (barra de consulta): puntúa una idea de contenido del club
-  // contra las tendencias detectadas. No genera nada.
-  if (body.mode === 'calificar') {
+  // Modo SUGERENCIAS (barra de apoyo): de una idea/tema del club, genera 3-4
+  // sugerencias DETALLADAS (guía de producción, no drafts de IA) + califica c/u.
+  if (body.mode === 'sugerencias') {
     const ideaText: string = (body.idea ?? body.trend?.topic ?? '').toString()
     if (!ideaText.trim()) return NextResponse.json({ error: 'Se requiere una idea' }, { status: 400 })
-    return calificarIdea(ideaText)
+    return sugerenciasContenido(ideaText)
   }
 
   // Modo APROBAR: el admin aprueba una variante → se marca y se generan 2 más
@@ -179,15 +179,16 @@ async function aprobarVariante(creativeId: string) {
   return NextResponse.json({ mode: 'aprobar', approvedId: creativeId, derived, videoBrief })
 }
 
-// ─── Calificar idea de contenido normal contra las tendencias ─────────────────
-async function calificarIdea(ideaText: string) {
+// ─── Sugerencias de contenido (apoyo de ideas) — guía detallada + score c/u ───
+// NO escribe drafts: da una guía de producción de cómo crear cada idea.
+async function sugerenciasContenido(ideaText: string) {
   const last = await prisma.agent_memory.findFirst({
     where: { agent: 'tendencias', type: 'briefing' },
     orderBy: { created_at: 'desc' },
     select: { content: true },
   })
 
-  let trendsSummary = 'No hay un reporte de tendencias reciente; califica con criterio general de club deportivo premium.'
+  let trendsSummary = 'No hay un reporte de tendencias reciente; sugiere con criterio general de club deportivo premium.'
   if (last?.content) {
     try {
       const r = JSON.parse(last.content) as {
@@ -206,24 +207,26 @@ async function calificarIdea(ideaText: string) {
 
   const raw = await ask(
     `Eres el estratega de contenido de Bahía Social Sports Club (club deportivo premium en Nuevo Vallarta).
-El club quiere hacer un contenido normal (post/historia) y te pide tu opinión ANTES de producirlo.
-Califícalo según qué tan alineado está con las tendencias reales de esta semana. Sé conciso y directo.
+El club tiene una idea/tema y quiere APOYO para crear su propio contenido (reels, historias, posts).
+NO escribas el contenido final ni drafts de IA: da una GUÍA DE PRODUCCIÓN detallada. Propón 3-4 sugerencias DISTINTAS de cómo ejecutar la idea, y detalla cómo se haría cada una. Califica cada una según qué tan alineada está con las tendencias de la semana.
+
 Devuelve SOLO este JSON, sin markdown:
-{"score": número 0-10, "verdict": "una frase corta y clara", "why": "1-2 oraciones: por qué ese score, conectando con las tendencias", "suggestion": "1 oración: cómo mejorarlo o cuándo publicarlo", "canGenerate": booleano (true solo si score>=7 y vale un carrusel promocional pauteable)}`,
-    [{ role: 'user', content: `IDEA DEL CLUB:\n"${ideaText}"\n\n${trendsSummary}` }],
-    700,
+{"suggestions":[{"format":"Reel|Historia|Post|Carrusel","title":"nombre corto de la idea","concept":"el ángulo: de qué trata y por qué funciona (1-2 oraciones)","hook":"el gancho / primeros 3 segundos","music":"audio o música sugerida si aplica (si no, vacío)","duration":"duración sugerida si es reel/historia (si no, vacío)","execution":"cómo se haría: tomas, qué aparece en cuadro, texto en pantalla, ritmo (2-4 oraciones)","score":número 0-10,"why":"1 oración: por qué ese score, conectando con tendencias"}]}`,
+    [{ role: 'user', content: `IDEA / TEMA DEL CLUB:\n"${ideaText}"\n\n${trendsSummary}` }],
+    2500,
   )
 
-  let calificacion: Record<string, unknown> | null = null
+  let parsed: { suggestions?: unknown[] } | null = null
   try {
     const s = raw.indexOf('{')
     const e = raw.lastIndexOf('}')
-    if (s !== -1 && e !== -1) calificacion = JSON.parse(raw.slice(s, e + 1))
+    if (s !== -1 && e !== -1) parsed = JSON.parse(raw.slice(s, e + 1))
   } catch { /* */ }
 
-  if (!calificacion) return NextResponse.json({ error: 'No se pudo calificar la idea' }, { status: 500 })
+  const suggestions = Array.isArray(parsed?.suggestions) ? parsed!.suggestions : []
+  if (suggestions.length === 0) return NextResponse.json({ error: 'No se pudieron generar sugerencias' }, { status: 500 })
 
-  return NextResponse.json({ mode: 'calificar', idea: ideaText, ...calificacion })
+  return NextResponse.json({ mode: 'sugerencias', idea: ideaText, suggestions })
 }
 
 // ─── Consultas a Supabase ─────────────────────────────────────────────────────
