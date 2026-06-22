@@ -87,13 +87,16 @@ async function handleApproval(text: string): Promise<NextResponse> {
 // ─── Estado del sistema (lee a todos los agentes vía Prisma) ──────────────────
 async function loadSystemState(): Promise<string> {
   const since7d = new Date(Date.now() - 7 * 24 * 3600 * 1000)
+  const since14d = new Date(Date.now() - 14 * 24 * 3600 * 1000)
   const since24h = new Date(Date.now() - 24 * 3600 * 1000)
 
   const [memoriesData, leadsData, leadsCitadosCount, leadsCalificadosCount, creativesData, trendsData] = await Promise.all([
+    // Historial amplio de TODOS los agentes (excluye el Q&A propio de la secretaria,
+    // que se pasa aparte como memoria de conversación).
     prisma.agent_memory.findMany({
-      where: { created_at: { gte: since7d } },
+      where: { created_at: { gte: since14d }, NOT: { agent: 'secretaria', type: 'qa' } },
       orderBy: { created_at: 'desc' },
-      take: 30,
+      take: 80,
       select: { agent: true, type: true, content: true, outcome: true, created_at: true },
     }),
     prisma.leads.findMany({
@@ -168,19 +171,40 @@ async function loadSystemState(): Promise<string> {
     if (!agentGroups[m.agent]) agentGroups[m.agent] = []
     agentGroups[m.agent].push(m)
   }
-  lines.push(`ACTIVIDAD RECIENTE POR AGENTE:`)
+  lines.push(`HISTORIAL POR AGENTE (últimos 14 días):`)
   for (const [agent, entries] of Object.entries(agentGroups)) {
-    const last = entries[0]
-    const hace = last.created_at ? Math.round((Date.now() - last.created_at.getTime()) / 3600000) : 0
-    const preview = typeof last.content === 'string' ? last.content.slice(0, 120) : JSON.stringify(last.content).slice(0, 120)
-    lines.push(`  [${agent}] última acción hace ${hace}h — ${last.type} (${last.outcome ?? '—'})`)
-    lines.push(`    → ${preview}`)
+    const good = entries.filter(e => e.outcome === 'bueno').length
+    const bad = entries.filter(e => e.outcome === 'malo').length
+    lines.push(`  [${agent}] ${entries.length} acción(es) · ✓${good} ✗${bad}`)
+    entries.slice(0, 3).forEach(e => {
+      const hace = e.created_at ? Math.round((Date.now() - e.created_at.getTime()) / 3600000) : 0
+      const preview = typeof e.content === 'string' ? e.content.slice(0, 90) : JSON.stringify(e.content).slice(0, 90)
+      lines.push(`    - hace ${hace}h · ${e.type} (${e.outcome ?? '—'}): ${preview}`)
+    })
   }
 
   const nuevos24h = allLeads.filter(l => l.created_at != null && l.created_at >= since24h).length
   if (nuevos24h > 0) lines.push('', `⚡ ${nuevos24h} lead(s) nuevo(s) en las últimas 24h`)
 
   return lines.join('\n')
+}
+
+// Memoria propia: el hilo de conversación admin↔secretaria (recuerda lo ya preguntado).
+async function loadOwnHistory(): Promise<{ role: 'user' | 'assistant'; content: string }[]> {
+  const rows = await prisma.agent_memory.findMany({
+    where: { agent: 'secretaria', type: 'qa' },
+    orderBy: { created_at: 'desc' },
+    take: 6,
+    select: { content: true },
+  })
+  const msgs: { role: 'user' | 'assistant'; content: string }[] = []
+  for (const r of rows.reverse()) {
+    try {
+      const { q, a } = JSON.parse(r.content) as { q?: string; a?: string }
+      if (q && a) msgs.push({ role: 'user', content: q }, { role: 'assistant', content: a })
+    } catch { /* ignora entradas con otro formato */ }
+  }
+  return msgs
 }
 
 export async function POST(req: NextRequest) {
@@ -194,22 +218,34 @@ export async function POST(req: NextRequest) {
     return handleApproval(text)
   }
 
-  // #B — Leads mencionados por nombre (con su conversación) + estado del sistema
-  const [mentionedLeads, systemState] = await Promise.all([findMentionedLeads(text), loadSystemState()])
+  // Memoria: estado del sistema + leads mencionados + hilo de conversación previo
+  const [mentionedLeads, systemState, history] = await Promise.all([
+    findMentionedLeads(text),
+    loadSystemState(),
+    loadOwnHistory(),
+  ])
 
   const reply = await ask(
     `Eres la secretaria del sistema de agentes de marketing de Bahía Social Sports Club.
-Respondes preguntas del admin sobre el estado del sistema con DATOS REALES. Conciso y directo (máx 6 líneas salvo que pidan detalle).
-- Si hay algo en "NECESITA TU ATENCIÓN" relevante a la pregunta, menciónalo proactivamente.
+Tienes MEMORIA: recuerdas esta conversación (mensajes anteriores) y conoces el historial de todos los agentes.
+Respondes preguntas del admin con DATOS REALES. Conciso y directo (máx 6 líneas salvo que pidan detalle).
+- Si el admin se refiere a algo que ya hablaron ("¿y ese?", "el que dije"), usa el hilo de conversación.
+- Si hay algo en "NECESITA TU ATENCIÓN" relevante, menciónalo proactivamente.
 - Si preguntan por un lead específico, usa la sección "LEAD MENCIONADO" (incluye su conversación).
+- Si preguntan por la historia de un agente, usa "HISTORIAL POR AGENTE".
 - Si algo no está en los datos, dilo claro — NO inventes.
 - Para aprobar creativos, dile al admin que escriba "aprueba" (tú no apruebas aquí).
 
 ESTADO ACTUAL:
 ${systemState}${mentionedLeads ? `\n\n${mentionedLeads}` : ''}`,
-    [{ role: 'user', content: text }],
+    [...history, { role: 'user' as const, content: text }],
     800,
   )
+
+  // Guarda el turno → memoria propia (para recordar lo que ya le preguntaron)
+  await prisma.agent_memory.create({
+    data: { agent: 'secretaria', type: 'qa', content: JSON.stringify({ q: text, a: reply }), outcome: 'neutro' },
+  }).catch(() => {})
 
   return NextResponse.json({ reply })
 }
