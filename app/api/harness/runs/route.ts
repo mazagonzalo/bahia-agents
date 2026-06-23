@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/db'
+import { requirePanelRole } from '@/lib/auth/require-role'
 
-// Ledger de corridas del harness (AgentRunLog) — solo lectura, autenticado.
+// Ledger de corridas del harness (AgentRunLog) — solo lectura, requiere rol de panel.
 export async function GET() {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'no autorizado' }, { status: 401 })
+  const access = await requirePanelRole()
+  if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status })
 
   try {
     const [runs, totalRuns, agg] = await Promise.all([
@@ -34,6 +34,7 @@ export async function GET() {
       },
     })
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : 'error de DB' }, { status: 500 })
+    console.error('[harness/runs GET]', e)
+    return NextResponse.json({ error: 'error de DB' }, { status: 500 })
   }
 }

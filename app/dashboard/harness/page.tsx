@@ -35,6 +35,7 @@ export default function HarnessPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [acting, setActing] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setError(null)
@@ -58,12 +59,22 @@ export default function HarnessPage() {
 
   async function act(id: string, action: 'approve' | 'reject') {
     setActing(id)
+    setActionError(null)
     try {
       const res = await fetch('/api/harness/approvals', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, action }),
       })
-      if (res.ok) setApprovals((prev) => prev.filter((p) => p.id !== id))
+      if (res.ok) {
+        setApprovals((prev) => prev.filter((p) => p.id !== id))
+      } else {
+        const d = await res.json().catch(() => ({}))
+        setActionError(d.error ?? `No se pudo ${action === 'approve' ? 'aprobar' : 'rechazar'} (HTTP ${res.status})`)
+        // 409 (ya resuelta) / 401-403 (sesión o rol): recarga para reflejar el estado real.
+        if (res.status === 409 || res.status === 401 || res.status === 403) load()
+      }
+    } catch {
+      setActionError('Error de red al procesar la aprobación')
     } finally {
       setActing(null)
     }
@@ -100,6 +111,11 @@ export default function HarnessPage() {
           {/* Cola de aprobaciones */}
           <section style={{ marginBottom: 'var(--space-8)' }}>
             <SectionTitle>Cola de aprobaciones</SectionTitle>
+            {actionError && (
+              <Card style={{ borderColor: T.danger, marginBottom: 10 }}>
+                <div style={{ color: T.danger, fontSize: 13 }}>{actionError}</div>
+              </Card>
+            )}
             {approvals.length === 0 ? (
               <Card><div style={{ color: T.muted, fontSize: 13 }}>Sin propuestas pendientes.</div></Card>
             ) : (
