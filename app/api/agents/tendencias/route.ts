@@ -320,13 +320,22 @@ ${honestyRule}
 ANTI-REPETICIÓN:${avoidInstruction}
 ${previousReport ? `\nREPORTE ANTERIOR:\n${previousReport}\n` : ''}`
 
-  // ─── #1 Generación en 2 llamadas (cada JSON chico → no se trunca) ───────────
-  // Llamada A: BRIEF estratégico (todo menos las ideas de contenido).
+  // ─── #1 Generación en 3 llamadas chicas y enfocadas (cada JSON pequeño → ───────
+  // ni se trunca ni el modelo "vacía la cola"). A: brief · B: táctico · C: ideas.
+  // Llamada A: BRIEF estratégico (análisis; sin oportunidades/patrones/ideas).
   const briefPrompt = `${baseContext}
-Genera el BRIEF estratégico de la semana (SIN ideas de contenido). Conciso: cada texto máximo 2-3 oraciones.
-REGLAS: máximo 3 trends, 3 googleTrends, 3 contentOpportunities, 2 viralPatterns · hashtags 4 masivos / 4 nicho / 3 locales.
+Genera el BRIEF estratégico de la semana. Conciso: cada texto máximo 2-3 oraciones.
+REGLAS: máximo 3 trends, 3 googleTrends · hashtags 4 masivos / 4 nicho / 3 locales.
 Devuelve ÚNICAMENTE el JSON, sin markdown:
-{"generatedAt":"${generatedAt}","period":"${mes}","trends":[{"topic":"string","score":0,"angle":"string","evidence":"string"}],"googleTrends":[{"keyword":"string","avgScore":0,"trend":"string","insight":"string"}],"seasonality":{"touristFlow":"string","dominantProfile":"string","peakWindow":"string","localMarket":"string","insight":"string"},"strategy":{"primarySegment":"string","secondarySegment":"string","message":"string","avoid":"string"},"competitive":{"topCompetitors":["string"],"theirAngle":"string","gap":"string","counterPositioning":"string"},"audienceWhere":{"accounts":["string"],"contentTypes":["string"],"ownHashtags":["#tag"],"insight":"string"},"hashtags":{"masivos":["#tag"],"nicho":["#tag"],"locales":["#tag"],"mixRecomendado":"string"},"contentOpportunities":[{"instalacion":"string","oportunidad":"string","momento":"string","formatoIdeal":"string","urgencia":0}],"viralPatterns":[{"pattern":"string","description":"string","whyItWorks":"string","adaptForBahia":"string","differentiator":"string"}]}`
+{"generatedAt":"${generatedAt}","period":"${mes}","trends":[{"topic":"string","score":0,"angle":"string","evidence":"string"}],"googleTrends":[{"keyword":"string","avgScore":0,"trend":"string","insight":"string"}],"seasonality":{"touristFlow":"string","dominantProfile":"string","peakWindow":"string","localMarket":"string","insight":"string"},"strategy":{"primarySegment":"string","secondarySegment":"string","message":"string","avoid":"string"},"competitive":{"topCompetitors":["string"],"theirAngle":"string","gap":"string","counterPositioning":"string"},"audienceWhere":{"accounts":["string"],"contentTypes":["string"],"ownHashtags":["#tag"],"insight":"string"},"hashtags":{"masivos":["#tag"],"nicho":["#tag"],"locales":["#tag"],"mixRecomendado":"string"}}`
+
+  // Llamada B: TÁCTICO — oportunidades por instalación + patrones virales.
+  // (Iban al final del brief y el modelo los devolvía vacíos; ahora van solos.)
+  const tacticalPrompt = `${baseContext}
+Genera el plan TÁCTICO de la semana basado en las tendencias REALES de la investigación.
+REGLAS: exactamente 3 contentOpportunities (una por instalación con oportunidad concreta y momento) y 2 viralPatterns (formatos que están funcionando y cómo adaptarlos a Bahía). Nada genérico de gym.
+Devuelve ÚNICAMENTE el JSON, sin markdown:
+{"contentOpportunities":[{"instalacion":"string","oportunidad":"string","momento":"string","formatoIdeal":"string","urgencia":0}],"viralPatterns":[{"pattern":"string","description":"string","whyItWorks":"string","adaptForBahia":"string","differentiator":"string"}]}`
 
   // Llamada B: IDEAS de contenido ejecutables (la parte pesada, con música).
   const musicRule = sourceStatus['música']
@@ -347,9 +356,10 @@ FILTRO: cada idea debe pasar "¿un socio que paga $6,500/mes pensaría 'esto es 
 Devuelve ÚNICAMENTE el JSON, sin markdown:
 {"contentIdeas":[{"title":"string","format":"Reel","hook":{"text":"string","pattern":"string","triggerWords":["string"]},"copyStructure":{"framework":"PAS","step1":"string","step2":"string","step3":"string","cta":"string"},"platforms":{"reel":"string","tiktok":"string","stories":"string","carrusel":"string"},"music":[{"title":"string","artist":"string","bpm":0,"mood":"string","why":"string"}],"instalacion":"string","targetSegment":"string","hashtags":["#tag"],"trendConnection":"string","urgency":0}]}`
 
-  const [briefRaw, ideasRaw] = await Promise.all([
-    ask(briefPrompt, [{ role: 'user', content: researchContent }], 4500),
-    ask(ideasPrompt, [{ role: 'user', content: researchContent }], 5500),
+  const [briefRaw, tacticalRaw, ideasRaw] = await Promise.all([
+    ask(briefPrompt, [{ role: 'user', content: researchContent }], 3500),
+    ask(tacticalPrompt, [{ role: 'user', content: researchContent }], 2500),
+    ask(ideasPrompt, [{ role: 'user', content: researchContent }], 8000),
   ])
 
   type Trend = { topic: string; score: number; angle: string; evidence: string }
@@ -388,24 +398,37 @@ Devuelve ÚNICAMENTE el JSON, sin markdown:
     }
   }
 
-  type Brief = Omit<Analysis, 'contentIdeas'>
+  type Brief = Omit<Analysis, 'contentIdeas' | 'contentOpportunities' | 'viralPatterns'>
+  type Tactical = Pick<Analysis, 'contentOpportunities' | 'viralPatterns'>
 
-  // Parse de cada llamada; retry individual si alguna falló (cada JSON es chico → casi nunca se trunca)
+  // Parse de cada llamada con retry individual si vino vacía o inválida.
   let brief = parseObj<Brief>(briefRaw)
   if (!brief || !Array.isArray(brief.trends)) {
-    brief = parseObj<Brief>(await ask(`${briefPrompt}\n\nEl JSON anterior llegó inválido. Devuelve SOLO el JSON completo y válido.`, [{ role: 'user', content: researchContent }], 4500))
+    brief = parseObj<Brief>(await ask(`${briefPrompt}\n\nEl JSON anterior llegó inválido. Devuelve SOLO el JSON completo y válido.`, [{ role: 'user', content: researchContent }], 3500))
   }
 
+  // Táctico: retry si vino vacío (era el síntoma — el modelo vaciaba la cola del brief).
+  let tactical = parseObj<Tactical>(tacticalRaw)
+  if (!tactical || !Array.isArray(tactical.contentOpportunities) || tactical.contentOpportunities.length === 0) {
+    tactical = parseObj<Tactical>(await ask(`${tacticalPrompt}\n\nEl JSON anterior llegó vacío o inválido. Devuelve SOLO el JSON con 3 contentOpportunities y 2 viralPatterns.`, [{ role: 'user', content: researchContent }], 2500))
+  }
+
+  // Ideas: retry si vino vacío. Es la parte pesada → presupuesto de tokens alto.
   let ideas = parseObj<{ contentIdeas: ContentIdea[] }>(ideasRaw)?.contentIdeas
   if (!Array.isArray(ideas) || ideas.length === 0) {
-    ideas = parseObj<{ contentIdeas: ContentIdea[] }>(await ask(`${ideasPrompt}\n\nEl JSON anterior llegó inválido. Devuelve SOLO el JSON con las 3 ideas.`, [{ role: 'user', content: researchContent }], 5500))?.contentIdeas
+    ideas = parseObj<{ contentIdeas: ContentIdea[] }>(await ask(`${ideasPrompt}\n\nEl JSON anterior llegó vacío o inválido. Devuelve SOLO el JSON con 3 ideas completas.`, [{ role: 'user', content: researchContent }], 8000))?.contentIdeas
   }
 
   if (!brief) {
     return NextResponse.json({ error: 'No se pudo generar el brief de tendencias' }, { status: 500 })
   }
 
-  const analysis = { ...brief, contentIdeas: Array.isArray(ideas) ? ideas : [] } as Analysis
+  const analysis = {
+    ...brief,
+    contentOpportunities: Array.isArray(tactical?.contentOpportunities) ? tactical.contentOpportunities : [],
+    viralPatterns: Array.isArray(tactical?.viralPatterns) ? tactical.viralPatterns : [],
+    contentIdeas: Array.isArray(ideas) ? ideas : [],
+  } as Analysis
 
   // Blindaje — nunca crashear por un campo faltante si Claude devolvió JSON parcial.
   analysis.trends ??= []
