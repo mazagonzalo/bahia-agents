@@ -459,11 +459,23 @@ Devuelve ÚNICAMENTE el JSON, sin markdown:
   )
   analysis.trends = analysis.trends.filter(t => t && typeof t.topic === 'string')
 
-  // Enriquecer googleTrends con datos reales si los tenemos
-  if (googleTrendsResults.length && analysis.googleTrends) {
-    analysis.googleTrends = analysis.googleTrends.map(gt => {
-      const real = googleTrendsResults.find(r => r.keyword.toLowerCase() === gt.keyword.toLowerCase())
-      return real ? { ...gt, avgScore: real.avgScore, trend: real.trend } : gt
+  // Los Google Trends mostrados deben ser los REALES (keywords fijas consultadas a
+  // LinkFox) con su score real — NO las que invente Claude (que no matchean y se
+  // perdían). Si hay datos reales, reemplazamos; conservamos el insight de Claude
+  // cuando habló de un keyword parecido.
+  if (googleTrendsResults.length) {
+    const claudeGT = analysis.googleTrends ?? []
+    analysis.googleTrends = googleTrendsResults.map(r => {
+      const ci = claudeGT.find(g => {
+        const a = (g.keyword ?? '').toLowerCase(), b = r.keyword.toLowerCase()
+        return a && (a.includes(b) || b.includes(a))
+      })
+      return {
+        keyword: r.keyword,
+        avgScore: r.avgScore,
+        trend: r.trend,
+        insight: ci?.insight || `Interés ${r.trend} en México — promedio ${r.avgScore}/100 (últimos 30 días).`,
+      }
     })
   }
 
