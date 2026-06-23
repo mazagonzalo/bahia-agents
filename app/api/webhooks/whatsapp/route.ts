@@ -39,7 +39,14 @@ export async function POST(req: NextRequest) {
     return new NextResponse('Forbidden', { status: 403 })
   }
 
-  const body = JSON.parse(raw)
+  // El cuerpo está firmado por Meta, pero un payload malformado no debe tirar un
+  // 500 no controlado (Meta reintentaría en balde). Respondemos 400.
+  let body: Record<string, unknown>
+  try {
+    body = JSON.parse(raw)
+  } catch {
+    return new NextResponse('Bad Request', { status: 400 })
+  }
 
   // Procesa en background con after() (Meta requiere responder en <5s; after()
   // mantiene viva la función serverless hasta terminar, a diferencia de un
@@ -61,7 +68,12 @@ async function processMessage(body: Record<string, unknown>) {
   const messageType: string = (message as Record<string, unknown>).type as string ?? 'text'
   const videoMedia = (message as Record<string, unknown>).video as { id?: string; url?: string } | undefined
   const contact = change?.value?.contacts?.[0]
-  const name = contact?.profile?.name ?? ''
+  // El nombre lo controla el usuario final de WhatsApp: normaliza y acota longitud
+  // antes de persistir (entrada de usuario almacenada en el boundary del CRM).
+  const name = (contact?.profile?.name ?? '').trim().replace(/\s+/g, ' ').slice(0, 120)
+
+  // `from` es la clave única del lead: descarta si no tiene forma de teléfono.
+  if (!from || !/^\+?\d{7,16}$/.test(from)) return
 
   // Upsert del lead vía Prisma (ingesta del CRM)
   const lead = await prisma.leads.upsert({

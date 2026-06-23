@@ -74,14 +74,13 @@ export async function recall(
   const limit = options.limit ?? 10
   const includeGlobal = options.includeGlobal ?? true
 
-  const scopeFilter = includeGlobal
-    ? { in: ['AGENT', 'GLOBAL'] as const }
-    : { equals: 'AGENT' as const }
+  // GLOBAL = visible a TODOS los agentes (no se filtra por agentType); AGENT = solo
+  // el mismo agentType. (Antes el `agentType` se ANDeaba también a las filas GLOBAL,
+  // anulando el scope GLOBAL: una fila GLOBAL escrita por X solo la recuperaba X.)
+  const scopeBranches: Record<string, unknown>[] = [{ agentType, scope: 'AGENT' }]
+  if (includeGlobal) scopeBranches.push({ scope: 'GLOBAL' })
 
-  const where: Record<string, unknown> = {
-    agentType,
-    scope: scopeFilter,
-  }
+  const where: Record<string, unknown> = { OR: scopeBranches }
   if (options.kinds && options.kinds.length > 0) {
     where.kind = { in: options.kinds }
   }
