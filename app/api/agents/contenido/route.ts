@@ -179,6 +179,17 @@ async function aprobarVariante(creativeId: string) {
   return NextResponse.json({ mode: 'aprobar', approvedId: creativeId, derived, videoBrief })
 }
 
+// ─── Voz de marca + guías (horneadas de las skills de tono / caption / collage) ───
+const BRAND_VOICE = `VOZ DE MARCA BAHÍA — aplícala siempre:
+• Personalidad: premium pero cálida; aspiracional sin presumir; comunidad y pertenencia (NO individualismo de gym).
+• Sí: lenguaje sensorial (mar, luz, movimiento), pertenencia ("tu lugar", "los nuestros"), confianza serena, verbos activos.
+• No: clichés de gym ("sin excusas", "no pain no gain"), urgencia agresiva, tecnicismos fríos, exceso de emojis.
+• Mecánica: frases cortas, una idea por línea, español de México natural. Premium = claridad y calma, no gritar.`
+
+const CAPTION_GUIDE = `CAPTION (estilo caption-writer): arranca con un GANCHO en la primera línea (lo que se ve antes del "ver más"); 1-2 ideas, escaneable, sin relleno; cierra con un CTA suave y claro; 3-5 hashtags relevantes al final (mezcla nicho + local), nunca masivos genéricos.`
+
+const COLLAGE_GUIDE = `Si el contenido usa VARIAS fotos del mismo evento, propón un COLLAGE: rejilla limpia (2×2, o una foto "héroe" grande + 2-3 de apoyo), jerarquía visual clara, márgenes consistentes, estilo editorial premium, sin saturar.`
+
 // ─── Sugerencias de contenido (apoyo de ideas) — guía detallada + score c/u ───
 // NO escribe drafts: da una guía de producción de cómo crear cada idea.
 async function sugerenciasContenido(ideaText: string) {
@@ -208,7 +219,12 @@ async function sugerenciasContenido(ideaText: string) {
   const raw = await ask(
     `Eres el estratega de contenido de Bahía Social Sports Club (club deportivo premium en Nuevo Vallarta).
 El club tiene una idea/tema y quiere APOYO para crear su propio contenido (reels, historias, posts).
-NO escribas el contenido final ni drafts de IA: da una GUÍA DE PRODUCCIÓN detallada. Propón 3-4 sugerencias DISTINTAS de cómo ejecutar la idea, y detalla cómo se haría cada una. Califica cada una según qué tan alineada está con las tendencias de la semana.
+NO escribas el contenido final ni drafts de IA: da una GUÍA DE PRODUCCIÓN detallada. Propón 3-4 sugerencias DISTINTAS de cómo ejecutar la idea, y detalla cómo se haría cada una.
+
+${BRAND_VOICE}
+
+CALIFICACIÓN (score 0-10): combina (a) alineación con las tendencias de la semana, (b) encaje con la VOZ DE MARCA Bahía, y (c) fuerza del gancho. El campo "why" debe nombrar esos factores.
+${CAPTION_GUIDE}
 
 Devuelve SOLO este JSON, sin markdown:
 {"suggestions":[{"format":"Reel|Historia|Post|Carrusel","title":"nombre corto de la idea","concept":"el ángulo: de qué trata y por qué funciona (1-2 oraciones)","hook":"el gancho / primeros 3 segundos","music":"audio o música sugerida si aplica (si no, vacío)","duration":"duración sugerida si es reel/historia (si no, vacío)","execution":"cómo se haría: tomas, qué aparece en cuadro, texto en pantalla, ritmo (2-4 oraciones)","score":número 0-10,"why":"1 oración: por qué ese score, conectando con tendencias"}]}`,
@@ -330,6 +346,8 @@ async function generateCarousel(
 Crea un carrusel promocional de Instagram (pauteable) basado en el briefing.
 ${angleInstruction}
 
+${BRAND_VOICE}
+
 ESTRUCTURA (usa SOLO los slides que el contenido pida — entre 2 y 8. MENOS puede ser mejor; no rellenes para llegar a un número. Si con 2-3 slides la idea queda clara y potente, hazlo así):
 • Slide 1 — HOOK: Para el scroll. ${hookInstruction}
 • Slides del medio (si los hay) — VALOR: un solo punto por slide, una idea, no dos.
@@ -348,6 +366,9 @@ FOTO POR SLIDE (campo "photo") — IMPORTANTE:
 Cada slide lleva la descripción ESPECÍFICA de la toma real que necesita: qué se ve exactamente, encuadre, instalación concreta y momento. Concreta, no genérica.
 ✅ Bien: "Pareja jugando pádel en cancha techada al atardecer, plano medio desde la esquina"
 ❌ Mal (genérico): "foto de las instalaciones"
+${COLLAGE_GUIDE}
+
+${CAPTION_GUIDE}
 
 FORMATO: Instagram 1080×1350 px (4:5).
 
