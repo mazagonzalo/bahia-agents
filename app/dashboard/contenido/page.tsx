@@ -268,7 +268,7 @@ export default function ContenidoPage() {
         />
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
           <button className="btn btn-primary" onClick={() => generar(genText)} disabled={genLoading || !genText.trim()}>
-            {genLoading ? 'Generando variantes… (~1-2 min)' : 'Generar 3 variantes'}
+            {genLoading ? 'Generando 3 variantes… (~20-30s)' : 'Generar 3 variantes'}
           </button>
           {genError && <span style={{ color: T.danger, fontSize: 13 }}>{genError}</span>}
         </div>

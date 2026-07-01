@@ -85,6 +85,22 @@ export async function POST(req: NextRequest) {
     active: row.active ?? true,
   }
 
+  // Memoria compartida: el evento entra al "cerebro" que consultan los demás agentes
+  // (getClubContext, Secretaria, etc.) — además de la tabla club_events.
+  const cuandoMem = saved.recurrence ?? saved.start_date ?? 'sin fecha'
+  await prisma.agent_memory.create({
+    data: {
+      agent: 'eventos',
+      type: 'evento',
+      content: JSON.stringify({
+        id: saved.id, name: saved.name, sport: saved.sport,
+        cuando: cuandoMem, time_of_day: saved.time_of_day,
+        recurrence: saved.recurrence, description: saved.description,
+      }),
+      outcome: 'neutro',
+    },
+  }).catch(() => null)
+
   await notifyAdmin(saved)
 
   // Dispara el agente de contenido con el evento como contexto principal
