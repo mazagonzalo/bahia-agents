@@ -229,22 +229,35 @@ function CriticoSkeleton() {
 export default function CriticoPage() {
   const [data, setData] = useState<CriticoData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [evaluating, setEvaluating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Carga rápida: lee el último reporte YA calculado (instantáneo).
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/agents/critico')
-      if (res.ok) {
-        setData(await res.json())
-        setError(null)
-      } else {
-        setError('No se pudo cargar la evaluación')
-      }
+      const res = await fetch('/api/agents/critico/report')
+      if (res.ok) { setData(await res.json()); setError(null) }
+      else if (res.status === 404) { setData(null); setError(null) } // aún no hay evaluación → estado vacío
+      else setError('No se pudo cargar la evaluación')
     } catch {
       setError('Error de red')
     } finally {
       setLoading(false)
+    }
+  }, [])
+
+  // Reevaluar: recalcula desde cero (tarda ~1 min) y actualiza + cachea.
+  const reevaluar = useCallback(async () => {
+    setEvaluating(true); setError(null)
+    try {
+      const res = await fetch('/api/agents/critico', { signal: AbortSignal.timeout(290_000) })
+      if (res.ok) setData(await res.json())
+      else setError('No se pudo reevaluar')
+    } catch {
+      setError('La reevaluación tardó demasiado o falló')
+    } finally {
+      setEvaluating(false)
     }
   }, [])
 
@@ -261,8 +274,8 @@ export default function CriticoPage() {
         title="Crítico"
         blurb="Califica honestamente cada campaña publicitaria con datos reales de leads, citas y cierres."
         actions={
-          <button className="btn btn-secondary" onClick={fetchData} disabled={loading}>
-            {loading ? 'Evaluando…' : 'Reevaluar'}
+          <button className="btn btn-secondary" onClick={reevaluar} disabled={evaluating || loading}>
+            {evaluating ? 'Evaluando… (~1 min)' : loading ? 'Cargando…' : 'Reevaluar'}
           </button>
         }
       />
@@ -278,11 +291,20 @@ export default function CriticoPage() {
         </div>
       )}
 
+      {!loading && !error && !data && (
+        <div>
+          <EmptyState title="Aún no hay evaluación" sub="Dale a «Evaluar ahora» para calcular la primera (~1 min)." />
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 'var(--space-2)' }}>
+            <button className="btn btn-primary" onClick={reevaluar} disabled={evaluating}>{evaluating ? 'Evaluando… (~1 min)' : 'Evaluar ahora'}</button>
+          </div>
+        </div>
+      )}
+
       {!loading && !error && data && data.campañas.length === 0 && !report && (
         <div>
           <EmptyState title="Sin campañas" sub="No hay creativos ni campañas en los últimos 30 días." />
           <div style={{ display: 'flex', justifyContent: 'center', marginTop: 'var(--space-2)' }}>
-            <button className="btn btn-secondary" onClick={fetchData}>Reevaluar</button>
+            <button className="btn btn-secondary" onClick={reevaluar} disabled={evaluating}>Reevaluar</button>
           </div>
         </div>
       )}
