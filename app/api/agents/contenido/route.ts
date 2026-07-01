@@ -92,11 +92,15 @@ export async function POST(req: NextRequest) {
   const sharedContext = contextToPrompt({ ...ctx, upcomingEvents: [] })
   const contexto = buildContexto(idea, strategy, trend, upcomingEvents, availableAssets, 'Carrusel', sharedContext)
 
-  const VARIANT_COUNT = 3
-  const variants: PromoVariant[] = []
-  for (let i = 0; i < VARIANT_COUNT; i++) {
-    const carousel = await generateCarousel(contexto, idea, { avoidAngles: variants.map(v => v.angle) })
-    if (!carousel) continue
+  // 3 ángulos distintos generados EN PARALELO (antes secuencial → ~3× más lento).
+  const ANGLE_HINTS = [
+    'Comunidad y pertenencia — el club como "tu gente", lo social y el ambiente.',
+    'Aspiracional premium — la experiencia, el lifestyle y la calidad de las instalaciones.',
+    'Beneficio directo — una razón concreta para venir YA (promo, Day Pass, evento).',
+  ]
+  const built = await Promise.all(ANGLE_HINTS.map(async (hint, i) => {
+    const carousel = await generateCarousel(contexto, idea, { angleHint: hint })
+    if (!carousel) return null
     const allCopy = carousel.slides.map(s => `${s.headline}. ${s.body}`).join(' ')
     const aiScore = await checkAiScore(allCopy)
     const photosNeeded = buildPhotoRequests(carousel, idea, availableAssets.length)
@@ -108,8 +112,9 @@ export async function POST(req: NextRequest) {
       },
       select: { id: true },
     })
-    variants.push({ creativeId: creative.id, angle: carousel.angle ?? `Variante ${i + 1}`, carousel, aiScore, photosNeeded })
-  }
+    return { creativeId: creative.id, angle: carousel.angle ?? `Variante ${i + 1}`, carousel, aiScore, photosNeeded } as PromoVariant
+  }))
+  const variants = built.filter((v): v is PromoVariant => v !== null)
 
   if (variants.length === 0) {
     return NextResponse.json({ error: 'Error generando el carrusel' }, { status: 500 })
@@ -325,21 +330,22 @@ function buildContexto(
 async function generateCarousel(
   contexto: string,
   idea: ContentIdea | null,
-  opts: { avoidAngles?: string[]; styleRef?: { angle: string; caption: string } } = {},
+  opts: { avoidAngles?: string[]; styleRef?: { angle: string; caption: string }; angleHint?: string } = {},
 ): Promise<Carousel | null> {
-  const { avoidAngles = [], styleRef } = opts
+  const { avoidAngles = [], styleRef, angleHint } = opts
 
-  // 1a variante (sin avoid ni styleRef): respeta el hook de la idea.
-  // Variantes distintas / derivadas: hook nuevo.
-  const hookInstruction = idea && avoidAngles.length === 0 && !styleRef
+  // 1a variante (sin avoid/styleRef/hint): respeta el hook de la idea. Si no, hook nuevo.
+  const hookInstruction = idea && avoidAngles.length === 0 && !styleRef && !angleHint
     ? `Usa EXACTAMENTE este hook para el slide 1: "${idea.hook.text}" — agrega "Desliza →" al final del body.`
     : 'Crea un hook que detenga el scroll: pregunta directa, afirmación con número o promesa concreta. Termina el body con "Desliza →".'
 
   const angleInstruction = styleRef
     ? `Esta es una variante de ROTACIÓN en el MISMO estilo y ángulo que la versión aprobada (mismo tono y estructura persuasiva, mismo "angle": "${styleRef.angle}"), pero con copy FRESCO y distinto. La aprobada decía en su caption: "${styleRef.caption}". No la copies; haz una nueva del mismo estilo.`
-    : avoidAngles.length
-      ? `Esta es una VARIANTE de la MISMA promoción. Usa un ángulo creativo CLARAMENTE distinto a los ya usados: ${avoidAngles.join('; ')}. Mismo objetivo, enfoque persuasivo diferente.`
-      : 'Define el "angle": el ángulo creativo del carrusel (su enfoque persuasivo) en pocas palabras.'
+    : angleHint
+      ? `Usa este ÁNGULO creativo para el carrusel: ${angleHint} Desarróllalo con copy fresco y específico; define el "angle" en pocas palabras.`
+      : avoidAngles.length
+        ? `Esta es una VARIANTE de la MISMA promoción. Usa un ángulo creativo CLARAMENTE distinto a los ya usados: ${avoidAngles.join('; ')}. Mismo objetivo, enfoque persuasivo diferente.`
+        : 'Define el "angle": el ángulo creativo del carrusel (su enfoque persuasivo) en pocas palabras.'
 
   const raw = await ask(
     `Eres el creador de contenido de Bahía Social Sports Club (club deportivo premium en Nuevo Vallarta, Riviera Nayarit).
