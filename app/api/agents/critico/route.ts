@@ -251,12 +251,19 @@ RESUMEN GLOBAL:
     }).catch(() => {})
   }
 
-  return NextResponse.json({
+  const payload = {
     campañas: campañasCalificadas,
     resumen: { totalLeads, totalCerrados, totalCitados, totalFrios, leadsOrganicos, totalCreativos: creativos.length },
     tendencia,
     atribucionDisponible,
     report,
     generatedAt: new Date().toISOString(),
-  })
+  }
+
+  // Cachear el reporte completo → la pestaña del dashboard lo lee (instantáneo) desde /critico/report.
+  await prisma.agent_memory.create({
+    data: { agent: 'critico', type: 'reporte', content: JSON.stringify(payload), outcome: 'neutro' },
+  }).catch(() => {})
+
+  return NextResponse.json(payload)
 }
