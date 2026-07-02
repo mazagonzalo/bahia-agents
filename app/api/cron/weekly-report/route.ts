@@ -4,11 +4,13 @@ import { supabase } from '@/lib/supabase'
 import { askMetered } from '@/lib/claude'
 import { sendText } from '@/lib/whatsapp'
 import { requireCron } from '@/lib/cron-auth'
+import { guardCron } from '@/lib/cron-run'
 
 export async function GET(req: NextRequest) {
   const unauthorized = requireCron(req)
   if (unauthorized) return unauthorized
 
+  return guardCron('weekly-report', async () => {
   const now = new Date()
   const hace7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
@@ -82,5 +84,6 @@ Máximo 6 líneas. Tono ejecutivo. Sin emojis excesivos. Termina con una recomen
     campanasPublicadas,
     topTrend: topTrend?.topic,
     ran: now.toISOString(),
+  })
   })
 }

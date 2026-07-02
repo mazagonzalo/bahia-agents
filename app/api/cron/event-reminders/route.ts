@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 120
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCron } from '@/lib/cron-auth'
+import { guardCron } from '@/lib/cron-run'
 import { prisma } from '@/lib/db'
 import { sendText } from '@/lib/whatsapp'
 
@@ -14,6 +15,7 @@ export async function GET(req: NextRequest) {
   const unauthorized = requireCron(req)
   if (unauthorized) return unauthorized
 
+  return guardCron('event-reminders', async () => {
   const hoy = new Date()
   hoy.setHours(0, 0, 0, 0)
   const limite = new Date(hoy)
@@ -71,4 +73,5 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json({ ok: true, recordatorios: results.length, results, ran: new Date().toISOString() })
+  })
 }

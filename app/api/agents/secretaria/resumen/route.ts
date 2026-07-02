@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { iaBudgetUsd } from '@/lib/agent-cost'
 
 // Resumen proactivo del día para la Secretaria — cálculo determinista (sin Claude),
 // carga instantánea. El dashboard lo muestra arriba del chat al abrir la pestaña.
@@ -28,6 +29,12 @@ export async function GET() {
   if (borradores) atencion.push(`${borradores} creativo(s) en borrador por aprobar`)
   if (sinSeguimiento) atencion.push(`${sinSeguimiento} lead(s) sin seguimiento hace +48h`)
   if (citados) atencion.push(`${citados} lead(s) citado(s) — confirmar asistencia`)
+
+  // Alerta de presupuesto de IA: si el gasto del mes superó el tope, lo marca.
+  const gasto = Number(gastoMes._sum.costUsd ?? 0)
+  if (gasto > iaBudgetUsd()) {
+    atencion.push(`Gasto de IA del mes ($${gasto.toFixed(2)}) superó el presupuesto ($${iaBudgetUsd().toFixed(2)})`)
+  }
 
   // Alertas del Crítico (si evaluó): las trae al resumen para que sean proactivas.
   try {
