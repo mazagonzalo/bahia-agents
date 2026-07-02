@@ -9,8 +9,9 @@ export async function GET() {
   const h24 = new Date(now - 24 * 3600 * 1000)
   const d7 = new Date(now - 7 * 24 * 3600 * 1000)
   const h48 = new Date(now - 48 * 3600 * 1000)
+  const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
 
-  const [nuevos24h, nuevos7d, calificados, citados, cerrados7d, borradores, sinSeguimiento, ultimaTendencia, criticoRep] = await Promise.all([
+  const [nuevos24h, nuevos7d, calificados, citados, cerrados7d, borradores, sinSeguimiento, ultimaTendencia, criticoRep, gastoMes] = await Promise.all([
     prisma.leads.count({ where: { created_at: { gte: h24 } } }),
     prisma.leads.count({ where: { created_at: { gte: d7 } } }),
     prisma.leads.count({ where: { status: 'calificado' } }),
@@ -20,6 +21,7 @@ export async function GET() {
     prisma.leads.count({ where: { status: { in: ['nuevo', 'calificado'] }, last_contact: { lt: h48 } } }),
     prisma.trends.findFirst({ orderBy: { created_at: 'desc' }, select: { topic: true, score: true } }),
     prisma.agent_memory.findFirst({ where: { agent: 'critico', type: 'reporte' }, orderBy: { created_at: 'desc' }, select: { content: true } }),
+    prisma.agentRunLog.aggregate({ where: { createdAt: { gte: inicioMes } }, _sum: { costUsd: true } }),
   ])
 
   const atencion: string[] = []
@@ -42,5 +44,6 @@ export async function GET() {
     creativos: { borradores },
     atencion,
     ultimaTendencia: ultimaTendencia ? `${ultimaTendencia.topic} (${ultimaTendencia.score})` : null,
+    gastoMesUsd: Number(gastoMes._sum.costUsd ?? 0),
   })
 }

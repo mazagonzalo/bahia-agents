@@ -13,6 +13,7 @@ type Resumen = {
   creativos: { borradores: number }
   atencion: string[]
   ultimaTendencia: string | null
+  gastoMesUsd: number
 }
 
 function Stat({ label, value }: { label: string; value: number | string }) {
@@ -59,6 +60,9 @@ function ResumenHoy() {
           Última tendencia detectada: <span style={{ color: T.gold }}>{r.ultimaTendencia}</span>
         </div>
       )}
+      <div style={{ marginTop: 8, fontSize: 12, color: T.muted }}>
+        Gasto de IA este mes: <span style={{ color: T.text }}>${r.gastoMesUsd.toFixed(2)} USD</span>
+      </div>
     </Card>
   )
 }

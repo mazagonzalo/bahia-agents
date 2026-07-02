@@ -3,7 +3,7 @@ export const maxDuration = 300 // genera 3 variantes (varias llamadas a Claude) 
 import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/db'
-import { ask } from '@/lib/claude'
+import { askMetered } from '@/lib/claude'
 import { sendText } from '@/lib/whatsapp'
 import { getClubContext, contextToPrompt, type ClubEvent } from '@/lib/context'
 
@@ -230,7 +230,8 @@ async function sugerenciasContenido(ideaText: string) {
     } catch { /* usa el default */ }
   }
 
-  const raw = await ask(
+  const raw = await askMetered(
+    'CONTENIDO',
     `Eres el estratega de contenido de Bahía Social Sports Club (club deportivo premium en Nuevo Vallarta).
 El club tiene una idea/tema y quiere APOYO para crear su propio contenido (reels, historias, posts).
 NO escribas el contenido final ni drafts de IA: da una GUÍA DE PRODUCCIÓN detallada. Propón 3-4 sugerencias DISTINTAS de cómo ejecutar la idea, y detalla cómo se haría cada una.
@@ -356,7 +357,8 @@ async function generateCarousel(
         ? `Esta es una VARIANTE de la MISMA promoción. Usa un ángulo creativo CLARAMENTE distinto a los ya usados: ${avoidAngles.join('; ')}. Mismo objetivo, enfoque persuasivo diferente.`
         : 'Define el "angle": el ángulo creativo del carrusel (su enfoque persuasivo) en pocas palabras.'
 
-  const raw = await ask(
+  const raw = await askMetered(
+    'CONTENIDO',
     `Eres el creador de contenido de Bahía Social Sports Club (club deportivo premium en Nuevo Vallarta, Riviera Nayarit).
 Crea un carrusel promocional de Instagram (pauteable) basado en el briefing.
 ${angleInstruction}
@@ -408,7 +410,8 @@ async function generateReelBrief(contexto: string, idea: ContentIdea | null, eve
     ? `Eventos próximos que puedes usar: ${events.map(e => e.name).join(', ')}.`
     : ''
 
-  return ask(
+  return askMetered(
+    'CONTENIDO',
     `Eres director de contenido de Bahía Social Sports Club (club premium en Nuevo Vallarta).
 La persona que recibe este brief maneja el club — no es camarógrafo, pero tiene buen ojo y ganas.
 Los Reels del club son recorridos de instalaciones, ambiente real, momentos de partidos, lifestyle de fin de semana. Sin trends de baile ni challenges.

@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 300 // Vercel Pro — 5 min máx para múltiples llamadas Perplexity + Claude
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { ask } from '@/lib/claude'
+import { askMetered } from '@/lib/claude'
 import { sendText } from '@/lib/whatsapp'
 
 export async function POST(req: NextRequest) {
@@ -357,9 +357,9 @@ Devuelve ÚNICAMENTE el JSON, sin markdown:
 {"contentIdeas":[{"title":"string","format":"Reel","hook":{"text":"string","pattern":"string","triggerWords":["string"]},"copyStructure":{"framework":"PAS","step1":"string","step2":"string","step3":"string","cta":"string"},"platforms":{"reel":"string","tiktok":"string","stories":"string","carrusel":"string"},"music":[{"title":"string","artist":"string","bpm":0,"mood":"string","why":"string"}],"instalacion":"string","targetSegment":"string","hashtags":["#tag"],"trendConnection":"string","urgency":0}]}`
 
   const [briefRaw, tacticalRaw, ideasRaw] = await Promise.all([
-    ask(briefPrompt, [{ role: 'user', content: researchContent }], 3500),
-    ask(tacticalPrompt, [{ role: 'user', content: researchContent }], 2500),
-    ask(ideasPrompt, [{ role: 'user', content: researchContent }], 8000),
+    askMetered('TENDENCIAS', briefPrompt, [{ role: 'user', content: researchContent }], 3500),
+    askMetered('TENDENCIAS', tacticalPrompt, [{ role: 'user', content: researchContent }], 2500),
+    askMetered('TENDENCIAS', ideasPrompt, [{ role: 'user', content: researchContent }], 8000),
   ])
 
   type Trend = { topic: string; score: number; angle: string; evidence: string }
@@ -404,19 +404,19 @@ Devuelve ÚNICAMENTE el JSON, sin markdown:
   // Parse de cada llamada con retry individual si vino vacía o inválida.
   let brief = parseObj<Brief>(briefRaw)
   if (!brief || !Array.isArray(brief.trends)) {
-    brief = parseObj<Brief>(await ask(`${briefPrompt}\n\nEl JSON anterior llegó inválido. Devuelve SOLO el JSON completo y válido.`, [{ role: 'user', content: researchContent }], 3500))
+    brief = parseObj<Brief>(await askMetered('TENDENCIAS', `${briefPrompt}\n\nEl JSON anterior llegó inválido. Devuelve SOLO el JSON completo y válido.`, [{ role: 'user', content: researchContent }], 3500))
   }
 
   // Táctico: retry si vino vacío (era el síntoma — el modelo vaciaba la cola del brief).
   let tactical = parseObj<Tactical>(tacticalRaw)
   if (!tactical || !Array.isArray(tactical.contentOpportunities) || tactical.contentOpportunities.length === 0) {
-    tactical = parseObj<Tactical>(await ask(`${tacticalPrompt}\n\nEl JSON anterior llegó vacío o inválido. Devuelve SOLO el JSON con 3 contentOpportunities y 2 viralPatterns.`, [{ role: 'user', content: researchContent }], 2500))
+    tactical = parseObj<Tactical>(await askMetered('TENDENCIAS', `${tacticalPrompt}\n\nEl JSON anterior llegó vacío o inválido. Devuelve SOLO el JSON con 3 contentOpportunities y 2 viralPatterns.`, [{ role: 'user', content: researchContent }], 2500))
   }
 
   // Ideas: retry si vino vacío. Es la parte pesada → presupuesto de tokens alto.
   let ideas = parseObj<{ contentIdeas: ContentIdea[] }>(ideasRaw)?.contentIdeas
   if (!Array.isArray(ideas) || ideas.length === 0) {
-    ideas = parseObj<{ contentIdeas: ContentIdea[] }>(await ask(`${ideasPrompt}\n\nEl JSON anterior llegó vacío o inválido. Devuelve SOLO el JSON con 3 ideas completas.`, [{ role: 'user', content: researchContent }], 8000))?.contentIdeas
+    ideas = parseObj<{ contentIdeas: ContentIdea[] }>(await askMetered('TENDENCIAS', `${ideasPrompt}\n\nEl JSON anterior llegó vacío o inválido. Devuelve SOLO el JSON con 3 ideas completas.`, [{ role: 'user', content: researchContent }], 8000))?.contentIdeas
   }
 
   if (!brief) {
