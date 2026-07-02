@@ -84,21 +84,28 @@ export async function POST(req: NextRequest) {
   }
 
   const instalacion = idea?.instalacion ?? null
-  const [ctx, availableAssets, lastApproved] = await Promise.all([
+  const [ctx, availableAssets, lastApproved, lastRejected] = await Promise.all([
     getClubContext({ agents: ['contenido'], days: 14 }),
     fetchBestAssets(instalacion),
     prisma.creatives.findFirst({ where: { type: 'carrusel', status: 'aprobado' }, orderBy: { created_at: 'desc' }, select: { content: true } }),
+    prisma.creatives.findFirst({ where: { type: 'carrusel', status: 'rechazado' }, orderBy: { created_at: 'desc' }, select: { content: true } }),
   ])
   const upcomingEvents = ctx.upcomingEvents
   const sharedContext = contextToPrompt({ ...ctx, upcomingEvents: [] })
   let contexto = buildContexto(idea, strategy, trend, upcomingEvents, availableAssets, 'Carrusel', sharedContext)
 
+  const captionOf = (c: { content: unknown } | null): string | null => {
+    try { return (c?.content as { carousel?: { caption?: string } } | null)?.carousel?.caption ?? null } catch { return null }
+  }
   // Aprende del último carrusel que el admin YA aprobó: lo usa como referencia de tono (no lo copia).
-  const approvedCaption = (() => {
-    try { return (lastApproved?.content as { carousel?: { caption?: string } } | null)?.carousel?.caption ?? null } catch { return null }
-  })()
+  const approvedCaption = captionOf(lastApproved)
   if (approvedCaption) {
     contexto += `\n\nREFERENCIA DE ESTILO — un carrusel que el admin YA aprobó (mismo tono premium; NO lo copies, inspírate en su voz): "${approvedCaption.slice(0, 400)}"`
+  }
+  // Aprende de lo RECHAZADO: evita repetir el enfoque que el admin descartó.
+  const rejectedCaption = captionOf(lastRejected)
+  if (rejectedCaption) {
+    contexto += `\n\nEVITAR — un carrusel que el admin RECHAZÓ (NO repitas este enfoque, ángulo ni tono): "${rejectedCaption.slice(0, 400)}"`
   }
 
   // 3 ángulos distintos generados EN PARALELO (antes secuencial → ~3× más lento).
