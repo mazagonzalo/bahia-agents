@@ -101,6 +101,9 @@ function PosterCard({ poster, innerRef }: { poster: Poster; innerRef: React.RefO
       <div style={{ ...layer, background: 'linear-gradient(180deg, rgba(10,16,36,0.15) 0%, rgba(10,16,36,0.40) 42%, rgba(10,16,36,0.82) 74%, rgba(8,12,26,0.96) 100%)' }} />
       {/* Viñeta radial — enfoca el centro, oscurece las esquinas */}
       <div style={{ ...layer, background: 'radial-gradient(120% 90% at 50% 22%, transparent 40%, rgba(6,9,20,0.55) 100%)' }} />
+      {/* Mesh de gradiente (gráfico generado): glow dorado cálido tras el bloque de texto + acento azul */}
+      <div style={{ ...layer, background: 'radial-gradient(60% 45% at 22% 84%, rgba(201,168,92,0.22) 0%, transparent 62%)' }} />
+      <div style={{ ...layer, background: 'radial-gradient(50% 40% at 92% 12%, rgba(91,121,214,0.16) 0%, transparent 60%)' }} />
       {/* Grano de película */}
       <div style={{ ...layer, backgroundImage: GRAIN, backgroundRepeat: 'repeat', opacity: 0.10, mixBlendMode: 'overlay' }} />
       {/* Marco hairline dorado (framing editorial) */}
