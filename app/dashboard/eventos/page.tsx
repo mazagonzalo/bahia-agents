@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { toPng } from 'html-to-image'
 import { T, Card, SectionTitle, Badge, PageHeader } from '../_components/ui'
 import { TriggerPanel } from '../_components/TriggerPanel'
+import { SERIF, accentForSport, BrandBackdrop, Wordmark } from '../_components/posterKit'
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
 type Evento = {
@@ -77,33 +78,10 @@ function AgendaGroup({ title, hint, items }: { title: string; hint?: string; ite
   )
 }
 
-// Grano de película sutil (textura editorial). Data-URI → se exporta bien en el PNG.
-const GRAIN = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")"
-const SERIF = 'var(--font-serif, Georgia, "Times New Roman", serif)'
-
-// Acentos de la paleta Bahía — el póster NO siempre es dorado: cada deporte usa un
-// color distinto (azul, coral, sage, oro). `glow` es "r,g,b" para rgba() de los meshes.
-type Accent = { main: string; light: string; glow: string }
-const ACCENT_GOLD: Accent = { main: '#C9A85C', light: '#E4C786', glow: '201,168,92' }
-const ACCENT_BY_SPORT: { match: string[]; accent: Accent }[] = [
-  { match: ['padel', 'pádel', 'paddle'], accent: { main: '#5B79D6', light: '#9DB2EE', glow: '91,121,214' } },   // azul Bahía
-  { match: ['pickle'], accent: { main: '#D98558', light: '#EBB093', glow: '217,133,88' } },                     // coral/terracota
-  { match: ['tenis', 'tennis'], accent: ACCENT_GOLD },                                                          // oro clásico
-  { match: ['natac', 'alberca', 'nado', 'aqua', 'swim', 'pool'], accent: { main: '#5B79D6', light: '#9DB2EE', glow: '91,121,214' } },
-  { match: ['gym', 'funcional', 'fuerza', 'spinning', 'yoga', 'pilates', 'cross'], accent: { main: '#8AA088', light: '#B3C6AF', glow: '138,160,136' } }, // sage
-]
-function accentForSport(hint: string): Accent {
-  const s = (hint || '').toLowerCase()
-  for (const { match, accent } of ACCENT_BY_SPORT) if (match.some(m => s.includes(m))) return accent
-  return ACCENT_GOLD
-}
-
 // ── Póster premium editorial (se exporta a PNG con html-to-image) ────────────
-// Estética "Warm Editorial" adaptada al navy premium de Bahía: serif de lujo,
-// gradiente cinematográfico con tinte de marca, grano de película, marco
-// hairline y sombras difusas. El acento varía por deporte (no siempre dorado).
+// Estética "Warm Editorial" adaptada al navy premium de Bahía (kit compartido en
+// _components/posterKit): serif de lujo, fondo de marca en capas, acento por deporte.
 function PosterCard({ poster, innerRef }: { poster: Poster; innerRef: React.RefObject<HTMLDivElement | null> }) {
-  const layer: React.CSSProperties = { position: 'absolute', inset: 0, pointerEvents: 'none' }
   const a = accentForSport(poster.sport || poster.title)
   return (
     <div
@@ -113,27 +91,12 @@ function PosterCard({ poster, innerRef }: { poster: Poster; innerRef: React.RefO
         background: '#0A1024', color: '#fff', boxShadow: '0 30px 80px -30px rgba(0,0,0,0.7)',
       }}
     >
-      {/* Foto de fondo */}
-      <div style={{ ...layer, background: `url(${poster.photo}) center/cover no-repeat` }} />
-      {/* Gradiente cinematográfico con tinte navy (legibilidad + cohesión de marca) */}
-      <div style={{ ...layer, background: 'linear-gradient(180deg, rgba(10,16,36,0.15) 0%, rgba(10,16,36,0.40) 42%, rgba(10,16,36,0.82) 74%, rgba(8,12,26,0.96) 100%)' }} />
-      {/* Viñeta radial — enfoca el centro, oscurece las esquinas */}
-      <div style={{ ...layer, background: 'radial-gradient(120% 90% at 50% 22%, transparent 40%, rgba(6,9,20,0.55) 100%)' }} />
-      {/* Mesh de gradiente (gráfico generado) en el color del deporte + brillo neutro */}
-      <div style={{ ...layer, background: `radial-gradient(60% 45% at 22% 84%, rgba(${a.glow},0.24) 0%, transparent 62%)` }} />
-      <div style={{ ...layer, background: 'radial-gradient(48% 38% at 90% 12%, rgba(255,255,255,0.07) 0%, transparent 60%)' }} />
-      {/* Grano de película */}
-      <div style={{ ...layer, backgroundImage: GRAIN, backgroundRepeat: 'repeat', opacity: 0.10, mixBlendMode: 'overlay' }} />
-      {/* Marco hairline (en el color de acento, framing editorial) */}
-      <div style={{ position: 'absolute', inset: 20, border: `1px solid rgba(${a.glow},0.42)`, pointerEvents: 'none' }} />
+      <BrandBackdrop accent={a} photo={poster.photo} />
 
       {/* Contenido */}
       <div style={{ position: 'relative', zIndex: 2, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 46 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <div style={{ fontFamily: SERIF, fontSize: 26, letterSpacing: 8, color: '#F5EFE2', fontWeight: 600, lineHeight: 1 }}>BAHÍA</div>
-            <div style={{ fontSize: 8.5, letterSpacing: 4, color: a.light, textTransform: 'uppercase', marginTop: 5 }}>Social Sports Club</div>
-          </div>
+          <Wordmark accent={a} />
           {poster.sport && (
             <span style={{ fontSize: 10, letterSpacing: 2.5, textTransform: 'uppercase', border: `1px solid rgba(${a.glow},0.6)`, color: a.light, padding: '6px 13px', borderRadius: 999, backdropFilter: 'blur(2px)' }}>{poster.sport}</span>
           )}
