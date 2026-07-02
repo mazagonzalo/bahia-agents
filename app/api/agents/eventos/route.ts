@@ -2,9 +2,10 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { runAgent } from '@/lib/agents/orchestrator'
-import { ask } from '@/lib/claude'
+import { askMetered } from '@/lib/claude'
 import { sendText } from '@/lib/whatsapp'
 import { getClubContext } from '@/lib/context'
+import { generateAbstractBackground } from '@/lib/image-gen'
 // POST /api/agents/eventos
 // Recibe texto libre del admin (vía WhatsApp) describiendo un evento,
 // lo parsea con Claude, guarda en club_events y dispara el agente de contenido.
@@ -218,10 +219,11 @@ const PHOTO_BY_SPORT: { match: string[]; photo: string }[] = [
   { match: ['natac', 'alberca', 'nado', 'aqua', 'swim', 'pool'], photo: '/assets/alberca-01.jpg' },
   { match: ['gym', 'funcional', 'fuerza', 'spinning', 'yoga', 'pilates', 'cross'], photo: '/assets/gym.png' },
 ]
+const DEFAULT_PHOTO = '/assets/alberca-restaurante.png' // ambiente premium del club por defecto
 function photoForSport(hint: string): string {
   const s = hint.toLowerCase()
   for (const { match, photo } of PHOTO_BY_SPORT) if (match.some(m => s.includes(m))) return photo
-  return '/assets/alberca-restaurante.png' // ambiente premium del club por defecto
+  return DEFAULT_PHOTO
 }
 
 type PosterSpec = {
@@ -253,7 +255,8 @@ async function generarPoster(message: string, instructions: string) {
     ? `\nPREFERENCIAS APRENDIDAS del admin (aplícalas salvo que contradigan la instrucción de este póster): ${learned.slice(0, 5).join(' · ')}`
     : ''
 
-  const raw = await ask(
+  const raw = await askMetered(
+    'EVENTOS',
     `Eres el diseñador de pósters de eventos de Bahía Social Sports Club (club deportivo-social premium en Nuevo Vallarta, Nayarit). Genera el CONTENIDO de un póster para redes a partir de la info del evento. Impactante, conciso y aspiracional premium.${trainingNote}
 Devuelve SOLO este JSON, sin markdown ni texto extra:
 {"title":"nombre del evento, corto e impactante (máx 6 palabras)","subtitle":"una línea de gancho","dateLine":"fecha y hora legible (ej. Sáb 28 jun · 6:00 pm)","location":"lugar dentro del club","bullets":["3 datos clave muy cortos: precio, formato, premio, cupo, etc."],"cta":"llamado a la acción corto (ej. Inscríbete en recepción)","sport":"deporte principal en una palabra"}`,
@@ -271,6 +274,15 @@ Devuelve SOLO este JSON, sin markdown ni texto extra:
     return NextResponse.json({ error: 'No se pudo generar el póster — intenta con más detalle' }, { status: 502 })
   }
 
+  // Enfoque híbrido: si no hubo match con foto real de deporte (default del club),
+  // intenta un fondo ABSTRACTO generado (paleta Bahía; nunca personas/lugares). Si
+  // no hay OPENAI_API_KEY o falla, se queda con la foto por defecto.
+  let photo = photoForSport(spec.sport || message)
+  if (photo === DEFAULT_PHOTO) {
+    const generated = await generateAbstractBackground({ sport: spec.sport, title: spec.title })
+    if (generated) photo = generated
+  }
+
   const poster = {
     title: spec.title,
     subtitle: spec.subtitle ?? '',
@@ -279,7 +291,7 @@ Devuelve SOLO este JSON, sin markdown ni texto extra:
     bullets: Array.isArray(spec.bullets) ? spec.bullets.slice(0, 4) : [],
     cta: spec.cta ?? '',
     sport: spec.sport ?? '',
-    photo: photoForSport(spec.sport || message),
+    photo,
   }
 
   await prisma.agent_memory.create({
