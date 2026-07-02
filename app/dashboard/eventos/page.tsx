@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { toPng } from 'html-to-image'
 import { T, Card, SectionTitle, Badge, PageHeader } from '../_components/ui'
 import { TriggerPanel } from '../_components/TriggerPanel'
-import { SERIF, accentForSport, BrandBackdrop, Wordmark } from '../_components/posterKit'
+import { SERIF, accentForSport, BrandBackdrop, LogoLockup, WhaleWatermark } from '../_components/posterKit'
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
 type Evento = {
@@ -78,11 +78,13 @@ function AgendaGroup({ title, hint, items }: { title: string; hint?: string; ite
   )
 }
 
-// ── Póster premium editorial (se exporta a PNG con html-to-image) ────────────
-// Estética "Warm Editorial" adaptada al navy premium de Bahía (kit compartido en
-// _components/posterKit): serif de lujo, fondo de marca en capas, acento por deporte.
+// ── Póster premium (se exporta a PNG con html-to-image) ──────────────────────
+// Pieza DISEÑADA (no foto + texto): logo real (isotipo ballena), ballena de fondo
+// como elemento gráfico, fecha en badge, y poco texto. Acento por deporte. Kit
+// compartido en _components/posterKit.
 function PosterCard({ poster, innerRef }: { poster: Poster; innerRef: React.RefObject<HTMLDivElement | null> }) {
   const a = accentForSport(poster.sport || poster.title)
+  const bullets = poster.bullets.slice(0, 2) // menos texto: máx 2 datos, como chips
   return (
     <div
       ref={innerRef}
@@ -92,36 +94,47 @@ function PosterCard({ poster, innerRef }: { poster: Poster; innerRef: React.RefO
       }}
     >
       <BrandBackdrop accent={a} photo={poster.photo} />
+      <WhaleWatermark />
 
       {/* Contenido */}
       <div style={{ position: 'relative', zIndex: 2, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 46 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <Wordmark accent={a} />
+        {/* Header: logo real (ballena + wordmark) + tag de deporte */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <LogoLockup accent={a} size={40} />
           {poster.sport && (
-            <span style={{ fontSize: 10, letterSpacing: 2.5, textTransform: 'uppercase', border: `1px solid rgba(${a.glow},0.6)`, color: a.light, padding: '6px 13px', borderRadius: 999, backdropFilter: 'blur(2px)' }}>{poster.sport}</span>
+            <span style={{ fontSize: 10, letterSpacing: 2.5, textTransform: 'uppercase', border: `1px solid rgba(${a.glow},0.6)`, color: a.light, padding: '6px 13px', borderRadius: 999 }}>{poster.sport}</span>
           )}
         </div>
 
+        {/* Bloque principal: poco texto, jerarquía fuerte */}
         <div>
           {poster.subtitle && (
             <div style={{ fontSize: 11.5, letterSpacing: 3.5, color: a.light, textTransform: 'uppercase', marginBottom: 14, fontWeight: 500 }}>{poster.subtitle}</div>
           )}
-          <h2 style={{ fontFamily: SERIF, fontSize: 56, lineHeight: 0.98, margin: 0, fontWeight: 600, letterSpacing: -0.5, textShadow: '0 4px 40px rgba(0,0,0,0.4)' }}>{poster.title}</h2>
-          <div style={{ height: 1.5, width: 72, background: `linear-gradient(90deg, ${a.light}, rgba(${a.glow},0.12))`, margin: '22px 0 20px' }} />
-          {poster.dateLine && <div style={{ fontSize: 17, fontWeight: 600, letterSpacing: 0.3, marginBottom: 5 }}>{poster.dateLine}</div>}
-          {poster.location && <div style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.78)', letterSpacing: 0.2, marginBottom: 20 }}>{poster.location}</div>}
-          {poster.bullets.length > 0 && (
-            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 26px', display: 'flex', flexDirection: 'column', gap: 9 }}>
-              {poster.bullets.map((b, i) => (
-                <li key={i} style={{ fontSize: 13.5, display: 'flex', gap: 11, alignItems: 'baseline', color: 'rgba(255,255,255,0.90)', letterSpacing: 0.1 }}>
-                  <span style={{ display: 'inline-block', width: 5, height: 5, borderRadius: '50%', background: a.light, flexShrink: 0, transform: 'translateY(-2px)' }} />{b}
-                </li>
+          <h2 style={{ fontFamily: SERIF, fontSize: 58, lineHeight: 0.96, margin: 0, fontWeight: 600, letterSpacing: -0.5, textShadow: '0 4px 40px rgba(0,0,0,0.45)' }}>{poster.title}</h2>
+
+          {/* Fecha en badge (elemento gráfico, no texto suelto) */}
+          {poster.dateLine && (
+            <div style={{ display: 'inline-block', marginTop: 22, marginBottom: bullets.length ? 16 : 20, border: `1px solid rgba(${a.glow},0.55)`, borderLeft: `3px solid ${a.main}`, padding: '9px 16px', fontSize: 15, fontWeight: 600, letterSpacing: 0.3 }}>
+              {poster.dateLine}
+            </div>
+          )}
+
+          {/* Datos clave como chips (máx 2) */}
+          {bullets.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
+              {bullets.map((b, i) => (
+                <span key={i} style={{ fontSize: 12, color: 'rgba(255,255,255,0.92)', background: `rgba(${a.glow},0.14)`, border: `1px solid rgba(${a.glow},0.3)`, borderRadius: 999, padding: '5px 12px' }}>{b}</span>
               ))}
-            </ul>
+            </div>
           )}
-          {poster.cta && (
-            <div style={{ display: 'inline-block', background: `linear-gradient(135deg, ${a.light}, ${a.main})`, color: '#0A1024', fontWeight: 700, fontSize: 14, letterSpacing: 0.4, padding: '13px 28px', borderRadius: 999, boxShadow: `0 12px 34px -10px rgba(${a.glow},0.55)` }}>{poster.cta}</div>
-          )}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            {poster.cta && (
+              <div style={{ background: `linear-gradient(135deg, ${a.light}, ${a.main})`, color: '#0A1024', fontWeight: 700, fontSize: 14, letterSpacing: 0.4, padding: '13px 28px', borderRadius: 999, boxShadow: `0 12px 34px -10px rgba(${a.glow},0.55)` }}>{poster.cta}</div>
+            )}
+            {poster.location && <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', letterSpacing: 0.2 }}>{poster.location}</span>}
+          </div>
         </div>
       </div>
     </div>

@@ -47,7 +47,45 @@ export function BrandBackdrop({ accent, photo }: { accent: Accent; photo?: strin
   )
 }
 
-// Wordmark de marca reutilizable.
+// Isotipo de ballena Bahía por color de acento (assets reales en /public/assets).
+const WHALE_BY_ACCENT: Record<string, string> = {
+  '91,121,214': '/assets/whale-blue.png',
+  '201,168,92': '/assets/whale-gold.png',
+  '138,160,136': '/assets/whale-sage.png',
+  '217,133,88': '/assets/whale-cream.png', // no hay coral → cream neutro
+}
+export function whaleLogo(accent: Accent): string {
+  return WHALE_BY_ACCENT[accent.glow] ?? '/assets/whale-cream.png'
+}
+export const WHALE_WATERMARK = '/assets/whale-cream.png'
+
+// Firma de marca: isotipo de ballena + "BAHÍA / SOCIAL SPORTS CLUB" (lockup real).
+export function LogoLockup({ accent, size = 34 }: { accent: Accent; size?: number }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: size * 0.34 }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={whaleLogo(accent)} alt="Bahía" style={{ height: size, width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
+      <div>
+        <div style={{ fontFamily: SERIF, fontSize: size * 0.6, letterSpacing: size * 0.15, color: '#F5EFE2', fontWeight: 600, lineHeight: 1 }}>BAHÍA</div>
+        <div style={{ fontSize: size * 0.21, letterSpacing: size * 0.1, color: accent.light, textTransform: 'uppercase', marginTop: 4 }}>Social Sports Club</div>
+      </div>
+    </div>
+  )
+}
+
+// Ballena grande de fondo (elemento gráfico + marca), muy sutil. Sangra por un borde.
+export function WhaleWatermark() {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={WHALE_WATERMARK}
+      alt=""
+      style={{ position: 'absolute', width: '92%', right: '-14%', top: '16%', opacity: 0.08, pointerEvents: 'none', zIndex: 1, transform: 'rotate(-6deg)' }}
+    />
+  )
+}
+
+// Wordmark de marca reutilizable (solo texto).
 export function Wordmark({ accent, size = 26 }: { accent: Accent; size?: number }) {
   return (
     <div>
