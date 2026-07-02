@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Inter, Sora } from 'next/font/google'
+import { Inter, Sora, Cormorant_Garamond } from 'next/font/google'
 import { ClerkProvider } from '@clerk/nextjs'
 import './globals.css'
 
@@ -16,6 +16,14 @@ const sora = Sora({
   display: 'swap',
 })
 
+// Serif editorial de marca — display de lujo para pósters/piezas premium.
+const cormorant = Cormorant_Garamond({
+  subsets: ['latin'],
+  variable: '--font-serif',
+  weight: ['500', '600', '700'],
+  display: 'swap',
+})
+
 export const metadata: Metadata = {
   title: 'Bahía · Agentes de Marketing IA',
   description: 'Panel de control de los agentes de marketing IA del Bahía Social Sports Club.',
@@ -26,7 +34,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <ClerkProvider>
-      <html lang="es" className={`${inter.variable} ${sora.variable}`}>
+      <html lang="es" className={`${inter.variable} ${sora.variable} ${cormorant.variable}`}>
         <body style={{ fontFamily: 'var(--font-inter, sans-serif)' }}>
           {children}
         </body>
