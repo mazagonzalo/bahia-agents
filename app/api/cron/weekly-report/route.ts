@@ -1,14 +1,16 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
-import { ask } from '@/lib/claude'
+import { askMetered } from '@/lib/claude'
 import { sendText } from '@/lib/whatsapp'
 import { requireCron } from '@/lib/cron-auth'
+import { guardCron } from '@/lib/cron-run'
 
 export async function GET(req: NextRequest) {
   const unauthorized = requireCron(req)
   if (unauthorized) return unauthorized
 
+  return guardCron('weekly-report', async () => {
   const now = new Date()
   const hace7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
@@ -46,8 +48,9 @@ export async function GET(req: NextRequest) {
     .limit(1)
     .single()
 
-  // Claude genera el resumen ejecutivo
-  const resumen = await ask(
+  // Claude genera el resumen ejecutivo (registra costo como SECRETARIA)
+  const resumen = await askMetered(
+    'SECRETARIA',
     `Eres la secretaria de Bahía Social Sports Club. Genera un reporte semanal breve y profesional para el administrador.
 Máximo 6 líneas. Tono ejecutivo. Sin emojis excesivos. Termina con una recomendación concreta para la siguiente semana.`,
     [{
@@ -62,10 +65,17 @@ Máximo 6 líneas. Tono ejecutivo. Sin emojis excesivos. Termina con una recomen
     }]
   )
 
-  await sendText(
-    process.env.ADMIN_PHONE!,
-    `📋 *Reporte semanal Bahía — semana del ${new Date(hace7d).toLocaleDateString('es-MX')}*\n\n${resumen}`
-  )
+  // Fail-soft: si no hay WhatsApp configurado o el envío falla, no tumbar el cron.
+  if (process.env.ADMIN_PHONE) {
+    try {
+      await sendText(
+        process.env.ADMIN_PHONE,
+        `📋 *Reporte semanal Bahía — semana del ${new Date(hace7d).toLocaleDateString('es-MX')}*\n\n${resumen}`
+      )
+    } catch (e) {
+      console.error('[weekly-report] sendText falló (se ignora):', e instanceof Error ? e.message : e)
+    }
+  }
 
   return NextResponse.json({
     leadsTotal,
@@ -74,5 +84,6 @@ Máximo 6 líneas. Tono ejecutivo. Sin emojis excesivos. Termina con una recomen
     campanasPublicadas,
     topTrend: topTrend?.topic,
     ran: now.toISOString(),
+  })
   })
 }

@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { toPng } from 'html-to-image'
 import { T, Card, SectionTitle, Badge, PageHeader } from '../_components/ui'
 import { TriggerPanel } from '../_components/TriggerPanel'
+import { SERIF, accentForSport, BrandBackdrop, Wordmark } from '../_components/posterKit'
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
 type Evento = {
@@ -77,44 +78,51 @@ function AgendaGroup({ title, hint, items }: { title: string; hint?: string; ite
   )
 }
 
-// ── Póster (diseño branded; se exporta a PNG con html-to-image) ─────────────
+// ── Póster premium editorial (se exporta a PNG con html-to-image) ────────────
+// Estética "Warm Editorial" adaptada al navy premium de Bahía (kit compartido en
+// _components/posterKit): serif de lujo, fondo de marca en capas, acento por deporte.
 function PosterCard({ poster, innerRef }: { poster: Poster; innerRef: React.RefObject<HTMLDivElement | null> }) {
+  const a = accentForSport(poster.sport || poster.title)
   return (
     <div
       ref={innerRef}
       style={{
         width: 540, aspectRatio: '4 / 5', position: 'relative', overflow: 'hidden',
-        background: `linear-gradient(180deg, rgba(8,12,20,0.25) 0%, rgba(8,12,20,0.55) 45%, rgba(8,12,20,0.96) 100%), url(${poster.photo}) center/cover no-repeat`,
-        color: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 38,
+        background: '#0A1024', color: '#fff', boxShadow: '0 30px 80px -30px rgba(0,0,0,0.7)',
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontFamily: 'var(--font-headline)', fontSize: 22, letterSpacing: 4, color: T.goldLight, fontWeight: 700 }}>BAHÍA</span>
-        {poster.sport && (
-          <span style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', border: `1px solid ${T.gold}`, color: T.goldLight, padding: '5px 12px', borderRadius: 999 }}>{poster.sport}</span>
-        )}
-      </div>
+      <BrandBackdrop accent={a} photo={poster.photo} />
 
-      <div>
-        {poster.subtitle && (
-          <div style={{ fontSize: 13, letterSpacing: 1.5, color: T.goldLight, textTransform: 'uppercase', marginBottom: 10 }}>{poster.subtitle}</div>
-        )}
-        <h2 style={{ fontFamily: 'var(--font-headline)', fontSize: 44, lineHeight: 1.03, margin: 0, fontWeight: 800, textShadow: '0 2px 24px rgba(0,0,0,0.55)' }}>{poster.title}</h2>
-        <div style={{ height: 2, width: 64, background: T.gold, margin: '18px 0' }} />
-        {poster.dateLine && <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>{poster.dateLine}</div>}
-        {poster.location && <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.82)', marginBottom: 16 }}>{poster.location}</div>}
-        {poster.bullets.length > 0 && (
-          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 22px', display: 'flex', flexDirection: 'column', gap: 7 }}>
-            {poster.bullets.map((b, i) => (
-              <li key={i} style={{ fontSize: 14, display: 'flex', gap: 8, color: 'rgba(255,255,255,0.92)' }}>
-                <span style={{ color: T.gold, fontWeight: 700 }}>›</span>{b}
-              </li>
-            ))}
-          </ul>
-        )}
-        {poster.cta && (
-          <div style={{ display: 'inline-block', background: T.gold, color: '#080C14', fontWeight: 800, fontSize: 15, padding: '12px 24px', borderRadius: 999 }}>{poster.cta}</div>
-        )}
+      {/* Contenido */}
+      <div style={{ position: 'relative', zIndex: 2, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 46 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <Wordmark accent={a} />
+          {poster.sport && (
+            <span style={{ fontSize: 10, letterSpacing: 2.5, textTransform: 'uppercase', border: `1px solid rgba(${a.glow},0.6)`, color: a.light, padding: '6px 13px', borderRadius: 999, backdropFilter: 'blur(2px)' }}>{poster.sport}</span>
+          )}
+        </div>
+
+        <div>
+          {poster.subtitle && (
+            <div style={{ fontSize: 11.5, letterSpacing: 3.5, color: a.light, textTransform: 'uppercase', marginBottom: 14, fontWeight: 500 }}>{poster.subtitle}</div>
+          )}
+          <h2 style={{ fontFamily: SERIF, fontSize: 56, lineHeight: 0.98, margin: 0, fontWeight: 600, letterSpacing: -0.5, textShadow: '0 4px 40px rgba(0,0,0,0.4)' }}>{poster.title}</h2>
+          <div style={{ height: 1.5, width: 72, background: `linear-gradient(90deg, ${a.light}, rgba(${a.glow},0.12))`, margin: '22px 0 20px' }} />
+          {poster.dateLine && <div style={{ fontSize: 17, fontWeight: 600, letterSpacing: 0.3, marginBottom: 5 }}>{poster.dateLine}</div>}
+          {poster.location && <div style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.78)', letterSpacing: 0.2, marginBottom: 20 }}>{poster.location}</div>}
+          {poster.bullets.length > 0 && (
+            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 26px', display: 'flex', flexDirection: 'column', gap: 9 }}>
+              {poster.bullets.map((b, i) => (
+                <li key={i} style={{ fontSize: 13.5, display: 'flex', gap: 11, alignItems: 'baseline', color: 'rgba(255,255,255,0.90)', letterSpacing: 0.1 }}>
+                  <span style={{ display: 'inline-block', width: 5, height: 5, borderRadius: '50%', background: a.light, flexShrink: 0, transform: 'translateY(-2px)' }} />{b}
+                </li>
+              ))}
+            </ul>
+          )}
+          {poster.cta && (
+            <div style={{ display: 'inline-block', background: `linear-gradient(135deg, ${a.light}, ${a.main})`, color: '#0A1024', fontWeight: 700, fontSize: 14, letterSpacing: 0.4, padding: '13px 28px', borderRadius: 999, boxShadow: `0 12px 34px -10px rgba(${a.glow},0.55)` }}>{poster.cta}</div>
+          )}
+        </div>
       </div>
     </div>
   )

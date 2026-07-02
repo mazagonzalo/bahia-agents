@@ -56,8 +56,60 @@ async function getMemory(): Promise<{ rows: MemRow[]; error: string | null }> {
   }
 }
 
+type Learning = { segBueno: number; segMalo: number; aprobados: number; rechazados: number; recordatorios: number }
+
+// El sistema aprende de resultados reales: qué follow-ups funcionaron, qué contenido
+// aprobó/rechazó el admin. Esto lo hace VISIBLE (si no, el aprendizaje es invisible).
+async function getLearning(): Promise<Learning | null> {
+  try {
+    const [segBueno, segMalo, aprobados, rechazados, recordatorios] = await Promise.all([
+      prisma.agent_memory.count({ where: { agent: 'seguimiento', outcome: 'bueno' } }),
+      prisma.agent_memory.count({ where: { agent: 'seguimiento', outcome: 'malo' } }),
+      prisma.creatives.count({ where: { status: 'aprobado' } }),
+      prisma.creatives.count({ where: { status: 'rechazado' } }),
+      prisma.agent_memory.count({ where: { agent: 'eventos', type: 'recordatorio' } }),
+    ])
+    return { segBueno, segMalo, aprobados, rechazados, recordatorios }
+  } catch {
+    return null
+  }
+}
+
+function LearningStat({ label, value, hint, tone }: { label: string; value: number; hint: string; tone: string }) {
+  return (
+    <div style={{ flex: '1 1 160px', minWidth: 160 }}>
+      <div style={{ fontSize: 26, fontWeight: 800, color: tone, fontFamily: 'var(--font-headline)', lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: 12, color: T.text, fontWeight: 600, marginTop: 5 }}>{label}</div>
+      <div style={{ fontSize: 11, color: T.muted, marginTop: 2, lineHeight: 1.4 }}>{hint}</div>
+    </div>
+  )
+}
+
+function LearningSummary({ l }: { l: Learning }) {
+  const totalSeg = l.segBueno + l.segMalo
+  return (
+    <Card style={{ marginBottom: 'var(--space-5)' }}>
+      <div style={{ fontSize: 10, color: T.gold, textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: 700, marginBottom: 4 }}>El sistema está aprendiendo</div>
+      <div style={{ fontSize: 13, color: T.muted, marginBottom: 16, lineHeight: 1.5 }}>
+        Los agentes no repiten a ciegas: marcan qué funcionó y reutilizan lo bueno. Esto es lo aprendido hasta hoy.
+      </div>
+      <div style={{ display: 'flex', gap: 'var(--space-5)', flexWrap: 'wrap' }}>
+        <LearningStat label="Follow-ups que funcionaron" value={l.segBueno} tone={T.success}
+          hint={totalSeg ? `de ${totalSeg} con resultado — Seguimiento reutiliza estos como modelo` : 'aún sin resultados atribuidos'} />
+        <LearningStat label="Contenido aprobado" value={l.aprobados} tone={T.teal}
+          hint="Contenido imita el tono del último aprobado" />
+        <LearningStat label="Contenido rechazado" value={l.rechazados} tone={T.coral}
+          hint="y evita el enfoque del último rechazado" />
+        <LearningStat label="Recordatorios de eventos" value={l.recordatorios} tone={T.gold}
+          hint="disparados solos antes de cada evento" />
+      </div>
+    </Card>
+  )
+}
+
 export default async function MemoriaPage() {
   const { rows, error } = await getMemory()
+  const learning = await getLearning()
 
   const byAgent = new Map<string, typeof rows>()
   for (const r of rows) {
@@ -74,6 +126,8 @@ export default async function MemoriaPage() {
         title="Memoria compartida"
         blurb="El cerebro del sistema: lo que cada agente ha hecho, organizado por rama. Todos los agentes leen y escriben aquí."
       />
+
+      {learning && !error && <LearningSummary l={learning} />}
 
       {error ? (
         <EmptyState title="No se pudo cargar la memoria" sub={error} />

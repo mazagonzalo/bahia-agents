@@ -1,6 +1,8 @@
 'use client'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
+import { toPng } from 'html-to-image'
 import { PageHeader, Card, SectionTitle, Badge, T } from '../_components/ui'
+import { SERIF, accentForSport, BrandBackdrop, Wordmark } from '../_components/posterKit'
 
 const nf = (n: number) => n.toLocaleString('es-MX')
 
@@ -87,6 +89,77 @@ function SuggestionCard({ s }: { s: Suggestion }) {
   )
 }
 
+// ─── Carrusel VISUAL premium (slides pauteables, exportables a PNG) ───────────
+// Reusa el kit de diseño del póster (serif, fondo de marca, acento por deporte).
+// El slide 1 se estiliza como portada; el resto como slides de contenido.
+function CarouselVisual({ carousel }: { carousel: Carousel }) {
+  const a = accentForSport(`${carousel.angle ?? ''} ${carousel.caption} ${carousel.slides.map(s => s.headline).join(' ')}`)
+  const refs = useRef<(HTMLDivElement | null)[]>([])
+  const [busy, setBusy] = useState(false)
+
+  async function exportAll() {
+    if (busy) return
+    setBusy(true)
+    for (let i = 0; i < refs.current.length; i++) {
+      const node = refs.current[i]
+      if (!node) continue
+      try {
+        const url = await toPng(node, { pixelRatio: 2.8, cacheBust: true })
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `bahia-carrusel-${String(i + 1).padStart(2, '0')}.png`
+        link.click()
+        await new Promise(r => setTimeout(r, 300)) // separa las descargas
+      } catch { /* ignora ese slide */ }
+    }
+    setBusy(false)
+  }
+
+  return (
+    <div style={{ marginTop: 'var(--space-3)' }}>
+      <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 10 }}>
+        {carousel.slides.map((s, i) => (
+          <div
+            key={s.slide}
+            ref={el => { refs.current[i] = el }}
+            style={{ flexShrink: 0, width: 288, aspectRatio: '4 / 5', position: 'relative', overflow: 'hidden', background: '#0A1024', color: '#fff', boxShadow: '0 18px 44px -22px rgba(0,0,0,0.7)' }}
+          >
+            <BrandBackdrop accent={a} />
+            <div style={{ position: 'relative', zIndex: 2, height: '100%', display: 'flex', flexDirection: 'column', padding: 26, boxSizing: 'border-box' }}>
+              {i === 0 ? (
+                <>
+                  <Wordmark accent={a} size={17} />
+                  <div style={{ flex: 1 }} />
+                  {carousel.angle && <div style={{ fontSize: 9, letterSpacing: 3, color: a.light, textTransform: 'uppercase', marginBottom: 10, fontWeight: 500 }}>{carousel.angle}</div>}
+                  <h2 style={{ fontFamily: SERIF, fontSize: 32, lineHeight: 1.0, margin: 0, fontWeight: 600, letterSpacing: -0.4 }}>{s.headline}</h2>
+                  <div style={{ height: 1.5, width: 54, background: `linear-gradient(90deg, ${a.light}, rgba(${a.glow},0.12))`, margin: '14px 0 12px' }} />
+                  {s.body && <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.82)', lineHeight: 1.5 }}>{s.body}</div>}
+                  <div style={{ marginTop: 14, fontSize: 10, letterSpacing: 2, color: a.light, textTransform: 'uppercase' }}>desliza →</div>
+                </>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                    <span style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 600, color: a.light, lineHeight: 1 }}>{String(s.slide).padStart(2, '0')}</span>
+                    <span style={{ fontFamily: SERIF, fontSize: 12, letterSpacing: 4, color: '#F5EFE2' }}>BAHÍA</span>
+                  </div>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    <h3 style={{ fontFamily: SERIF, fontSize: 24, lineHeight: 1.06, margin: 0, fontWeight: 600, letterSpacing: -0.3 }}>{s.headline}</h3>
+                    <div style={{ height: 1.5, width: 44, background: `linear-gradient(90deg, ${a.light}, rgba(${a.glow},0.12))`, margin: '13px 0 12px' }} />
+                    {s.body && <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.88)', lineHeight: 1.55 }}>{s.body}</div>}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+      <button className="btn btn-secondary" onClick={exportAll} disabled={busy} style={{ marginTop: 'var(--space-2)' }}>
+        {busy ? 'Exportando…' : `↓ Exportar ${nf(carousel.slides.length)} slides (PNG)`}
+      </button>
+    </div>
+  )
+}
+
 // ─── Card de una variante de carrusel promocional ─────────────────────────────
 function VariantCard({ v, badge, onApprove, approving }: {
   v: Variant
@@ -95,6 +168,7 @@ function VariantCard({ v, badge, onApprove, approving }: {
   approving?: boolean
 }) {
   const [open, setOpen] = useState(false)
+  const [design, setDesign] = useState(false)
   return (
     <Card>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-3)', flexWrap: 'wrap', marginBottom: 'var(--space-3)' }}>
@@ -107,9 +181,15 @@ function VariantCard({ v, badge, onApprove, approving }: {
 
       <div style={{ fontSize: 13, color: T.textSec, lineHeight: 1.5, marginBottom: 'var(--space-3)', overflowWrap: 'anywhere' }}>{v.carousel.caption}</div>
 
-      <button className="btn btn-secondary" onClick={() => setOpen(!open)} style={{ marginBottom: open ? 'var(--space-3)' : 0 }}>
-        {open ? 'Ocultar slides' : `Ver ${nf(v.carousel.slides.length)} slides`}
-      </button>
+      <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', marginBottom: (open || design) ? 'var(--space-3)' : 0 }}>
+        <button className="btn btn-secondary" onClick={() => setOpen(!open)}>
+          {open ? 'Ocultar texto' : `Ver ${nf(v.carousel.slides.length)} slides (texto)`}
+        </button>
+        <button className="btn btn-secondary" onClick={() => setDesign(!design)}>
+          {design ? 'Ocultar diseño' : 'Ver diseño premium'}
+        </button>
+      </div>
+      {design && <CarouselVisual carousel={v.carousel} />}
       {open && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
           {v.carousel.slides.map(s => (

@@ -3,7 +3,7 @@ export const maxDuration = 300 // genera 3 variantes (varias llamadas a Claude) 
 import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/db'
-import { ask } from '@/lib/claude'
+import { askMetered } from '@/lib/claude'
 import { sendText } from '@/lib/whatsapp'
 import { getClubContext, contextToPrompt, type ClubEvent } from '@/lib/context'
 
@@ -84,13 +84,29 @@ export async function POST(req: NextRequest) {
   }
 
   const instalacion = idea?.instalacion ?? null
-  const [ctx, availableAssets] = await Promise.all([
+  const [ctx, availableAssets, lastApproved, lastRejected] = await Promise.all([
     getClubContext({ agents: ['contenido'], days: 14 }),
     fetchBestAssets(instalacion),
+    prisma.creatives.findFirst({ where: { type: 'carrusel', status: 'aprobado' }, orderBy: { created_at: 'desc' }, select: { content: true } }),
+    prisma.creatives.findFirst({ where: { type: 'carrusel', status: 'rechazado' }, orderBy: { created_at: 'desc' }, select: { content: true } }),
   ])
   const upcomingEvents = ctx.upcomingEvents
   const sharedContext = contextToPrompt({ ...ctx, upcomingEvents: [] })
-  const contexto = buildContexto(idea, strategy, trend, upcomingEvents, availableAssets, 'Carrusel', sharedContext)
+  let contexto = buildContexto(idea, strategy, trend, upcomingEvents, availableAssets, 'Carrusel', sharedContext)
+
+  const captionOf = (c: { content: unknown } | null): string | null => {
+    try { return (c?.content as { carousel?: { caption?: string } } | null)?.carousel?.caption ?? null } catch { return null }
+  }
+  // Aprende del último carrusel que el admin YA aprobó: lo usa como referencia de tono (no lo copia).
+  const approvedCaption = captionOf(lastApproved)
+  if (approvedCaption) {
+    contexto += `\n\nREFERENCIA DE ESTILO — un carrusel que el admin YA aprobó (mismo tono premium; NO lo copies, inspírate en su voz): "${approvedCaption.slice(0, 400)}"`
+  }
+  // Aprende de lo RECHAZADO: evita repetir el enfoque que el admin descartó.
+  const rejectedCaption = captionOf(lastRejected)
+  if (rejectedCaption) {
+    contexto += `\n\nEVITAR — un carrusel que el admin RECHAZÓ (NO repitas este enfoque, ángulo ni tono): "${rejectedCaption.slice(0, 400)}"`
+  }
 
   // 3 ángulos distintos generados EN PARALELO (antes secuencial → ~3× más lento).
   const ANGLE_HINTS = [
@@ -221,7 +237,8 @@ async function sugerenciasContenido(ideaText: string) {
     } catch { /* usa el default */ }
   }
 
-  const raw = await ask(
+  const raw = await askMetered(
+    'CONTENIDO',
     `Eres el estratega de contenido de Bahía Social Sports Club (club deportivo premium en Nuevo Vallarta).
 El club tiene una idea/tema y quiere APOYO para crear su propio contenido (reels, historias, posts).
 NO escribas el contenido final ni drafts de IA: da una GUÍA DE PRODUCCIÓN detallada. Propón 3-4 sugerencias DISTINTAS de cómo ejecutar la idea, y detalla cómo se haría cada una.
@@ -347,7 +364,8 @@ async function generateCarousel(
         ? `Esta es una VARIANTE de la MISMA promoción. Usa un ángulo creativo CLARAMENTE distinto a los ya usados: ${avoidAngles.join('; ')}. Mismo objetivo, enfoque persuasivo diferente.`
         : 'Define el "angle": el ángulo creativo del carrusel (su enfoque persuasivo) en pocas palabras.'
 
-  const raw = await ask(
+  const raw = await askMetered(
+    'CONTENIDO',
     `Eres el creador de contenido de Bahía Social Sports Club (club deportivo premium en Nuevo Vallarta, Riviera Nayarit).
 Crea un carrusel promocional de Instagram (pauteable) basado en el briefing.
 ${angleInstruction}
@@ -399,7 +417,8 @@ async function generateReelBrief(contexto: string, idea: ContentIdea | null, eve
     ? `Eventos próximos que puedes usar: ${events.map(e => e.name).join(', ')}.`
     : ''
 
-  return ask(
+  return askMetered(
+    'CONTENIDO',
     `Eres director de contenido de Bahía Social Sports Club (club premium en Nuevo Vallarta).
 La persona que recibe este brief maneja el club — no es camarógrafo, pero tiene buen ojo y ganas.
 Los Reels del club son recorridos de instalaciones, ambiente real, momentos de partidos, lifestyle de fin de semana. Sin trends de baile ni challenges.

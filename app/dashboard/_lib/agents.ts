@@ -43,6 +43,7 @@ export const AGENTS: AgentNav[] = [
 
   // ── Operación ──
   { slug: 'secretaria', label: 'Secretaria', group: 'Operación', kind: 'chat', icon: 'clipboard', blurb: 'Asistente del admin — lee el estado de todos los agentes.', endpoint: '/api/agents/secretaria' },
+  { slug: 'calendario', label: 'Calendario', group: 'Operación', kind: 'data', icon: 'calendar', blurb: 'Qué va a salir y cuándo: eventos, recordatorios, ciclo de contenido y reportes.', endpoint: '/api/agents/calendario' },
   { slug: 'memoria', label: 'Memoria', group: 'Operación', kind: 'data', icon: 'route', blurb: 'El cerebro compartido — qué hizo cada agente, organizado por rama.' },
 
   // ── Gobierno (harness) ──

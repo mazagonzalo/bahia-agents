@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 300 // dispara la generación de 3 variantes (varias llamadas a Claude)
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCron } from '@/lib/cron-auth'
+import { guardCron } from '@/lib/cron-run'
 import { prisma } from '@/lib/db'
 
 // Cron biweekly (1 y 15 de cada mes ≈ cada 14 días): arranca el ciclo de pauta.
@@ -12,6 +13,7 @@ export async function GET(req: NextRequest) {
   const unauthorized = requireCron(req)
   if (unauthorized) return unauthorized
 
+  return guardCron('promo-cycle', async () => {
   const last = await prisma.agent_memory.findFirst({
     where: { agent: 'tendencias', type: 'briefing' },
     orderBy: { created_at: 'desc' },
@@ -50,4 +52,5 @@ export async function GET(req: NextRequest) {
   const data = res ? await res.json().catch(() => ({})) : {}
 
   return NextResponse.json({ ok: true, variants: data.variants?.length ?? 0, ran: new Date().toISOString() })
+  })
 }
