@@ -84,13 +84,22 @@ export async function POST(req: NextRequest) {
   }
 
   const instalacion = idea?.instalacion ?? null
-  const [ctx, availableAssets] = await Promise.all([
+  const [ctx, availableAssets, lastApproved] = await Promise.all([
     getClubContext({ agents: ['contenido'], days: 14 }),
     fetchBestAssets(instalacion),
+    prisma.creatives.findFirst({ where: { type: 'carrusel', status: 'aprobado' }, orderBy: { created_at: 'desc' }, select: { content: true } }),
   ])
   const upcomingEvents = ctx.upcomingEvents
   const sharedContext = contextToPrompt({ ...ctx, upcomingEvents: [] })
-  const contexto = buildContexto(idea, strategy, trend, upcomingEvents, availableAssets, 'Carrusel', sharedContext)
+  let contexto = buildContexto(idea, strategy, trend, upcomingEvents, availableAssets, 'Carrusel', sharedContext)
+
+  // Aprende del último carrusel que el admin YA aprobó: lo usa como referencia de tono (no lo copia).
+  const approvedCaption = (() => {
+    try { return (lastApproved?.content as { carousel?: { caption?: string } } | null)?.carousel?.caption ?? null } catch { return null }
+  })()
+  if (approvedCaption) {
+    contexto += `\n\nREFERENCIA DE ESTILO — un carrusel que el admin YA aprobó (mismo tono premium; NO lo copies, inspírate en su voz): "${approvedCaption.slice(0, 400)}"`
+  }
 
   // 3 ángulos distintos generados EN PARALELO (antes secuencial → ~3× más lento).
   const ANGLE_HINTS = [
