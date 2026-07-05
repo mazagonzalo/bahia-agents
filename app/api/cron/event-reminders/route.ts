@@ -5,6 +5,7 @@ import { requireCron } from '@/lib/cron-auth'
 import { guardCron } from '@/lib/cron-run'
 import { prisma } from '@/lib/db'
 import { sendText } from '@/lib/whatsapp'
+import { CLIENT } from '@/lib/client.config'
 
 // Cron diario: busca eventos que ocurren en los próximos N días y, una sola vez por
 // evento, dispara contenido de recordatorio + avisa al admin. Evita duplicados con
@@ -54,7 +55,7 @@ export async function GET(req: NextRequest) {
       body: JSON.stringify({
         trend: {
           topic: `Recordatorio: ${ev.name}`,
-          angle: `Falta poco para "${ev.name}" (${cuando}) en Bahía Social Sports Club. Genera contenido que lo recuerde e invite a asistir/participar. ${ev.description ?? ''}`,
+          angle: `Falta poco para "${ev.name}" (${cuando}) en ${CLIENT.name}. Genera contenido que lo recuerde e invite a asistir/participar. ${ev.description ?? ''}`,
         },
       }),
     }).catch(() => null)

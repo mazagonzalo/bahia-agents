@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { askMetered } from '@/lib/claude'
 import { sendText } from '@/lib/whatsapp'
+import { CLIENT } from '@/lib/client.config'
 
 export async function POST(req: NextRequest) {
   const { notifyAdmin = true } = await req.json().catch(() => ({}))
@@ -180,7 +181,7 @@ async function getPreviousReport(): Promise<string> {
 }
 
 async function runTendencias(notifyAdmin: boolean) {
-  const region = 'Riviera Nayarit, Bahía de Banderas, Nuevo Vallarta, Puerto Vallarta'
+  const region = CLIENT.location.searchRegion
   const now = new Date()
   const mes = now.toLocaleString('es-MX', { month: 'long', year: 'numeric' })
   const semana = `semana del ${now.toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })}`
@@ -198,40 +199,24 @@ async function runTendencias(notifyAdmin: boolean) {
     ? `\nTEMAS YA CUBIERTOS LA SEMANA PASADA (no repetir como tendencia principal): ${prevTopics.join(', ')}. Busca ángulos nuevos, temas adyacentes o tendencias completamente distintas.`
     : ''
 
-  // Keywords dinámicos: fijos de alto volumen + wellness/lifestyle para no ser repetitivos
-  const keywords = ['padel', 'pickleball', 'natacion', 'wellness mexico', 'vida activa']
-  const adsTerms = [
-    // Mercado general — lifestyle, wellness, turismo deportivo MX
-    'wellness México', 'vida activa familia', 'vacaciones activas México',
-    'resort deportivo', 'actividades Riviera Nayarit', 'membresía fitness premium',
-    // Mercado específico — clubes deportivos sin importar ubicación
-    'club deportivo membresía', 'club pádel', 'club pickleball',
-    'club deportivo familia', 'padel club México', 'social sports club',
-    'club tenis México', 'club raqueta membresía',
-    // Competencia directa zona
-    'club deportivo Vallarta', 'membresía gym Nayarit', 'pádel Puerto Vallarta',
-  ]
+  // Keywords y términos de anuncios — desde el config del cliente.
+  const keywords = CLIENT.trendKeywords
+  const adsTerms = CLIENT.adLibraryTerms
 
-  // PERFIL DEL SOCIO — para filtrar relevancia en todos los prompts
-  const audienceProfile = `AUDIENCIA OBJETIVO DE BAHÍA (filtra TODO por este perfil):
-- Familias premium con hijos (ingreso familiar >$80k MXN/mes), residentes Nuevo Vallarta/Bucerías/La Cruz
-- Parejas jóvenes profesionales 28-45 años con lifestyle activo
-- Turistas norteamericanos y canadienses de alto poder adquisitivo (snowbirds + vacaciones premium)
-- Expats viviendo en la zona Vallarta/Riviera Nayarit
-- Empresarios de Tepic/Guadalajara con segunda residencia en la costa
-DESCARTA cualquier tendencia de: gym low-cost (Smartfit, Sport City masivo), home workouts gratuitos, apps fitness sin costo, rutinas sin equipo, noticias de deporte profesional sin impacto local, tendencias de masa sin conexión a lifestyle premium o comunidad real.`
+  // PERFIL DEL SOCIO — para filtrar relevancia en todos los prompts (config-driven).
+  const audienceProfile = CLIENT.audienceProfile
 
   const [marketRaw, viralRaw, musicRaw, audienceRaw, metaAdsRaw, ...trendsData] = await Promise.all([
     perplexityAsk(
       `${audienceProfile}
 
-Eres analista de tendencias para Bahía Social Sports Club, club deportivo premium en ${region}. Fecha: ${semana} 2026. Responde estas 3 preguntas separadas con ---.
+Eres analista de tendencias para ${CLIENT.name}, ${CLIENT.industry} en ${region}. Fecha: ${semana} 2026. Responde estas 3 preguntas separadas con ---.
 
-1. TENDENCIAS CON IMPACTO REAL EN BAHÍA: Qué temas están generando conversación ESTA SEMANA en redes sociales entre el perfil de audiencia descrito. Busca señales concretas en: torneos o eventos locales en Riviera Nayarit/Vallarta, tendencias wellness premium (cold plunge, recovery, nutrición deportiva, mindfulness activo), familia activa en vacaciones de verano MX, turismo deportivo en la zona, tendencias de comunidad/pertenencia vs individualismo del gym, lifestyle de expats en la costa. Para cada tendencia: por qué importa específicamente a Bahía, qué conversación está generando, señales en redes (hashtags, cuentas, noticias reales).
+1. TENDENCIAS CON IMPACTO REAL EN ${CLIENT.shortName.toUpperCase()}: Qué temas están generando conversación ESTA SEMANA en redes sociales entre el perfil de audiencia descrito. Busca señales concretas en: torneos o eventos locales en ${CLIENT.location.region}, tendencias wellness premium (cold plunge, recovery, nutrición deportiva, mindfulness activo), familia activa en vacaciones de verano MX, turismo deportivo en la zona, tendencias de comunidad/pertenencia vs individualismo del gym, lifestyle de expats en la costa. Para cada tendencia: por qué importa específicamente a ${CLIENT.shortName}, qué conversación está generando, señales en redes (hashtags, cuentas, noticias reales).
 
-2. ESTACIONALIDAD ${mes.toUpperCase()} en Riviera Nayarit: Volumen y perfil del visitante esta semana. Comportamiento real del mercado local en vacaciones escolares de verano. Qué tipo de membresía o actividad busca cada segmento.
+2. ESTACIONALIDAD ${mes.toUpperCase()} en ${CLIENT.location.region}: Volumen y perfil del visitante esta semana. Comportamiento real del mercado local en vacaciones escolares de verano. Qué tipo de membresía o actividad busca cada segmento.
 
-3. COMPETENCIA DIRECTA: 2-3 clubes en Vallarta/Nayarit que compitan directamente con Bahía en el segmento premium (no gyms masivos). Qué mensajes usan en Instagram/TikTok. Qué gap evidente tienen que Bahía puede llenar.`,
+3. COMPETENCIA DIRECTA: 2-3 clubes en ${CLIENT.location.region} que compitan directamente con ${CLIENT.shortName} en el segmento premium (no gyms masivos). Qué mensajes usan en Instagram/TikTok. Qué gap evidente tienen que ${CLIENT.shortName} puede llenar.`,
       'sonar-pro'
     ),
     perplexityAsk(
@@ -241,7 +226,7 @@ Responde estas 2 preguntas sobre contenido en redes para un club deportivo premi
 
 1. FORMATOS VIRALES ESTA SEMANA: 2-3 tipos de Reel/TikTok que están funcionando AHORA para cuentas de deportes premium, wellness de alto nivel o lifestyle en México (<30k seguidores). Para cada formato: qué aparece exactamente en los primeros 3 segundos (plano visual + texto en pantalla), qué emoción activa en el espectador, estructura de edición (cortes, ritmo, duración), y por qué está funcionando en este momento cultural específico.
 
-2. HASHTAGS DE ALTO RENDIMIENTO: Los más efectivos ahora en IG y TikTok para lifestyle deportivo premium en México. 4 masivos (>500k posts), 4 de nicho premium (10k-150k), 3 de Riviera Nayarit/Vallarta/Nayarit. Cuáles tienen mejor engagement-to-reach ratio esta semana.`,
+2. HASHTAGS DE ALTO RENDIMIENTO: Los más efectivos ahora en IG y TikTok para lifestyle deportivo premium en México. 4 masivos (>500k posts), 4 de nicho premium (10k-150k), 3 locales de ${CLIENT.location.region}. Cuáles tienen mejor engagement-to-reach ratio esta semana.`,
       'sonar-pro'
     ),
     perplexityAsk(
@@ -260,7 +245,7 @@ Fecha: ${semana} 2026.`,
       'sonar-pro'
     ),
     perplexityAsk(
-      `¿Qué consume en redes sociales el segmento premium en México y zona Vallarta? Perfil: familias con ingreso alto, expats norteamericanos en Riviera Nayarit, parejas profesionales 28-45 años que van a un club deportivo premium. Qué cuentas siguen, qué formatos guardan o comparten, qué los hace tomar acción (registrarse, compartir, visitar). Sé específico y concreto.`,
+      `¿Qué consume en redes sociales el segmento premium en México y zona ${CLIENT.location.city}? Perfil: familias con ingreso alto, expats norteamericanos en ${CLIENT.location.region}, parejas profesionales 28-45 años que van a un ${CLIENT.industry}. Qué cuentas siguen, qué formatos guardan o comparten, qué los hace tomar acción (registrarse, compartir, visitar). Sé específico y concreto.`,
       'sonar'
     ),
     metaAdsLibrary(adsTerms),
@@ -311,10 +296,10 @@ Fecha: ${semana} 2026.`,
   ].join('\n\n---\n\n')
 
   // Contexto base del club, compartido por ambas llamadas
-  const baseContext = `Eres el estratega de contenido de Bahía Social Sports Club, club deportivo premium en Paseo de los Flamingos, Nuevo Vallarta, Nayarit.
+  const baseContext = `Eres el estratega de contenido de ${CLIENT.name}, ${CLIENT.industry} en ${CLIENT.location.address}.
 
-INSTALACIONES: 8 canchas de pádel techadas + 8 pickleball + tenis · albercas exteriores con asoleadero · gym funcional, spinning, yoga · vestidores premium, salón de belleza, cafetería, salones de eventos · lago natural.
-MEMBRESÍAS: Familiar $6,500 · Pareja $4,500 · Individual $2,500 · Solo Gym $1,800 (mensual).
+INSTALACIONES: ${CLIENT.facilities}
+MEMBRESÍAS: ${CLIENT.membershipsLine}.
 
 ${honestyRule}
 ANTI-REPETICIÓN:${avoidInstruction}
@@ -333,7 +318,7 @@ Devuelve ÚNICAMENTE el JSON, sin markdown:
   // (Iban al final del brief y el modelo los devolvía vacíos; ahora van solos.)
   const tacticalPrompt = `${baseContext}
 Genera el plan TÁCTICO de la semana basado en las tendencias REALES de la investigación.
-REGLAS: exactamente 3 contentOpportunities (una por instalación con oportunidad concreta y momento) y 2 viralPatterns (formatos que están funcionando y cómo adaptarlos a Bahía). Nada genérico de gym.
+REGLAS: exactamente 3 contentOpportunities (una por instalación con oportunidad concreta y momento) y 2 viralPatterns (formatos que están funcionando y cómo adaptarlos a ${CLIENT.shortName}). Nada genérico de gym.
 Devuelve ÚNICAMENTE el JSON, sin markdown:
 {"contentOpportunities":[{"instalacion":"string","oportunidad":"string","momento":"string","formatoIdeal":"string","urgencia":0}],"viralPatterns":[{"pattern":"string","description":"string","whyItWorks":"string","adaptForBahia":"string","differentiator":"string"}]}`
 
@@ -352,7 +337,7 @@ Genera 3 ideas de contenido EJECUTABLES basadas en las tendencias REALES de la i
 - copyStructure.step1/step2/step3: guión real por momento (notas de producción).
 - ${musicRule}
 - trendConnection: conexión directa con una tendencia REAL de la investigación (no inventes).
-FILTRO: cada idea debe pasar "¿un socio que paga $6,500/mes pensaría 'esto es para mí'?". Nada genérico de gym.
+FILTRO: cada idea debe pasar "¿un socio que paga ${CLIENT.topMembershipPrice}/mes pensaría 'esto es para mí'?". Nada genérico de gym.
 Devuelve ÚNICAMENTE el JSON, sin markdown:
 {"contentIdeas":[{"title":"string","format":"Reel","hook":{"text":"string","pattern":"string","triggerWords":["string"]},"copyStructure":{"framework":"PAS","step1":"string","step2":"string","step3":"string","cta":"string"},"platforms":{"reel":"string","tiktok":"string","stories":"string","carrusel":"string"},"music":[{"title":"string","artist":"string","bpm":0,"mood":"string","why":"string"}],"instalacion":"string","targetSegment":"string","hashtags":["#tag"],"trendConnection":"string","urgency":0}]}`
 

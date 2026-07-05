@@ -5,6 +5,7 @@ import { askMetered } from '@/lib/claude'
 import { sendText } from '@/lib/whatsapp'
 import { requireCron } from '@/lib/cron-auth'
 import { guardCron } from '@/lib/cron-run'
+import { CLIENT } from '@/lib/client.config'
 
 export async function GET(req: NextRequest) {
   const unauthorized = requireCron(req)
@@ -51,7 +52,7 @@ export async function GET(req: NextRequest) {
   // Claude genera el resumen ejecutivo (registra costo como SECRETARIA)
   const resumen = await askMetered(
     'SECRETARIA',
-    `Eres la secretaria de Bahía Social Sports Club. Genera un reporte semanal breve y profesional para el administrador.
+    `Eres la secretaria de ${CLIENT.name}. Genera un reporte semanal breve y profesional para el administrador.
 Máximo 6 líneas. Tono ejecutivo. Sin emojis excesivos. Termina con una recomendación concreta para la siguiente semana.`,
     [{
       role: 'user',
