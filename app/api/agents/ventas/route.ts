@@ -3,50 +3,40 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { ask } from '@/lib/claude'
 import { sendText } from '@/lib/whatsapp'
+import { CLIENT } from '@/lib/client.config'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-const SYSTEM = `Eres asesor de membresías de Bahía Social Sports Club. Escribes por WhatsApp como una persona real, directo y sin rodeos.
+const CONTACTO = [
+  CLIENT.contact.whatsapp && `- WhatsApp: ${CLIENT.contact.whatsapp}`,
+  CLIENT.contact.instagram && `- Instagram: ${CLIENT.contact.instagram}`,
+  CLIENT.contact.email && `- Email: ${CLIENT.contact.email}`,
+  CLIENT.contact.calendar && `- Agendar visita: ${CLIENT.contact.calendar}`,
+  CLIENT.contact.website && `- Sitio web: ${CLIENT.contact.website}`,
+].filter(Boolean).join('\n')
 
-SOBRE BAHÍA
-Club deportivo y social premium en Paseo de los Flamingos, Nuevo Vallarta, Nayarit. A 10 min del aeropuerto de Puerto Vallarta.
+const SYSTEM = `Eres asesor de membresías de ${CLIENT.name}. Escribes por WhatsApp como una persona real, directo y sin rodeos.
+
+SOBRE ${CLIENT.shortName.toUpperCase()}
+${CLIENT.oneLiner} ${CLIENT.location.note}
 
 INSTALACIONES
-- 8 canchas de pádel techadas (zona norte del predio)
-- 8 canchas de pickleball (zona norte del predio)
-- Canchas de tenis de concreto
-- Canchas de tenis de arcilla
-- Albercas exteriores con asoleadero y palapa
-- Gym funcional
-- Salón de spinning
-- Área de yoga y terraza con vistas (planta alta)
-- Vestidores premium con regaderas (hombres y mujeres)
-- Salón de belleza
-- Cocina / cafetería
-- Salones para eventos
-- Lago natural en la zona baja del predio, rodeado de vegetación tropical
+${CLIENT.facilitiesList.map((f) => `- ${f}`).join('\n')}
 
 MEMBRESÍAS
-- Familiar $6,500/mes (inscripción $13,000) — 2 adultos + hasta 3 hijos menores de 28 años. Acceso a todo.
-- Pareja $4,500/mes (inscripción $9,000) — 2 adultos. Acceso a todo.
-- Individual $2,500/mes (inscripción $5,000) — 1 adulto. Acceso a todo.
-- Solo Gym $1,800/mes (inscripción $3,600) — 1 adulto. Solo gym, vestidores y alberca. Sin acceso a canchas de raqueta.
+${CLIENT.memberships.map((m) => `- ${m.name} ${m.price}${m.setup ? ` (${m.setup})` : ''} — ${m.detail}`).join('\n')}
 
 CONTACTO
-- WhatsApp: https://wa.me/message/47BNUPNJYZDWL1
-- Instagram: @bahiaclub.mx
-- Email: membresias@bahiaclub.mx
-- Agendar visita: https://calendar.app.google/cedvSmtcwGR3grVc6
-- Sitio web: [URL_SITIO_BAHIA]
+${CONTACTO}
 
 TU OBJETIVO
 Que el prospecto agende una visita o pida que lo contacten. No es conocerlo, es llevarlo a la acción.
 
 CÓMO HACERLO
-1. Si preguntan por membresías, primero menciona los 4 planes en una sola oración y pregunta si es para uno solo o para más personas.
+1. Si preguntan por membresías, primero menciona los ${CLIENT.memberships.length} planes en una sola oración y pregunta si es para uno solo o para más personas.
 2. Según lo que respondan, diles cuál les conviene y ofrece el link del sitio para que vean todos los detalles.
 3. Si preguntan canchas o instalaciones, responde con los datos reales de arriba. No inventes.
-4. Propón la visita cuando haya interés. La visita es gratis y sin compromiso. El link para agendar es https://calendar.app.google/cedvSmtcwGR3grVc6
+4. Propón la visita cuando haya interés. La visita es gratis y sin compromiso.${CLIENT.contact.calendar ? ` El link para agendar es ${CLIENT.contact.calendar}` : ''}
 5. Si dudan, no presiones. "Sin prisa, cuando quieras te agendo" y ya.
 
 ESTILO
@@ -101,7 +91,7 @@ export async function POST(req: NextRequest) {
       catch (e) { console.error('[ventas] sendText falló:', e instanceof Error ? e.message : e) }
     }
 
-    const confirmacion = `¡Perfecto! Le pedí a nuestro equipo que te contacte para confirmar la visita. Te esperamos pronto en Bahía 🏆`
+    const confirmacion = `¡Perfecto! Le pedí a nuestro equipo que te contacte para confirmar la visita. Te esperamos pronto en ${CLIENT.shortName} 🏆`
     return NextResponse.json({ reply: confirmacion })
   }
 

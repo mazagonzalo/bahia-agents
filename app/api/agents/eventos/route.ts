@@ -200,7 +200,7 @@ async function triggerContenido(event: ParsedEvent & { id: string }) {
 
   const trend = {
     topic: event.name,
-    angle: `Evento próximo en Bahía Social Sports Club: ${event.description ?? event.name}. ${cuando}${event.time_of_day ? ` a las ${event.time_of_day}` : ''}. Genera contenido que invite a la comunidad a participar.`,
+    angle: `Evento próximo en ${CLIENT.name}: ${event.description ?? event.name}. ${cuando}${event.time_of_day ? ` a las ${event.time_of_day}` : ''}. Genera contenido que invite a la comunidad a participar.`,
   }
 
   await fetch(`${baseUrl}/api/agents/contenido`, {
@@ -250,7 +250,7 @@ async function generarPoster(message: string, instructions: string) {
 
   const raw = await askMetered(
     'EVENTOS',
-    `Eres el diseñador de pósters de eventos de Bahía Social Sports Club (club deportivo-social premium en Nuevo Vallarta, Nayarit). Genera el CONTENIDO de un póster para redes a partir de la info del evento. Impactante, conciso y aspiracional premium.${trainingNote}
+    `Eres el diseñador de pósters de eventos de ${CLIENT.name} (${CLIENT.industry} en ${CLIENT.location.city}, ${CLIENT.location.state}). Genera el CONTENIDO de un póster para redes a partir de la info del evento. Impactante, conciso y aspiracional premium.${trainingNote}
 Devuelve SOLO este JSON, sin markdown ni texto extra:
 {"title":"nombre del evento, corto e impactante (máx 6 palabras)","subtitle":"una línea de gancho","dateLine":"fecha y hora legible (ej. Sáb 28 jun · 6:00 pm)","location":"lugar dentro del club","bullets":["3 datos clave muy cortos: precio, formato, premio, cupo, etc."],"cta":"llamado a la acción corto (ej. Inscríbete en recepción)","sport":"deporte principal en una palabra"}`,
     [{ role: 'user', content: `INFO DEL EVENTO:\n${message}${instructions ? `\n\nINSTRUCCIÓN DEL ADMIN PARA ESTE PÓSTER: ${instructions}` : ''}` }],

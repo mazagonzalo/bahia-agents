@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { runAgent } from '@/lib/agents/orchestrator'
 import { sendText } from '@/lib/whatsapp'
+import { CLIENT } from '@/lib/client.config'
 
 // POST /api/agents/seguimiento  — llamado por el cron o por el admin.
 //   body.dryRun === true → genera los mensajes y los devuelve SIN enviar (preview).
@@ -11,9 +12,9 @@ import { sendText } from '@/lib/whatsapp'
 // Memoria/entrenamiento: atribuye resultado (bueno/malo) a follow-ups pasados según
 // si el lead avanzó, y reutiliza los mensajes que funcionaron como referencia.
 
-const CLUB = `Bahía Social Sports Club, club deportivo premium en Nuevo Vallarta, Nayarit.
-Instalaciones: 8 canchas pádel, 8 pickleball, tenis, alberca olímpica, gym funcional, spinning, yoga.
-Membresías: Familiar $6,500 · Pareja $4,500 · Individual $2,500 · Solo Gym $1,800 (mensual).`
+const CLUB = `${CLIENT.name}, ${CLIENT.industry} en ${CLIENT.location.city}, ${CLIENT.location.state}.
+Instalaciones: ${CLIENT.facilitiesShort}.
+Membresías: ${CLIENT.membershipsLine}.`
 
 // Avance del embudo (para atribuir resultados). 'frio' = retroceso.
 const STATUS_RANK: Record<string, number> = { nuevo: 0, calificado: 1, citado: 2, cerrado: 3, frio: -1 }
@@ -30,12 +31,12 @@ async function getHistory(leadId: string): Promise<string> {
     select: { role: true, content: true },
   })
   if (!data.length) return 'Sin historial previo.'
-  return data.reverse().map((m) => `${m.role === 'user' ? 'Lead' : 'Bahía'}: ${m.content}`).join('\n')
+  return data.reverse().map((m) => `${m.role === 'user' ? 'Lead' : CLIENT.shortName}: ${m.content}`).join('\n')
 }
 
 async function getTopTrend(): Promise<string> {
   const data = await prisma.trends.findFirst({ orderBy: { created_at: 'desc' }, select: { topic: true } })
-  return data?.topic ?? 'deportes familiares en Riviera Nayarit'
+  return data?.topic ?? `deportes familiares en ${CLIENT.location.region}`
 }
 
 // Mensajes que SÍ funcionaron antes para esta etapa (referencia de estilo).
