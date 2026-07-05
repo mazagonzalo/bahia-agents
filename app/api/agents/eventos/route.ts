@@ -6,6 +6,7 @@ import { askMetered } from '@/lib/claude'
 import { sendText } from '@/lib/whatsapp'
 import { getClubContext } from '@/lib/context'
 import { generateAbstractBackground } from '@/lib/image-gen'
+import { CLIENT } from '@/lib/client.config'
 // POST /api/agents/eventos
 // Recibe texto libre del admin (vía WhatsApp) describiendo un evento,
 // lo parsea con Claude, guarda en club_events y dispara el agente de contenido.
@@ -199,7 +200,7 @@ async function triggerContenido(event: ParsedEvent & { id: string }) {
 
   const trend = {
     topic: event.name,
-    angle: `Evento próximo en Bahía Social Sports Club: ${event.description ?? event.name}. ${cuando}${event.time_of_day ? ` a las ${event.time_of_day}` : ''}. Genera contenido que invite a la comunidad a participar.`,
+    angle: `Evento próximo en ${CLIENT.name}: ${event.description ?? event.name}. ${cuando}${event.time_of_day ? ` a las ${event.time_of_day}` : ''}. Genera contenido que invite a la comunidad a participar.`,
   }
 
   await fetch(`${baseUrl}/api/agents/contenido`, {
@@ -210,19 +211,11 @@ async function triggerContenido(event: ParsedEvent & { id: string }) {
 }
 
 // ─── Póster del evento (diseño branded exportable; sin IA ni Canva) ───────────
-// Usa fotos REALES del club según el deporte. El póster se arma y exporta en el
-// dashboard a partir de este contenido.
-const PHOTO_BY_SPORT: { match: string[]; photo: string }[] = [
-  { match: ['pickle'], photo: '/assets/pickleball-lifestyle.jpg' },
-  { match: ['padel', 'pádel', 'paddle'], photo: '/assets/pickleball-01.jpg' },
-  { match: ['tenis', 'tennis'], photo: '/assets/cancha-tenis-arcilla.jpg' },
-  { match: ['natac', 'alberca', 'nado', 'aqua', 'swim', 'pool'], photo: '/assets/alberca-01.jpg' },
-  { match: ['gym', 'funcional', 'fuerza', 'spinning', 'yoga', 'pilates', 'cross'], photo: '/assets/gym.png' },
-]
-const DEFAULT_PHOTO = '/assets/alberca-restaurante.png' // ambiente premium del club por defecto
+// Usa fotos REALES del cliente según el deporte (config-driven).
+const DEFAULT_PHOTO = CLIENT.photoDefault
 function photoForSport(hint: string): string {
   const s = hint.toLowerCase()
-  for (const { match, photo } of PHOTO_BY_SPORT) if (match.some(m => s.includes(m))) return photo
+  for (const { match, photo } of CLIENT.photoBySport) if (match.some(m => s.includes(m))) return photo
   return DEFAULT_PHOTO
 }
 
@@ -257,7 +250,7 @@ async function generarPoster(message: string, instructions: string) {
 
   const raw = await askMetered(
     'EVENTOS',
-    `Eres el diseñador de pósters de eventos de Bahía Social Sports Club (club deportivo-social premium en Nuevo Vallarta, Nayarit). Genera el CONTENIDO de un póster para redes a partir de la info del evento. Impactante, conciso y aspiracional premium.${trainingNote}
+    `Eres el diseñador de pósters de eventos de ${CLIENT.name} (${CLIENT.industry} en ${CLIENT.location.city}, ${CLIENT.location.state}). Genera el CONTENIDO de un póster para redes a partir de la info del evento. Impactante, conciso y aspiracional premium.${trainingNote}
 Devuelve SOLO este JSON, sin markdown ni texto extra:
 {"title":"nombre del evento, corto e impactante (máx 6 palabras)","subtitle":"una línea de gancho","dateLine":"fecha y hora legible (ej. Sáb 28 jun · 6:00 pm)","location":"lugar dentro del club","bullets":["3 datos clave muy cortos: precio, formato, premio, cupo, etc."],"cta":"llamado a la acción corto (ej. Inscríbete en recepción)","sport":"deporte principal en una palabra"}`,
     [{ role: 'user', content: `INFO DEL EVENTO:\n${message}${instructions ? `\n\nINSTRUCCIÓN DEL ADMIN PARA ESTE PÓSTER: ${instructions}` : ''}` }],

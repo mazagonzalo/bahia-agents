@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { runAgent } from '@/lib/agents/orchestrator'
 import { sendText } from '@/lib/whatsapp'
+import { CLIENT } from '@/lib/client.config'
 const META_BASE = 'https://graph.facebook.com/v19.0'
 const AD_ACCOUNT = process.env.META_AD_ACCOUNT_ID
 
@@ -52,7 +53,7 @@ async function publishCampaigns(creativeIds: string[]) {
     const trend = (creative.content as { trend?: { topic?: string; angle?: string } } | null)?.trend
 
     // El agente META_ADS define la audiencia óptima (registra AgentRunLog).
-    const audience = { age_min: 25, age_max: 55, genders: [1, 2] as number[], interests: [] as string[], cities: ['Nuevo Vallarta', 'Bucerías', 'Puerto Vallarta'], budget_daily: 2500 }
+    const audience = { age_min: CLIENT.adTargeting.ageMin, age_max: CLIENT.adTargeting.ageMax, genders: [...CLIENT.adTargeting.genders] as number[], interests: [] as string[], cities: [...CLIENT.location.adCities], budget_daily: CLIENT.adTargeting.budgetDaily }
     try {
       const result = await runAgent(
         'META_ADS',

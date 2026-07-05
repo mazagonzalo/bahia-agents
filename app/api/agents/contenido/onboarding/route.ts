@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { anthropic } from '@/lib/claude'
+import { CLIENT } from '@/lib/client.config'
 
 // POST /api/agents/contenido/onboarding
 // Recibe una imagen (URL pública) o un asset ya en Supabase Storage,
@@ -72,7 +73,7 @@ async function analyzeAsset(imageUrl: string): Promise<AssetAnalysis | null> {
         },
         {
           type: 'text',
-          text: `Eres el estratega de contenido de Bahía Social Sports Club, club deportivo premium en Nuevo Vallarta, Nayarit.
+          text: `Eres el estratega de contenido de ${CLIENT.name}, ${CLIENT.industry} en ${CLIENT.location.city}, ${CLIENT.location.state}.
 Analiza esta foto/imagen del club y devuelve SOLO el siguiente JSON sin markdown:
 
 {
