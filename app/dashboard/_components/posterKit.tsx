@@ -1,7 +1,11 @@
-// Kit de diseño premium compartido por las piezas visuales de Bahía (póster de
-// Eventos, carrusel de Contenido). Fuente única para serif, grano, acentos de
-// paleta y el fondo de marca en capas. Todo se exporta bien con html-to-image.
+// Kit de diseño premium compartido por las piezas visuales (póster de Eventos,
+// carrusel de Contenido). Fuente única para serif, grano y el fondo de marca en
+// capas. La MARCA (logo, wordmark, acentos) viene de client.config → config-driven.
+// Todo se exporta bien con html-to-image.
 import type { CSSProperties } from 'react'
+import { CLIENT, type Accent } from '@/lib/client.config'
+
+export type { Accent }
 
 export const SERIF = 'var(--font-serif, Georgia, "Times New Roman", serif)'
 
@@ -9,21 +13,13 @@ export const SERIF = 'var(--font-serif, Georgia, "Times New Roman", serif)'
 export const GRAIN =
   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")"
 
-// Acentos de la paleta Bahía — NO todo es dorado: cada deporte/tema usa su color.
+// Acento por deporte/tema — desde el config del cliente (NO todo es dorado).
 // `glow` es "r,g,b" para rgba() de los meshes y hairlines.
-export type Accent = { main: string; light: string; glow: string }
-export const ACCENT_GOLD: Accent = { main: '#C9A85C', light: '#E4C786', glow: '201,168,92' }
-const ACCENT_BY_SPORT: { match: string[]; accent: Accent }[] = [
-  { match: ['padel', 'pádel', 'paddle'], accent: { main: '#5B79D6', light: '#9DB2EE', glow: '91,121,214' } },   // azul Bahía
-  { match: ['pickle'], accent: { main: '#D98558', light: '#EBB093', glow: '217,133,88' } },                     // coral/terracota
-  { match: ['tenis', 'tennis'], accent: ACCENT_GOLD },                                                          // oro clásico
-  { match: ['natac', 'alberca', 'nado', 'aqua', 'swim', 'pool'], accent: { main: '#5B79D6', light: '#9DB2EE', glow: '91,121,214' } },
-  { match: ['gym', 'funcional', 'fuerza', 'spinning', 'yoga', 'pilates', 'cross'], accent: { main: '#8AA088', light: '#B3C6AF', glow: '138,160,136' } }, // sage
-]
+export const ACCENT_DEFAULT: Accent = CLIENT.brand.accentDefault
 export function accentForSport(hint: string): Accent {
   const s = (hint || '').toLowerCase()
-  for (const { match, accent } of ACCENT_BY_SPORT) if (match.some(m => s.includes(m))) return accent
-  return ACCENT_GOLD
+  for (const { match, accent } of CLIENT.brand.accentBySport) if (match.some(m => s.includes(m))) return accent
+  return CLIENT.brand.accentDefault
 }
 
 // Fondo de marca en capas: foto opcional + gradiente cinematográfico + viñeta +
@@ -47,33 +43,27 @@ export function BrandBackdrop({ accent, photo }: { accent: Accent; photo?: strin
   )
 }
 
-// Isotipo de ballena Bahía por color de acento (assets reales en /public/assets).
-const WHALE_BY_ACCENT: Record<string, string> = {
-  '91,121,214': '/assets/whale-blue.png',
-  '201,168,92': '/assets/whale-gold.png',
-  '138,160,136': '/assets/whale-sage.png',
-  '217,133,88': '/assets/whale-cream.png', // no hay coral → cream neutro
-}
+// Isotipo/logo del cliente por color de acento (config-driven).
 export function whaleLogo(accent: Accent): string {
-  return WHALE_BY_ACCENT[accent.glow] ?? '/assets/whale-cream.png'
+  return CLIENT.brand.logoByGlow[accent.glow] ?? CLIENT.brand.logoDefault
 }
-export const WHALE_WATERMARK = '/assets/whale-cream.png'
+export const WHALE_WATERMARK = CLIENT.brand.logoWatermark
 
-// Firma de marca: isotipo de ballena + "BAHÍA / SOCIAL SPORTS CLUB" (lockup real).
+// Firma de marca: isotipo + wordmark + tagline (todo desde el config del cliente).
 export function LogoLockup({ accent, size = 34 }: { accent: Accent; size?: number }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: size * 0.34 }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={whaleLogo(accent)} alt="Bahía" style={{ height: size, width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
+      <img src={whaleLogo(accent)} alt={CLIENT.shortName} style={{ height: size, width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
       <div>
-        <div style={{ fontFamily: SERIF, fontSize: size * 0.6, letterSpacing: size * 0.15, color: '#F5EFE2', fontWeight: 600, lineHeight: 1 }}>BAHÍA</div>
-        <div style={{ fontSize: size * 0.21, letterSpacing: size * 0.1, color: accent.light, textTransform: 'uppercase', marginTop: 4 }}>Social Sports Club</div>
+        <div style={{ fontFamily: SERIF, fontSize: size * 0.6, letterSpacing: size * 0.15, color: CLIENT.brand.wordmarkColor, fontWeight: 600, lineHeight: 1 }}>{CLIENT.brand.wordmark}</div>
+        <div style={{ fontSize: size * 0.21, letterSpacing: size * 0.1, color: accent.light, textTransform: 'uppercase', marginTop: 4 }}>{CLIENT.brand.tagline}</div>
       </div>
     </div>
   )
 }
 
-// Ballena grande de fondo (elemento gráfico + marca), muy sutil. Sangra por un borde.
+// Isotipo grande de fondo (elemento gráfico + marca), muy sutil. Sangra por un borde.
 export function WhaleWatermark() {
   return (
     // eslint-disable-next-line @next/next/no-img-element
@@ -85,12 +75,12 @@ export function WhaleWatermark() {
   )
 }
 
-// Wordmark de marca reutilizable (solo texto).
+// Wordmark de marca reutilizable (solo texto), desde el config del cliente.
 export function Wordmark({ accent, size = 26 }: { accent: Accent; size?: number }) {
   return (
     <div>
-      <div style={{ fontFamily: SERIF, fontSize: size, letterSpacing: size * 0.3, color: '#F5EFE2', fontWeight: 600, lineHeight: 1 }}>BAHÍA</div>
-      <div style={{ fontSize: size * 0.33, letterSpacing: size * 0.15, color: accent.light, textTransform: 'uppercase', marginTop: 5 }}>Social Sports Club</div>
+      <div style={{ fontFamily: SERIF, fontSize: size, letterSpacing: size * 0.3, color: CLIENT.brand.wordmarkColor, fontWeight: 600, lineHeight: 1 }}>{CLIENT.brand.wordmark}</div>
+      <div style={{ fontSize: size * 0.33, letterSpacing: size * 0.15, color: accent.light, textTransform: 'uppercase', marginTop: 5 }}>{CLIENT.brand.tagline}</div>
     </div>
   )
 }

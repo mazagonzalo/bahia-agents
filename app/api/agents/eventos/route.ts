@@ -6,6 +6,7 @@ import { askMetered } from '@/lib/claude'
 import { sendText } from '@/lib/whatsapp'
 import { getClubContext } from '@/lib/context'
 import { generateAbstractBackground } from '@/lib/image-gen'
+import { CLIENT } from '@/lib/client.config'
 // POST /api/agents/eventos
 // Recibe texto libre del admin (vía WhatsApp) describiendo un evento,
 // lo parsea con Claude, guarda en club_events y dispara el agente de contenido.
@@ -210,19 +211,11 @@ async function triggerContenido(event: ParsedEvent & { id: string }) {
 }
 
 // ─── Póster del evento (diseño branded exportable; sin IA ni Canva) ───────────
-// Usa fotos REALES del club según el deporte. El póster se arma y exporta en el
-// dashboard a partir de este contenido.
-const PHOTO_BY_SPORT: { match: string[]; photo: string }[] = [
-  { match: ['pickle'], photo: '/assets/pickleball-lifestyle.jpg' },
-  { match: ['padel', 'pádel', 'paddle'], photo: '/assets/pickleball-01.jpg' },
-  { match: ['tenis', 'tennis'], photo: '/assets/cancha-tenis-arcilla.jpg' },
-  { match: ['natac', 'alberca', 'nado', 'aqua', 'swim', 'pool'], photo: '/assets/alberca-01.jpg' },
-  { match: ['gym', 'funcional', 'fuerza', 'spinning', 'yoga', 'pilates', 'cross'], photo: '/assets/gym.png' },
-]
-const DEFAULT_PHOTO = '/assets/alberca-restaurante.png' // ambiente premium del club por defecto
+// Usa fotos REALES del cliente según el deporte (config-driven).
+const DEFAULT_PHOTO = CLIENT.photoDefault
 function photoForSport(hint: string): string {
   const s = hint.toLowerCase()
-  for (const { match, photo } of PHOTO_BY_SPORT) if (match.some(m => s.includes(m))) return photo
+  for (const { match, photo } of CLIENT.photoBySport) if (match.some(m => s.includes(m))) return photo
   return DEFAULT_PHOTO
 }
 
