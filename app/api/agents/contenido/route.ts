@@ -6,6 +6,7 @@ import { prisma } from '@/lib/db'
 import { askMetered } from '@/lib/claude'
 import { sendText } from '@/lib/whatsapp'
 import { getClubContext, contextToPrompt, type ClubEvent } from '@/lib/context'
+import { CLIENT } from '@/lib/client.config'
 
 type ContentIdea = {
   title: string
@@ -239,13 +240,13 @@ async function sugerenciasContenido(ideaText: string) {
 
   const raw = await askMetered(
     'CONTENIDO',
-    `Eres el estratega de contenido de Bahía Social Sports Club (club deportivo premium en Nuevo Vallarta).
+    `Eres el estratega de contenido de ${CLIENT.name} (${CLIENT.industry} en ${CLIENT.location.city}).
 El club tiene una idea/tema y quiere APOYO para crear su propio contenido (reels, historias, posts).
 NO escribas el contenido final ni drafts de IA: da una GUÍA DE PRODUCCIÓN detallada. Propón 3-4 sugerencias DISTINTAS de cómo ejecutar la idea, y detalla cómo se haría cada una.
 
 ${BRAND_VOICE}
 
-CALIFICACIÓN (score 0-10): combina (a) alineación con las tendencias de la semana, (b) encaje con la VOZ DE MARCA Bahía, y (c) fuerza del gancho. El campo "why" debe nombrar esos factores.
+CALIFICACIÓN (score 0-10): combina (a) alineación con las tendencias de la semana, (b) encaje con la VOZ DE MARCA de ${CLIENT.shortName}, y (c) fuerza del gancho. El campo "why" debe nombrar esos factores.
 ${CAPTION_GUIDE}
 
 Devuelve SOLO este JSON, sin markdown:
@@ -366,7 +367,7 @@ async function generateCarousel(
 
   const raw = await askMetered(
     'CONTENIDO',
-    `Eres el creador de contenido de Bahía Social Sports Club (club deportivo premium en Nuevo Vallarta, Riviera Nayarit).
+    `Eres el creador de contenido de ${CLIENT.name} (${CLIENT.industry} en ${CLIENT.location.region}).
 Crea un carrusel promocional de Instagram (pauteable) basado en el briefing.
 ${angleInstruction}
 
@@ -380,7 +381,7 @@ ESTRUCTURA (usa SOLO los slides que el contenido pida — entre 2 y 8. MENOS pue
 REGLAS DE COPY (sin excepción):
 - Tutéa al lector: "tú", "tu cancha", "tu nivel"
 - Máximo 30 palabras por body de slide
-- Sé específico: no "excelentes instalaciones" → "8 canchas de pádel + 8 de pickleball + alberca olímpica"
+- Sé específico: no "excelentes instalaciones" → "${CLIENT.facilitiesShort}"
 - Sin palabras de relleno: "fundamental", "crucial", "sin duda", "aprovecha al máximo"
 - Varía el ritmo: mezcla frases cortas con frases un poco más largas
 - Menciona eventos próximos con nombre y fecha si son relevantes
@@ -419,7 +420,7 @@ async function generateReelBrief(contexto: string, idea: ContentIdea | null, eve
 
   return askMetered(
     'CONTENIDO',
-    `Eres director de contenido de Bahía Social Sports Club (club premium en Nuevo Vallarta).
+    `Eres director de contenido de ${CLIENT.name} (${CLIENT.industry} en ${CLIENT.location.city}).
 La persona que recibe este brief maneja el club — no es camarógrafo, pero tiene buen ojo y ganas.
 Los Reels del club son recorridos de instalaciones, ambiente real, momentos de partidos, lifestyle de fin de semana. Sin trends de baile ni challenges.
 ${eventNote}

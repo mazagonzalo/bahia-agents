@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { ask } from '@/lib/claude'
 import { prisma } from '@/lib/db'
+import { CLIENT } from '@/lib/client.config'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -38,7 +39,7 @@ async function findMentionedLeads(text: string): Promise<string> {
     })
     if (conv.length) {
       lines.push('  Conversación reciente:')
-      conv.reverse().forEach(m => lines.push(`    ${m.role === 'user' ? 'Lead' : 'Bahía'}: ${typeof m.content === 'string' ? m.content.slice(0, 140) : ''}`))
+      conv.reverse().forEach(m => lines.push(`    ${m.role === 'user' ? 'Lead' : CLIENT.shortName}: ${typeof m.content === 'string' ? m.content.slice(0, 140) : ''}`))
     }
   }
   return lines.join('\n')
@@ -226,7 +227,7 @@ export async function POST(req: NextRequest) {
   ])
 
   const reply = await ask(
-    `Eres la secretaria del sistema de agentes de marketing de Bahía Social Sports Club.
+    `Eres la secretaria del sistema de agentes de marketing de ${CLIENT.name}.
 Tienes MEMORIA: recuerdas esta conversación (mensajes anteriores) y conoces el historial de todos los agentes.
 Respondes preguntas del admin con DATOS REALES. Conciso y directo (máx 6 líneas salvo que pidan detalle).
 - Si el admin se refiere a algo que ya hablaron ("¿y ese?", "el que dije"), usa el hilo de conversación.

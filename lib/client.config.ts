@@ -79,11 +79,15 @@ DESCARTA cualquier tendencia de: gym low-cost (Smartfit, Sport City masivo), hom
   // ── Tendencias ───────────────────────────────────────────────────────────────
   trendKeywords: ['padel', 'pickleball', 'natacion', 'wellness mexico', 'vida activa'],
   adLibraryTerms: [
+    // Mercado general — lifestyle, wellness, turismo deportivo MX
     'wellness México', 'vida activa familia', 'vacaciones activas México',
-    'resort deportivo', 'membresía fitness premium',
+    'resort deportivo', 'actividades Riviera Nayarit', 'membresía fitness premium',
+    // Mercado específico — clubes deportivos sin importar ubicación
     'club deportivo membresía', 'club pádel', 'club pickleball',
     'club deportivo familia', 'padel club México', 'social sports club',
     'club tenis México', 'club raqueta membresía',
+    // Competencia directa zona
+    'club deportivo Vallarta', 'membresía gym Nayarit', 'pádel Puerto Vallarta',
   ],
 
   // ── Voz de marca (contenido) ─────────────────────────────────────────────────
