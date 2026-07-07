@@ -117,6 +117,10 @@ DESCARTA cualquier tendencia de: gym low-cost (Smartfit, Sport City masivo), hom
     wordmark: 'BAHÍA',
     tagline: 'Social Sports Club',
     navy: '#0A1024',        // fondo base del panel/pieza
+    navyRgb: '10,16,36',    // mismo navy en r,g,b para rgba() de los scrims
+    navyRaised: '#101A33',  // tono más claro (top de gradientes)
+    navyPanel: '#0C1428',   // tono del panel de marca (híbrido)
+    navyDeep: '#070B18',    // tono más oscuro (fondo)
     wordmarkColor: '#F5EFE2', // color del wordmark (crema neutro)
     // Acentos de paleta — el color varía por deporte/tema (no todo es dorado).
     accentDefault: { main: '#C9A85C', light: '#E4C786', glow: '201,168,92' } as Accent, // oro

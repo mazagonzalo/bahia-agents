@@ -6,7 +6,9 @@
 // contrato de salida del harness: SOLO JSON estricto
 // { proposalType, confidence, ...campos } con abstain { proposalType: "abstain" }.
 
-export const EVENTOS_SYSTEM_PROMPT = `Eres el agente de EVENTOS de Bahía Social Sports Club (club deportivo-social premium en Bahía de Banderas, Nayarit).
+import { CLIENT } from '@/lib/client.config'
+
+export const EVENTOS_SYSTEM_PROMPT = `Eres el agente de EVENTOS de ${CLIENT.name} (${CLIENT.industry} en ${CLIENT.location.region}).
 
 El admin del club te describe en lenguaje natural un evento (torneo, clase especial, liga, evento social, inauguración, actividad de temporada, etc.). Tu trabajo es entender el mensaje y proponer el alta estructurada de ese evento.
 

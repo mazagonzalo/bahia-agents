@@ -68,12 +68,30 @@ Divide en **tuyas** (reutilizables) y **del cliente** (nuevas cada vez):
 > Las de canales (WhatsApp/Meta/Google) se pueden dejar vacías al inicio: el sistema funciona sin
 > ellas (esos agentes quedan "listos, requieren conexión") y se llenan cuando el cliente conecte.
 
-## 5. Personalizar al cliente  ⏳ *(pendiente del refactor "neutro")*
-Hoy los datos de la empresa (nombre, industria, instalaciones, precios, voz de marca, paleta, logo,
-fotos) están **repartidos en el código** (~104 líneas). Por ahora: buscar/reemplazar los de Bahía.
+### Opcionales (features que quedan apagadas si faltan)
+| Variable | Qué activa |
+|---|---|
+| `OPENAI_API_KEY` | Fondo abstracto generado para pósters de eventos sin foto (si falta, usa la foto por defecto) |
+| `IA_BUDGET_USD` | Tope de gasto mensual de IA para la alerta de presupuesto (default $40) |
 
-**Después del refactor neutro** será: editar **un solo archivo** `lib/client.config.ts` + cambiar los
-assets en `public/brand/`. → *(este paso se actualizará cuando hagamos ese refactor.)*
+## 5. Personalizar al cliente — editar `lib/client.config.ts` ✅
+El sistema es **config-driven**: toda la identidad de la empresa vive en **un solo archivo**,
+`lib/client.config.ts`. No hay datos de cliente quemados en el código de los agentes (`grep` de
+identidad en `app/api/` = 0). Edita ese archivo con los datos del cliente:
+
+- **Negocio:** `name`, `shortName`, `industry`, `location` (dirección, ciudad, región, ciudades de anuncios), `facilities` / `facilitiesList`, `memberships` (planes/precios), `contact` (IG/email/WhatsApp/calendario).
+- **Marketing:** `audienceProfile`, `trendKeywords`, `adLibraryTerms`, `brandVoice`, `adTargeting`.
+- **Marca visual (`brand`):** `wordmark`, `tagline`, `wordmarkColor`, tonos de `navy`, `accentDefault` + `accentBySport` (paleta por deporte/tema), `logoByGlow` (isotipo por color de acento), `logoWatermark`.
+- **Fotos / logos:** reemplaza las imágenes en **`public/assets/`** (fotos reales por deporte de `photoBySport`/`photoDefault`, y los isotipos/logos que apunta `brand.logoByGlow`/`logoWatermark`).
+
+> Los agentes en vivo **y** los prompts semilla del harness (`lib/agents/prompts/*`) leen de este
+> config. Editas `client.config.ts` + cambias imágenes y con eso el sistema queda con la marca del cliente.
+
+## 5b. Sembrar los prompts del cliente
+Los prompts del harness se guardan en la base. Tras editar el config, siémbralos:
+```bash
+npm run harness:seed      # escribe en la base los prompts ya con los datos del cliente
+```
 
 ## 6. Desplegar
 ```bash
@@ -98,4 +116,4 @@ vercel deploy --prod
 | Datos (leads, memoria…) | ❌ No — base nueva vacía por cliente |
 | Llaves de IA (Claude, Perplexity) | ♻️ Reutilizables (tuyas) |
 | Cuentas del cliente (Meta/WhatsApp/Google) | ❌ Nuevas por cliente |
-| Config de marca (nombre, precios, paleta) | ⏳ Un solo archivo, tras el refactor neutro |
+| Config de marca (nombre, precios, paleta, logo) | ✅ Un solo archivo: `lib/client.config.ts` + imágenes en `public/assets/` |
