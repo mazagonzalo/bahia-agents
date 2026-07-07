@@ -2,7 +2,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { toPng } from 'html-to-image'
 import { PageHeader, Card, SectionTitle, Badge, T } from '../_components/ui'
-import { SERIF, accentForSport, BrandBackdrop, Wordmark } from '../_components/posterKit'
+import { SERIF, NAVY, accentForSport, BrandBackdrop, Wordmark } from '../_components/posterKit'
 
 const nf = (n: number) => n.toLocaleString('es-MX')
 
@@ -122,7 +122,7 @@ function CarouselVisual({ carousel }: { carousel: Carousel }) {
           <div
             key={s.slide}
             ref={el => { refs.current[i] = el }}
-            style={{ flexShrink: 0, width: 288, aspectRatio: '4 / 5', position: 'relative', overflow: 'hidden', background: '#0A1024', color: '#fff', boxShadow: '0 18px 44px -22px rgba(0,0,0,0.7)' }}
+            style={{ flexShrink: 0, width: 288, aspectRatio: '4 / 5', position: 'relative', overflow: 'hidden', background: NAVY, color: '#fff', boxShadow: '0 18px 44px -22px rgba(0,0,0,0.7)' }}
           >
             <BrandBackdrop accent={a} />
             <div style={{ position: 'relative', zIndex: 2, height: '100%', display: 'flex', flexDirection: 'column', padding: 26, boxSizing: 'border-box' }}>

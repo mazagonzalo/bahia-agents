@@ -13,6 +13,12 @@ export const SERIF = 'var(--font-serif, Georgia, "Times New Roman", serif)'
 export const GRAIN =
   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")"
 
+// Tonos de navy de la marca (config-driven) — para fondos de piezas/paneles.
+export const NAVY = CLIENT.brand.navy
+export const NAVY_RGB = CLIENT.brand.navyRgb
+export const NAVY_PANEL = CLIENT.brand.navyPanel
+export const NAVY_DEEP = CLIENT.brand.navyDeep
+
 // Acento por deporte/tema — desde el config del cliente (NO todo es dorado).
 // `glow` es "r,g,b" para rgba() de los meshes y hairlines.
 export const ACCENT_DEFAULT: Accent = CLIENT.brand.accentDefault
@@ -27,14 +33,15 @@ export function accentForSport(hint: string): Accent {
 // el contenedor padre (que debe ser position:relative).
 export function BrandBackdrop({ accent, photo }: { accent: Accent; photo?: string }) {
   const layer: CSSProperties = { position: 'absolute', inset: 0, pointerEvents: 'none' }
+  const { navy, navyRgb, navyRaised, navyDeep } = CLIENT.brand
   return (
     <>
       {photo && <div style={{ ...layer, background: `url(${photo}) center/cover no-repeat` }} />}
       {/* Con foto: gradiente oscuro para legibilidad. Sin foto: navy suave con profundidad. */}
       <div style={{ ...layer, background: photo
-        ? 'linear-gradient(180deg, rgba(10,16,36,0.15) 0%, rgba(10,16,36,0.40) 42%, rgba(10,16,36,0.82) 74%, rgba(8,12,26,0.96) 100%)'
-        : 'linear-gradient(160deg, #101A33 0%, #0A1024 55%, #070B18 100%)' }} />
-      <div style={{ ...layer, background: 'radial-gradient(120% 90% at 50% 22%, transparent 40%, rgba(6,9,20,0.55) 100%)' }} />
+        ? `linear-gradient(180deg, rgba(${navyRgb},0.15) 0%, rgba(${navyRgb},0.40) 42%, rgba(${navyRgb},0.82) 74%, rgba(${navyRgb},0.97) 100%)`
+        : `linear-gradient(160deg, ${navyRaised} 0%, ${navy} 55%, ${navyDeep} 100%)` }} />
+      <div style={{ ...layer, background: `radial-gradient(120% 90% at 50% 22%, transparent 40%, rgba(${navyRgb},0.55) 100%)` }} />
       <div style={{ ...layer, background: `radial-gradient(62% 46% at 22% 82%, rgba(${accent.glow},${photo ? 0.24 : 0.30}) 0%, transparent 62%)` }} />
       <div style={{ ...layer, background: 'radial-gradient(48% 38% at 90% 12%, rgba(255,255,255,0.07) 0%, transparent 60%)' }} />
       <div style={{ ...layer, backgroundImage: GRAIN, backgroundRepeat: 'repeat', opacity: 0.10, mixBlendMode: 'overlay' }} />

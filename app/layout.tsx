@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
+import type { CSSProperties } from 'react'
 import { Inter, Sora, Cormorant_Garamond } from 'next/font/google'
 import { ClerkProvider } from '@clerk/nextjs'
+import { CLIENT } from '@/lib/client.config'
 import './globals.css'
 
 const inter = Inter({
@@ -25,9 +27,15 @@ const cormorant = Cormorant_Garamond({
 })
 
 export const metadata: Metadata = {
-  title: 'Bahía · Agentes de Marketing IA',
-  description: 'Panel de control de los agentes de marketing IA del Bahía Social Sports Club.',
+  title: CLIENT.brand.appTitle,
+  description: CLIENT.brand.appDescription,
 }
+
+// Marca del cliente inyectada como CSS variables (color primario + watermark de página).
+const brandVars = {
+  ['--color-primary']: CLIENT.brand.primaryColor,
+  ['--brand-watermark']: `url('${CLIENT.brand.pageWatermark}')`,
+} as CSSProperties
 
 export default function RootLayout({
   children,
@@ -35,7 +43,7 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="es" className={`${inter.variable} ${sora.variable} ${cormorant.variable}`}>
-        <body style={{ fontFamily: 'var(--font-inter, sans-serif)' }}>
+        <body style={{ fontFamily: 'var(--font-inter, sans-serif)', ...brandVars }}>
           {children}
         </body>
       </html>

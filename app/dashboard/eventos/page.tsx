@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { toPng } from 'html-to-image'
 import { T, Card, SectionTitle, Badge, PageHeader } from '../_components/ui'
 import { TriggerPanel } from '../_components/TriggerPanel'
-import { SERIF, GRAIN, accentForSport, LogoLockup, WhaleWatermark } from '../_components/posterKit'
+import { SERIF, GRAIN, NAVY, NAVY_RGB, NAVY_PANEL, NAVY_DEEP, accentForSport, LogoLockup, WhaleWatermark } from '../_components/posterKit'
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
 type Evento = {
@@ -89,21 +89,21 @@ function PosterCard({ poster, innerRef }: { poster: Poster; innerRef: React.RefO
       ref={innerRef}
       style={{
         width: 540, aspectRatio: '4 / 5', position: 'relative', overflow: 'hidden',
-        background: '#0A1024', color: '#fff', boxShadow: '0 30px 80px -30px rgba(0,0,0,0.7)',
+        background: NAVY, color: '#fff', boxShadow: '0 30px 80px -30px rgba(0,0,0,0.7)',
         display: 'flex', flexDirection: 'column',
       }}
     >
       {/* Franja de foto real (arriba) */}
       <div style={{ position: 'relative', height: '42%', flexShrink: 0, overflow: 'hidden' }}>
         <div style={{ position: 'absolute', inset: 0, background: `url(${poster.photo}) center/cover no-repeat` }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(10,16,36,0.10) 0%, rgba(10,16,36,0.05) 52%, rgba(10,16,36,0.9) 100%)' }} />
+        <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(180deg, rgba(${NAVY_RGB},0.10) 0%, rgba(${NAVY_RGB},0.05) 52%, rgba(${NAVY_RGB},0.9) 100%)` }} />
         {poster.sport && (
-          <span style={{ position: 'absolute', top: 26, right: 28, fontSize: 10, letterSpacing: 2.5, textTransform: 'uppercase', border: `1px solid rgba(${a.glow},0.75)`, color: '#fff', background: 'rgba(10,16,36,0.35)', padding: '6px 13px', borderRadius: 999 }}>{poster.sport}</span>
+          <span style={{ position: 'absolute', top: 26, right: 28, fontSize: 10, letterSpacing: 2.5, textTransform: 'uppercase', border: `1px solid rgba(${a.glow},0.75)`, color: '#fff', background: `rgba(${NAVY_RGB},0.35)`, padding: '6px 13px', borderRadius: 999 }}>{poster.sport}</span>
         )}
       </div>
 
       {/* Panel de marca (abajo) */}
-      <div style={{ position: 'relative', flex: 1, overflow: 'hidden', background: 'linear-gradient(180deg, #0C1428 0%, #0A1024 60%, #070B18 100%)' }}>
+      <div style={{ position: 'relative', flex: 1, overflow: 'hidden', background: `linear-gradient(180deg, ${NAVY_PANEL} 0%, ${NAVY} 60%, ${NAVY_DEEP} 100%)` }}>
         <WhaleWatermark />
         <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(62% 60% at 20% 92%, rgba(${a.glow},0.22) 0%, transparent 62%)`, pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', inset: 0, backgroundImage: GRAIN, backgroundRepeat: 'repeat', opacity: 0.09, mixBlendMode: 'overlay', pointerEvents: 'none' }} />
