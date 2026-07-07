@@ -140,6 +140,13 @@ DESCARTA cualquier tendencia de: gym low-cost (Smartfit, Sport City masivo), hom
     } as Record<string, string>,
     logoDefault: '/assets/whale-cream.png',
     logoWatermark: '/assets/whale-cream.png',
+
+    // ── Dashboard (chrome del panel del admin) ──
+    sidebarLogo: '/assets/whale-gold.png',   // logo del sidebar
+    pageWatermark: '/assets/whale-white.png', // marca de agua sutil en cada página
+    primaryColor: '#C9A85C',                  // color primario del tema (--color-primary)
+    appTitle: 'Bahía · Agentes de Marketing IA',
+    appDescription: 'Panel de control de los agentes de marketing IA del Bahía Social Sports Club.',
   },
 }
 
